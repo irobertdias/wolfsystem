@@ -90,8 +90,8 @@ export default function Conciliacao() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : extratos.length === 0 ? (
           <div style={{ ...card, padding: "52px 24px", textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><Icone nome="check" tamanho={26} /></div>
-            <h3 style={{ color: "#059669", fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>Tudo conciliado!</h3>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}><Icone nome="check" tamanho={26} /></div>
+            <h3 style={{ color: "var(--w-600)", fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>Tudo conciliado!</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Importe um extrato (OFX) em <b>Importar extrato</b> pra trazer novas linhas.</p>
           </div>
         ) : (
@@ -105,12 +105,12 @@ export default function Conciliacao() {
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{ex.descricao}</div>
                     <div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(ex.data)} · {nomeConta(ex.conta_id)}</div>
                   </div>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: credito ? "#059669" : "#dc2626", minWidth: 110, textAlign: "right" }}>{credito ? "+" : "-"}{brl(ex.valor)}</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: credito ? "var(--w-600)" : "#dc2626", minWidth: 110, textAlign: "right" }}>{credito ? "+" : "-"}{brl(ex.valor)}</div>
                   <select value={sel[ex.id] || ""} onChange={(e) => setSel((p) => ({ ...p, [ex.id]: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: "1px solid #E6ECEA", fontSize: 13, minWidth: 230, color: "#0F172A", background: "#fff" }}>
                     <option value="">{cand.length ? `Escolher lançamento (${cand.length})…` : "Sem correspondência"}</option>
                     {cand.map((l) => <option key={l.id} value={l.id}>{l.descricao} — {dataBR(l.vencimento)}</option>)}
                   </select>
-                  <button onClick={() => conciliar(ex)} disabled={!sel[ex.id]} style={{ background: sel[ex.id] ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)" : "#E6ECEA", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: sel[ex.id] ? "pointer" : "default", boxShadow: sel[ex.id] ? "0 4px 12px rgba(5,150,105,0.3)" : "none" }}>Conciliar</button>
+                  <button onClick={() => conciliar(ex)} disabled={!sel[ex.id]} style={{ background: sel[ex.id] ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))" : "#E6ECEA", color: "#fff", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: sel[ex.id] ? "pointer" : "default", boxShadow: sel[ex.id] ? "0 4px 12px rgba(5,150,105,0.3)" : "none" }}>Conciliar</button>
                   <button onClick={() => ignorar(ex)} style={{ background: "#F3F6F5", color: "#94A3B8", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Ignorar</button>
                 </div>
               );

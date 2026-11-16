@@ -98,13 +98,13 @@ export default function CobrancaHub() {
       <div>
         <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Cobrança</h1>
         <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
-          <b style={{ color: "#065F46" }}>{workspace?.nome || "Wolf System"}</b> · acompanhe faturas, negocie e atualize os pagamentos
+          <b style={{ color: "var(--w-800)" }}>{workspace?.nome || "Wolf System"}</b> · acompanhe faturas, negocie e atualize os pagamentos
         </p>
       </div>
 
       {contagem && total > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: isMobile ? 10 : 16 }}>
-          <div style={{ borderRadius: 20, padding: 20, color: "#fff", background: "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ borderRadius: 20, padding: 20, color: "#fff", background: "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 45%, var(--w-800) 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)", display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>
               <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={17} /></span>
               Faturas pagas
@@ -133,12 +133,12 @@ export default function CobrancaHub() {
         {PAGINAS.map(p => (
           <button key={p.rota} onClick={() => router.push(p.rota)} className="a2-cob-card"
             style={{ ...card, border: 0, padding: isMobile ? 20 : 24, cursor: "pointer", textAlign: "left", display: "flex", flexDirection: "column", gap: 14, transition: "transform .15s, box-shadow .15s" }}>
-            <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={p.icone as any} tamanho={22} /></span>
+            <span style={{ width: 48, height: 48, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={p.icone as any} tamanho={22} /></span>
             <span style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ color: "#0F172A", fontSize: 17, fontWeight: 800 }}>{p.titulo}</span>
               <span style={{ color: "#64748B", fontSize: 13.5, lineHeight: 1.55 }}>{p.desc}</span>
             </span>
-            <span style={{ marginTop: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: "#059669", fontSize: 13.5, fontWeight: 800 }}>
+            <span style={{ marginTop: "auto", display: "inline-flex", alignItems: "center", gap: 6, color: "var(--w-600)", fontSize: 13.5, fontWeight: 800 }}>
               Abrir <span className="a2-cob-seta" style={{ display: "inline-flex", transition: "transform .15s" }}><Icone nome="seta" tamanho={15} espessura={2.3} /></span>
             </span>
           </button>

@@ -687,7 +687,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             {valor ? (
               <span style={{
                 background: "#ede9fe",
-                color: "#047857",
+                color: "var(--w-700)",
                 padding: "3px 10px",
                 borderRadius: 12,
                 fontSize: 12,
@@ -748,7 +748,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       padding: "6px 10px",
                       cursor: "pointer",
                       textAlign: "left",
-                      color: "#047857",
+                      color: "var(--w-700)",
                       fontSize: 12,
                       fontWeight: "bold",
                       display: "flex",
@@ -761,7 +761,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                       padding: "2px 8px",
                       borderRadius: 10,
                       fontSize: 11,
-                      color: "#047857",
+                      color: "var(--w-700)",
                     }}>{`{{${v}}}`}</span>
                   </button>
                 ))}
@@ -965,7 +965,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
                   flex:1,
                   background: modoEnvio===opt.key ? "#22c55e22" : "#ffffff",
                   border: `1px solid ${modoEnvio===opt.key ? "#10B981" : "#E6ECEA"}`,
-                  color: modoEnvio===opt.key ? "#059669" : "#64748B",
+                  color: modoEnvio===opt.key ? "var(--w-600)" : "#64748B",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold",
                 }}
                 title={opt.hint}>{opt.label}</button>
@@ -989,7 +989,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
             )}
             {botoes.map((b, i) => (
               <div key={i} style={{display:"flex",gap:6,alignItems:"center"}}>
-                <span style={{background:"#22c55e22",color:"#059669",fontSize:11,fontWeight:"bold",borderRadius:6,padding:"6px 9px",flexShrink:0}}>{i+1}</span>
+                <span style={{background:"#22c55e22",color:"var(--w-600)",fontSize:11,fontWeight:"bold",borderRadius:6,padding:"6px 9px",flexShrink:0}}>{i+1}</span>
                 <input
                   value={b}
                   onChange={e => updateBotao(i, e.target.value)}
@@ -1004,7 +1004,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
           </div>
           {botoes.length < 3 && (
             <button type="button" onClick={addBotao}
-              style={{width:"100%",marginTop:6,background:"#22c55e11",color:"#059669",border:"1px dashed #10B981",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
+              style={{width:"100%",marginTop:6,background:"#22c55e11",color:"var(--w-600)",border:"1px dashed var(--w-500)",borderRadius:8,padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"bold"}}>
               + Adicionar botão
             </button>
           )}
@@ -1037,7 +1037,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
     case "condicao":
       return <>
         <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 10px",lineHeight:1.4}}>
-          SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"#10B981"}}>Verdadeiro</b>, senão <b style={{color:"#ef4444"}}>Falso</b>
+          SE (todas/alguma) das condições forem verdadeiras → saída <b style={{color:"var(--w-500)"}}>Verdadeiro</b>, senão <b style={{color:"#ef4444"}}>Falso</b>
         </p>
         {/* Lógica AND/OR — botões grandes */}
         <label style={LS}>Lógica entre condições</label>
@@ -1294,7 +1294,7 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>API disponível: <code style={{color:"#14B8A6"}}>setVariable(nome, valor)</code>, <code style={{color:"#14B8A6"}}>getVariable(nome)</code>, <code style={{color:"#14B8A6"}}>fetch</code>, <code style={{color:"#14B8A6"}}>sleep(ms)</code>, <code style={{color:"#14B8A6"}}>log(...)</code></p>
         <p style={{color:"#94A3B8",fontSize:11,margin:"0 0 6px"}}>{`{{variaveis}} são substituídas no código antes de executar.`}</p>
         {T("Código JavaScript","codigo",`// Exemplo:\n// const resp = await fetch("https://api.exemplo.com/cep/" + getVariable("cep"))\n// const data = await resp.json()\n// setVariable("rua", data.logradouro)`,200)}
-        <p style={{color:"#94A3B8",fontSize: 12,margin:"4px 0 0"}}>Saídas: <span style={{color:"#10B981"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
+        <p style={{color:"#94A3B8",fontSize: 12,margin:"4px 0 0"}}>Saídas: <span style={{color:"var(--w-500)"}}>0=sucesso</span> / <span style={{color:"#ef4444"}}>1=erro</span></p>
       </>;
     case "espera":        return <>{F("Aguardar (segundos)","segundos","number","3")}</>;
     case "teste_ab":
@@ -1344,9 +1344,9 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       </div>;
     case "google_sheets":
       return <>
-        <div style={{background:"#ECFDF5", border:"1px solid #A7F3D0", borderRadius:8, padding:10, marginBottom:10}}>
+        <div style={{background:"var(--w-50)", border:"1px solid var(--w-200)", borderRadius:8, padding:10, marginBottom:10}}>
           <p style={{color:"#14532d", fontSize:11, margin:0, fontWeight:700}}>Google Sheets via Apps Script</p>
-          <p style={{color:"#059669", fontSize: 12, margin:"4px 0 6px", lineHeight:1.5}}>
+          <p style={{color:"var(--w-600)", fontSize: 12, margin:"4px 0 6px", lineHeight:1.5}}>
             <b>Como configurar (5 minutos, sem OAuth):</b><br/>
             1. Abra seu Sheets <b>Extensões → Apps Script</b><br/>
             2. Cole o código de webhook (veja botão abaixo)<br/>
@@ -1393,7 +1393,7 @@ function saida(obj) {
               navigator.clipboard.writeText(codigo);
               alert("Código copiado!\n\nAgora cole no Apps Script do seu Google Sheets.");
             }}
-            style={{background:"#059669", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
+            style={{background:"var(--w-600)", color:"#fff", border:"none", borderRadius:6, padding:"6px 12px", fontSize:11, cursor:"pointer", fontWeight:700, marginTop:4}}
           >
             Copiar código do Apps Script
           </button>
@@ -1433,7 +1433,7 @@ function saida(obj) {
       </>;
     case "gerar_documento":
       return <>
-        <div style={{background:"#ecfdf5",border:"1px solid #99f6e4",borderRadius:8,padding:10,marginBottom:10}}>
+        <div style={{background:"var(--w-50)",border:"1px solid #99f6e4",borderRadius:8,padding:10,marginBottom:10}}>
           <p style={{color:"#0f766e",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Gerar e enviar documento</p>
           <p style={{color:"#475569",fontSize: 12,margin:0,lineHeight:1.45}}>Gera um PDF com as variáveis confirmadas e envia pelo mesmo canal. Nenhuma regra de negócio fica presa ao motor.</p>
         </div>
@@ -1486,7 +1486,7 @@ function saida(obj) {
     case "validar_assinatura":
       return <>
         <div style={{background:"#F0FDFA",border:"1px solid #99F6E4",borderRadius:8,padding:10,marginBottom:10}}>
-          <p style={{color:"#047857",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Validar assinatura devolvida</p>
+          <p style={{color:"var(--w-700)",fontSize:12,fontWeight:800,margin:"0 0 4px"}}>Validar assinatura devolvida</p>
           <p style={{color:"#475569",fontSize: 12,margin:0,lineHeight:1.45}}>Espera PDF ou foto, procura evidência concreta de assinatura e só libera a saída Assinado acima da confiança mínima.</p>
         </div>
         {TVar("Pedido do contrato assinado","pergunta","Agora envie o contrato assinado...",75)}
@@ -1564,7 +1564,7 @@ function saida(obj) {
       const evento = d.evento || "Lead";
       return <>
         <div style={{background:"#10b98111", border:"1px solid #10b98133", borderRadius:8, padding:12, marginBottom:8}}>
-          <p style={{color:"#059669", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>Meta Pixel / Conversions API</p>
+          <p style={{color:"var(--w-600)", fontSize:12, fontWeight:"bold", margin:"0 0 4px"}}>Meta Pixel / Conversions API</p>
           <p style={{color:"#64748B", fontSize:11, margin:0, lineHeight:1.5}}>
             Dispara um evento de conversão pro Pixel da Meta. Serve pra seus anúncios "aprenderem"
             com quem converteu no chatbot (Lead, compra, etc) e otimizarem a entrega. O telefone do
@@ -1621,7 +1621,7 @@ function saida(obj) {
         </p>
 
         <p style={{color:"#64748B", fontSize: 12, margin:"10px 0 0", lineHeight:1.4, fontStyle:"italic"}}>
-          Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (Meta recebeu) /{" "}
+          Saídas: <span style={{color:"var(--w-500)"}}>0=Sucesso</span> (Meta recebeu) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (token inválido, pixel errado, etc).
         </p>
       </>;
@@ -1835,7 +1835,7 @@ function saida(obj) {
       const limparVendedores = () => u({ roleta_vendedores: [] });
       return <>
         <div style={{background:"#22c55e11",border:"1px solid #22c55e33",borderRadius:8,padding:12,marginBottom:8}}>
-          <p style={{color:"#10B981",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>Enviar Venda pro CRM</p>
+          <p style={{color:"var(--w-500)",fontSize:12,fontWeight:"bold",margin:"0 0 4px"}}>Enviar Venda pro CRM</p>
           <p style={{color:"#94A3B8",fontSize:11,margin:0,lineHeight:1.4}}>
             Quando o fluxo chegar nesse bloco, o sistema cria <b>automaticamente uma proposta</b> no
             <b> /crm/vendas</b> com as variáveis que você capturou no fluxo + aplica uma etiqueta
@@ -1943,7 +1943,7 @@ function saida(obj) {
                   flex:1,
                   background: modoMap === opt.key ? "#22c55e22" : "#ffffff",
                   border: `1px solid ${modoMap === opt.key ? "#10B981" : "#E6ECEA"}`,
-                  color: modoMap === opt.key ? "#10B981" : "white",
+                  color: modoMap === opt.key ? "var(--w-500)" : "white",
                   borderRadius:8, padding:"8px 10px", fontSize:11, cursor:"pointer", fontWeight:"bold"
                 }}
                 title={opt.hint}
@@ -1953,8 +1953,8 @@ function saida(obj) {
           {modoMap === "automatico" && (
             <p style={{color:"#64748B",fontSize: 12,margin:"4px 0 0",lineHeight:1.3}}>
               O sistema vai pegar todas as variáveis salvas no fluxo e tentar mapear pelo nome.
-              <br/>Ex: variável <code style={{color:"#10B981"}}>nome</code> campo "Nome do cliente";
-              variável <code style={{color:"#10B981"}}>cpf_limpo</code> campo "CPF" (usa nome similar).
+              <br/>Ex: variável <code style={{color:"var(--w-500)"}}>nome</code> campo "Nome do cliente";
+              variável <code style={{color:"var(--w-500)"}}>cpf_limpo</code> campo "CPF" (usa nome similar).
             </p>
           )}
         </div>
@@ -1965,8 +1965,8 @@ function saida(obj) {
             <label style={LS}>Defina qual variável preenche cada campo</label>
             <p style={{color:"#64748B",fontSize: 12,margin:"-2px 0 8px",lineHeight:1.3}}>
               Deixe em branco os campos que não quer preencher. O sistema só cria os que você mapear.
-              <br/>Datas devem vir no formato <code style={{color:"#10B981"}}>YYYY-MM-DD</code> ou <code style={{color:"#10B981"}}>DD/MM/YYYY</code>.
-              Valores monetários: ponto como separador decimal (ex: <code style={{color:"#10B981"}}>99.90</code>).
+              <br/>Datas devem vir no formato <code style={{color:"var(--w-500)"}}>YYYY-MM-DD</code> ou <code style={{color:"var(--w-500)"}}>DD/MM/YYYY</code>.
+              Valores monetários: ponto como separador decimal (ex: <code style={{color:"var(--w-500)"}}>99.90</code>).
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,background:"#F3F6F5",border:"1px solid #ffffff",borderRadius:8,padding:10,maxHeight:380,overflowY:"auto"}}>
 
@@ -2037,7 +2037,7 @@ function saida(obj) {
               )}
             </div>
             {Object.keys(mapeamento).length > 0 && (
-              <p style={{color:"#10B981",fontSize: 12,margin:"6px 0 0"}}>
+              <p style={{color:"var(--w-500)",fontSize: 12,margin:"6px 0 0"}}>
                 {Object.keys(mapeamento).length} campo(s) mapeado(s)
               </p>
             )}
@@ -2049,7 +2049,7 @@ function saida(obj) {
           <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,cursor:"pointer"}}>
             <input type="checkbox" checked={d.aplicar_etiqueta !== false}
               onChange={e => u({aplicar_etiqueta: e.target.checked})}
-              style={{accentColor:"#10B981"}}/>
+              style={{accentColor:"var(--w-500)"}}/>
             <span style={{color:"#0F172A",fontSize:12,fontWeight:"bold"}}>Aplicar etiqueta ao atendimento</span>
           </label>
           {d.aplicar_etiqueta !== false && (
@@ -2078,7 +2078,7 @@ function saida(obj) {
         </div>
 
         <p style={{color:"#64748B",fontSize: 12,margin:"8px 0 0",lineHeight:1.4,fontStyle:"italic"}}>
-          Saídas: <span style={{color:"#10B981"}}>0=Sucesso</span> (proposta criada) /{" "}
+          Saídas: <span style={{color:"var(--w-500)"}}>0=Sucesso</span> (proposta criada) /{" "}
           <span style={{color:"#ef4444"}}>1=Erro</span> (falha ao salvar — conecte aqui um bloco "Transferir" como fallback).
         </p>
       </>;
@@ -2860,7 +2860,7 @@ export default function FluxosPage() {
             textAlign:"left",
             boxShadow:"0 2px 6px rgba(5,150,105,.35)",
           }}>
-          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"#059669",color:"#fff",borderRadius:8}}><Icone nome="robo" tamanho={15} /></span>
+          <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:28,height:28,background:"var(--w-600)",color:"#fff",borderRadius:8}}><Icone nome="robo" tamanho={15} /></span>
           Fluxos
         </button>
         <div style={{flex:1}}/>
@@ -2892,7 +2892,7 @@ export default function FluxosPage() {
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{
                     width:40,height:40,borderRadius:10,
-                    background:"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                    background:"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                     display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,
                     boxShadow:"0 4px 12px rgba(5,150,105,.35)"
                   }}>➕</div>
@@ -2950,7 +2950,7 @@ export default function FluxosPage() {
               <div style={{display:"flex",gap:10,justifyContent:"flex-end",marginTop:8}}>
                 <button onClick={()=>setShowNovo(false)} style={{background: "#F3F6F5",color:"#64748B",borderRadius:10,padding:"10px 20px",fontSize:13,cursor:"pointer",fontWeight:"600"}}>Cancelar</button>
                 <button onClick={criarFluxo} disabled={criando} style={{
-                  background:criando?"linear-gradient(135deg, #94A3B8 0%, #64748B 100%)":"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background:criando?"linear-gradient(135deg, #94A3B8 0%, #64748B 100%)":"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color:"#ffffff",border:"none",borderRadius:10,padding:"10px 24px",fontSize:13,
                   cursor:criando?"wait":"pointer",fontWeight:"700",
                   boxShadow:criando?"none":"0 4px 12px rgba(5,150,105,.35)"
@@ -2969,7 +2969,7 @@ export default function FluxosPage() {
             </div>
           </div>
           <button onClick={()=>setShowNovo(true)} style={{
-            background:"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background:"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color:"#ffffff",border:"none",borderRadius:10,
             padding:"11px 22px",fontSize:13,cursor:"pointer",fontWeight:"700",
             boxShadow:"0 12px 24px -12px rgba(5,150,105,.7)",
@@ -2989,13 +2989,13 @@ export default function FluxosPage() {
             <div style={{
               display:"inline-flex",alignItems:"center",justifyContent:"center",
               width:64,height:64,borderRadius:18,
-              background:"#ECFDF5",color:"#059669",
+              background:"var(--w-50)",color:"var(--w-600)",
               margin:"0 auto 18px",
             }}><Icone nome="robo" tamanho={30} /></div>
             <h3 style={{color:"#0F172A",fontSize:18,fontWeight:"700",margin:"0 0 8px"}}>Nenhum fluxo criado</h3>
             <p style={{color:"#64748B",fontSize:14,margin:"0 0 24px"}}>Crie fluxos de atendimento automático pra seu chatbot</p>
             <button onClick={()=>setShowNovo(true)} style={{
-              background:"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background:"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color:"#ffffff",border:"none",borderRadius:12,
               padding:"14px 32px",fontSize:14,cursor:"pointer",fontWeight:"700",
               boxShadow:"0 4px 12px rgba(5,150,105,.35)"
@@ -3022,7 +3022,7 @@ export default function FluxosPage() {
                   <div style={{display:"flex",alignItems:"center",gap:10,flex:1,minWidth:0}}>
                     <div style={{
                       width:38,height:38,borderRadius:10,
-                      background:f.ativo?"linear-gradient(140deg, #10B981, #059669 60%, #047857)":"#F1F5F4",
+                      background:f.ativo?"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))":"#F1F5F4",
                       display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,
                       boxShadow:f.ativo?"0 4px 8px rgba(34,197,94,0.25)":"none",
                       flexShrink:0
@@ -3034,13 +3034,13 @@ export default function FluxosPage() {
                   </div>
                   <span style={{
                     display:"inline-flex",alignItems:"center",gap:4,
-                    background:f.ativo?"#D1FAE5":"#F1F5F4",
-                    color:f.ativo?"#059669":"#64748B",
+                    background:f.ativo?"var(--w-100)":"#F1F5F4",
+                    color:f.ativo?"var(--w-600)":"#64748B",
                     fontSize: 12,padding:"3px 9px",borderRadius:20,fontWeight:"700",whiteSpace:"nowrap",
-                    border:f.ativo?"1px solid #6EE7B7":"1px solid #E6ECEA",
+                    border:f.ativo?"1px solid var(--w-300)":"1px solid #E6ECEA",
                     flexShrink:0
                   }}>
-                    <span style={{width:6,height:6,borderRadius:"50%",background:f.ativo?"#10B981":"#94A3B8",boxShadow:f.ativo?"0 0 0 2px #22c55e33":"none"}}/>
+                    <span style={{width:6,height:6,borderRadius:"50%",background:f.ativo?"var(--w-500)":"#94A3B8",boxShadow:f.ativo?"0 0 0 2px #22c55e33":"none"}}/>
                     {f.ativo?"Ativo":"Inativo"}
                   </span>
                 </div>
@@ -3055,7 +3055,7 @@ export default function FluxosPage() {
                 <div style={{display:"flex",gap:8}}>
                   <button onClick={()=>abrirEditor(f)} style={{
                     flex:1,
-                    background:"linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                    background:"linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                     color:"#ffffff",border:"none",borderRadius:10,
                     padding:"9px",fontSize:12,cursor:"pointer",fontWeight:"700",
                     boxShadow:"0 2px 6px rgba(5,150,105,.35)",
@@ -3143,11 +3143,11 @@ export default function FluxosPage() {
         </div>
         <div style={{padding:12,borderTop:"1px solid #E6ECEA",background:"#F7FAF9"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background: "#F7FAF9",borderRadius:10,padding:"9px 12px",marginBottom:10,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}>
-            <span style={{color:fluxoAtivo?.ativo?"#059669":"#64748B",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"#10B981":"#94A3B8",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
+            <span style={{color:fluxoAtivo?.ativo?"var(--w-600)":"#64748B",fontSize:12,fontWeight:"600",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{width:8,height:8,borderRadius:"50%",background:fluxoAtivo?.ativo?"var(--w-500)":"#94A3B8",boxShadow:fluxoAtivo?.ativo?"0 0 0 3px #22c55e22":"none"}}/>
               {fluxoAtivo?.ativo?"Ativo":"Inativo"}
             </span>
-            <button onClick={toggleAtivo} style={{width:38,height:22,background:fluxoAtivo?.ativo?"#10B981":"#CBD5E1",borderRadius:11,cursor:"pointer",border:"none",position:"relative",transition:"background .2s",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.1)"}}>
+            <button onClick={toggleAtivo} style={{width:38,height:22,background:fluxoAtivo?.ativo?"var(--w-500)":"#CBD5E1",borderRadius:11,cursor:"pointer",border:"none",position:"relative",transition:"background .2s",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.1)"}}>
               <div style={{width:16,height:16,background:"white",borderRadius:"50%",position:"absolute",top:3,left:fluxoAtivo?.ativo?19:3,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
             </button>
           </div>
@@ -3155,7 +3155,7 @@ export default function FluxosPage() {
             width:"100%",
             background: salvando
               ? "linear-gradient(135deg, #64748B 0%, #475569 100%)"
-              : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color:"#ffffff",
             border:"none",
             borderRadius:10,

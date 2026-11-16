@@ -178,7 +178,7 @@ export function EtiquetasSection() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🏷️"} tamanho={22} /></div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🏷️"} tamanho={22} /></div>
           <div>
             <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Etiquetas</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{etiquetas.length} etiqueta(s) cadastrada(s)</p>
@@ -186,7 +186,7 @@ export function EtiquetasSection() {
         </div>
         <button onClick={abrirNovo}
           style={{
-            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -208,7 +208,7 @@ export function EtiquetasSection() {
           {/* 👥 Filtro de equipe */}
           {equipes.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
+              <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
               <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 180, padding: "9px 14px", fontSize: 13, cursor: "pointer" }}>
                 <option value="todas">Todas as equipes</option>
                 <option value="">Geral (sem equipe)</option>
@@ -314,7 +314,7 @@ export function EtiquetasSection() {
             </button>
             <button onClick={salvar} disabled={salvando}
               style={{
-                background: salvando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                background: salvando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                 boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -330,7 +330,7 @@ export function EtiquetasSection() {
         <p style={{ color: "#64748B", fontSize: 13 }}>Carregando...</p>
       ) : etiquetasFiltradas.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🏷️"} tamanho={28} /></div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🏷️"} tamanho={28} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px" }}>
             {busca || filtroEquipe !== "todas" ? "Nenhuma etiqueta encontrada" : "Nenhuma etiqueta cadastrada ainda"}
           </h3>
@@ -339,7 +339,7 @@ export function EtiquetasSection() {
           </p>
           {!busca && filtroEquipe === "todas" && (
             <button onClick={abrirNovo} style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -372,13 +372,13 @@ export function EtiquetasSection() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, display: "block" }}>{e.nome}</span>
                 {equipeNomeDe(e.equipe_id) && (
-                  <span style={{ display: "inline-block", marginTop: 3, background: "#a855f715", color: "#059669", fontSize: 12, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(e.equipe_id)}</span>
+                  <span style={{ display: "inline-block", marginTop: 3, background: "#a855f715", color: "var(--w-600)", fontSize: 12, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(e.equipe_id)}</span>
                 )}
               </div>
               <div style={{ display: "flex", gap: 4 }}>
                 <button onClick={() => abrirEditar(e)} title="Editar"
                   style={{
-                    background: "#14B8A610", color: "#059669",
+                    background: "#14B8A610", color: "var(--w-600)",
                     border: "1px solid #14B8A630", borderRadius: 8,
                     padding: "5px 9px", fontSize: 11, cursor: "pointer",
                     transition: "all 0.15s",

@@ -158,7 +158,7 @@ export default function Admin() {
   };
   const cardStyle = { background: "#ffffff", borderRadius: 20, boxShadow: SOMBRA };
   const labelStyle = { color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 6 } as const;
-  const btnVerde = { background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 14, cursor: "pointer", fontWeight: 800, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", display: "inline-flex", alignItems: "center", gap: 8 } as const;
+  const btnVerde = { background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 14, cursor: "pointer", fontWeight: 800, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", display: "inline-flex", alignItems: "center", gap: 8 } as const;
   const btnClaro = { background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "11px 18px", fontSize: 14, cursor: "pointer", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 8 } as const;
 
   const pendentes = cadastros.filter((c) => !c.autorizado).length;
@@ -178,7 +178,7 @@ export default function Admin() {
         <input type={ver ? "text" : "password"} placeholder={rotulo.replace(" *", "")} value={valor}
           onChange={(e) => setFormUsuario({ ...formUsuario, [campo]: e.target.value })} style={{ ...inputStyle, paddingRight: 46 }} />
         <button type="button" onClick={() => setVer(!ver)} title={ver ? "Esconder senha" : "Mostrar senha"}
-          style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: ver ? "#ECFDF5" : "transparent", border: "none", cursor: "pointer", color: ver ? "#059669" : "#94A3B8", width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          style={{ position: "absolute", right: 7, top: "50%", transform: "translateY(-50%)", background: ver ? "var(--w-50)" : "transparent", border: "none", cursor: "pointer", color: ver ? "var(--w-600)" : "#94A3B8", width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Icone nome="olho" tamanho={17} />
         </button>
       </div>
@@ -192,7 +192,7 @@ export default function Admin() {
         {/* Barra superior */}
         <div style={{ ...cardStyle, padding: "12px 16px 12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(140deg, #059669 0%, #065F46 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, boxShadow: "0 6px 14px -4px rgba(5,150,105,.55)" }}>W</span>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(140deg, var(--w-600) 0%, var(--w-800) 100%)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, boxShadow: "0 6px 14px -4px rgba(5,150,105,.55)" }}>W</span>
             <span style={{ display: "flex", flexDirection: "column" }}>
               <b style={{ fontSize: 15, color: "#0F172A" }}>Wolf System</b>
               <small style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>Administração da plataforma</small>
@@ -214,7 +214,7 @@ export default function Admin() {
 
         {/* Resumo */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 16 }}>
-          <div style={{ borderRadius: 20, padding: 20, color: "#fff", background: "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ borderRadius: 20, padding: 20, color: "#fff", background: "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 45%, var(--w-800) 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)", display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>
               <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={17} /></span>
               Cadastros recebidos
@@ -243,8 +243,8 @@ export default function Admin() {
             <div style={{ display: "flex", gap: 4, background: "#F3F6F5", borderRadius: 12, padding: 4 }}>
               {([["todos", "Todos", cadastros.length], ["pendentes", "Pendentes", pendentes], ["autorizados", "Autorizados", autorizados]] as const).map(([k, l, n]) => (
                 <button key={k} onClick={() => setFiltro(k)}
-                  style={{ border: "none", cursor: "pointer", borderRadius: 9, padding: "7px 14px", fontSize: 13, fontWeight: filtro === k ? 800 : 600, background: filtro === k ? "#fff" : "transparent", color: filtro === k ? "#065F46" : "#64748B", boxShadow: filtro === k ? "0 1px 3px rgba(16,24,40,.12)" : "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                  {l}<span style={{ fontSize: 11.5, fontWeight: 800, color: filtro === k ? "#059669" : "#94A3B8" }}>{n}</span>
+                  style={{ border: "none", cursor: "pointer", borderRadius: 9, padding: "7px 14px", fontSize: 13, fontWeight: filtro === k ? 800 : 600, background: filtro === k ? "#fff" : "transparent", color: filtro === k ? "var(--w-800)" : "#64748B", boxShadow: filtro === k ? "0 1px 3px rgba(16,24,40,.12)" : "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {l}<span style={{ fontSize: 11.5, fontWeight: 800, color: filtro === k ? "var(--w-600)" : "#94A3B8" }}>{n}</span>
                 </button>
               ))}
             </div>
@@ -261,7 +261,7 @@ export default function Admin() {
             <p style={{ color: "#64748B", padding: 24, margin: 0 }}>Carregando…</p>
           ) : lista.length === 0 ? (
             <div style={{ padding: "36px 24px 44px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}><Icone nome={cadastros.length ? "busca" : "pasta"} tamanho={24} /></span>
+              <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 6 }}><Icone nome={cadastros.length ? "busca" : "pasta"} tamanho={24} /></span>
               <b style={{ color: "#0F172A", fontSize: 15 }}>{cadastros.length ? "Nada encontrado" : "Nenhum cadastro ainda"}</b>
               <span style={{ color: "#64748B", fontSize: 13.5 }}>{cadastros.length ? "Tente outro filtro ou outra busca." : "Os cadastros feitos no site aparecem aqui."}</span>
             </div>
@@ -294,14 +294,14 @@ export default function Admin() {
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
-                        <span style={{ background: "#ECFDF5", color: "#047857", fontSize: 12, padding: "4px 10px", borderRadius: 999, fontWeight: 700 }}>{c.plano || "—"}</span>
+                        <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontSize: 12, padding: "4px 10px", borderRadius: 999, fontWeight: 700 }}>{c.plano || "—"}</span>
                       </td>
                       <td style={{ padding: "14px 16px", color: "#475569", fontSize: 13.5, whiteSpace: "nowrap" }}>{c.ia || "—"}</td>
                       <td style={{ padding: "14px 16px", color: "#475569", fontSize: 13.5, whiteSpace: "nowrap", textAlign: "center" }}>{c.usuarios || "—"}</td>
                       <td style={{ padding: "14px 16px", color: "#475569", fontSize: 13.5, whiteSpace: "nowrap", textAlign: "center" }}>{c.conexoes || "—"}</td>
                       <td style={{ padding: "14px 16px", whiteSpace: "nowrap" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: c.autorizado ? "#ECFDF5" : "#FFF7ED", color: c.autorizado ? "#047857" : "#C2410C", padding: "4px 11px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
-                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: c.autorizado ? "#10B981" : "#F97316" }} />
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: c.autorizado ? "var(--w-50)" : "#FFF7ED", color: c.autorizado ? "var(--w-700)" : "#C2410C", padding: "4px 11px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: c.autorizado ? "var(--w-500)" : "#F97316" }} />
                           {c.autorizado ? "Autorizado" : "Pendente"}
                         </span>
                       </td>
@@ -334,7 +334,7 @@ export default function Admin() {
           <div onClick={(e) => e.stopPropagation()} style={{ ...cardStyle, borderRadius: 24, padding: 26, width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 18, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 42, height: 42, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuario" tamanho={20} /></span>
+                <span style={{ width: 42, height: 42, borderRadius: 13, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuario" tamanho={20} /></span>
                 <div>
                   <h2 style={{ color: "#0F172A", fontSize: 19, fontWeight: 800, margin: 0 }}>Criar usuário</h2>
                   <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 13 }}>O acesso fica liberado na hora.</p>

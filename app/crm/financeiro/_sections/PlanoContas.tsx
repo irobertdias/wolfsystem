@@ -95,7 +95,7 @@ export default function PlanoContas() {
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Plano de Contas</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Categorias de receita e despesa, com subcategorias e movimentação</p></div>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={criarPadrao} style={{ background: "#fff", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 11, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Plano padrão</button>
+          <button onClick={criarPadrao} style={{ background: "#fff", color: "var(--w-700)", border: "1px solid var(--w-200)", borderRadius: 11, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Plano padrão</button>
           <button onClick={() => abrirNovo(aba)} style={{ background: `linear-gradient(135deg, ${corAba} 0%, ${g2Aba} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 12px ${corAba}40` }}>+ Nova categoria</button>
         </div>
       </div>
@@ -126,11 +126,11 @@ export default function PlanoContas() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : raizes.length === 0 ? (
           <div style={{ ...card, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏷️" tamanho={24} /></div>
+            <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏷️" tamanho={24} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "10px 0 4px" }}>Nenhuma categoria de {aba}</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 16px" }}>Crie do zero ou comece com um plano de contas padrão pronto.</p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <button onClick={criarPadrao} style={{ background: "#fff", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Criar plano padrão</button>
+              <button onClick={criarPadrao} style={{ background: "#fff", color: "var(--w-700)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "11px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Criar plano padrão</button>
               <button onClick={() => abrirNovo(aba)} style={{ background: `linear-gradient(135deg, ${corAba} 0%, ${g2Aba} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova categoria</button>
             </div>
           </div>
@@ -193,7 +193,7 @@ export default function PlanoContas() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 470 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: form.tipo === "receita" ? "#059669" : "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar categoria" : form.pai_id ? "↳ Nova subcategoria" : "Nova categoria"}</h2>
+              <h2 style={{ color: form.tipo === "receita" ? "var(--w-600)" : "#dc2626", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar categoria" : form.pai_id ? "↳ Nova subcategoria" : "Nova categoria"}</h2>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>

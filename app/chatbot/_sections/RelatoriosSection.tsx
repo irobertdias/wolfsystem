@@ -225,7 +225,7 @@ export function RelatoriosSection() {
       {/* ═══ HEADER ═══ */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📈"} tamanho={22} /></div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📈"} tamanho={22} /></div>
           <div>
             <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Relatórios</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Filtre e exporte seus atendimentos em Excel</p>
@@ -260,9 +260,9 @@ export function RelatoriosSection() {
           <label style={{ color: "#475569", fontSize: 12.5, fontWeight: 700, display: "block", marginBottom: 10 }}>Período</label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[
-              { key: "todas", label: "Todas", color: "#059669" },
-              { key: "hoje", label: "Hoje", color: "#059669" },
-              { key: "semana", label: "Últimos 7 dias", color: "#059669" },
+              { key: "todas", label: "Todas", color: "var(--w-600)" },
+              { key: "hoje", label: "Hoje", color: "var(--w-600)" },
+              { key: "semana", label: "Últimos 7 dias", color: "var(--w-600)" },
               { key: "mes", label: "Últimos 30 dias", color: "#C2410C" },
               { key: "customizado", label: "Personalizado", color: "#BE185D" },
             ].map(p => {
@@ -352,7 +352,7 @@ export function RelatoriosSection() {
 
         <button onClick={gerarRelatorio} disabled={loading}
           style={{
-            background: loading ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: loading ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "14px", fontSize: 14, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -367,10 +367,10 @@ export function RelatoriosSection() {
           {/* CARDS */}
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {[
-              { label: "Total", value: resultado.length, color: "#059669", icon: "📊" },
-              { label: "Abertos", value: resultado.filter(a => a.status === "aberto").length, color: "#059669", icon: "💬" },
+              { label: "Total", value: resultado.length, color: "var(--w-600)", icon: "📊" },
+              { label: "Abertos", value: resultado.filter(a => a.status === "aberto").length, color: "var(--w-600)", icon: "💬" },
               { label: "Pendentes", value: resultado.filter(a => a.status === "pendente").length, color: "#C2410C", icon: "⏳" },
-              { label: "Resolvidos", value: resultado.filter(a => a.status === "resolvido").length, color: "#059669", icon: "✅" },
+              { label: "Resolvidos", value: resultado.filter(a => a.status === "resolvido").length, color: "var(--w-600)", icon: "✅" },
             ].map(card => (
               <div key={card.label}
                 style={{
@@ -396,11 +396,11 @@ export function RelatoriosSection() {
           <div style={{ ...cardStyle, overflow: "hidden" }}>
             <div style={{ padding: "16px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
               <h2 style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: 0 }}>
-                Atendimentos — <span style={{ color: "#059669" }}>{resultado.length}</span> resultado(s)
+                Atendimentos — <span style={{ color: "var(--w-600)" }}>{resultado.length}</span> resultado(s)
               </h2>
               <button onClick={exportarExcel} disabled={exportando || resultado.length === 0}
                 style={{
-                  background: exportando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: exportando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -410,7 +410,7 @@ export function RelatoriosSection() {
             </div>
             {resultado.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center" }}>
-                <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+                <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
                 <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum atendimento encontrado com esses filtros</p>
               </div>
             ) : (
@@ -451,14 +451,14 @@ export function RelatoriosSection() {
                           </td>
                           <td style={{ padding: "14px 18px" }}>
                             {eqNome ? (
-                              <span style={{ background: "#a855f715", color: "#059669", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #a855f730", whiteSpace: "nowrap" }}>{eqNome}</span>
+                              <span style={{ background: "#a855f715", color: "var(--w-600)", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #a855f730", whiteSpace: "nowrap" }}>{eqNome}</span>
                             ) : (
                               <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>
                             )}
                           </td>
                           <td style={{ padding: "14px 18px" }}>
                             {a.fila ? (
-                              <span style={{ background: "#14B8A615", color: "#059669", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #14B8A630" }}>{a.fila}</span>
+                              <span style={{ background: "#14B8A615", color: "var(--w-600)", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 600, border: "1px solid #14B8A630" }}>{a.fila}</span>
                             ) : (
                               <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>
                             )}
@@ -466,8 +466,8 @@ export function RelatoriosSection() {
                           <td style={{ padding: "14px 18px", color: "#475569", fontSize: 12, fontWeight: 500 }}>{a.atendente === "BOT" ? "BOT" : a.atendente || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
                           <td style={{ padding: "14px 18px" }}>
                             <span style={{
-                              background: a.status === "resolvido" ? "#ECFDF5" : a.status === "aberto" ? "#ECFDF5" : "#FFF7ED",
-                              color: a.status === "resolvido" ? "#059669" : a.status === "aberto" ? "#059669" : "#C2410C",
+                              background: a.status === "resolvido" ? "var(--w-50)" : a.status === "aberto" ? "var(--w-50)" : "#FFF7ED",
+                              color: a.status === "resolvido" ? "var(--w-600)" : a.status === "aberto" ? "var(--w-600)" : "#C2410C",
                               border: `1px solid ${a.status === "resolvido" ? "#A7F3D0" : a.status === "aberto" ? "#A7F3D0" : "#fde68a"}`,
                               fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap",
                             }}>

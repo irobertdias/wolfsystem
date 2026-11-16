@@ -23,7 +23,7 @@ export default function TermosPage() {
 
         <div style={{ marginBottom: 48 }}>
           <div style={{ display: "inline-block", background: "#3b82f622", border: "1px solid #3b82f644", borderRadius: 20, padding: "6px 16px", marginBottom: 16 }}>
-            <span style={{ color: "#059669", fontSize: 13, fontWeight: "bold" }}>Termos de Uso</span>
+            <span style={{ color: "var(--w-600)", fontSize: 13, fontWeight: "bold" }}>Termos de Uso</span>
           </div>
           <h1 style={{ fontSize: 42, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Termos de Uso</h1>
           <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
@@ -222,7 +222,7 @@ export default function TermosPage() {
         </div>
 
         <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid #0F172A", textAlign: "center" }}>
-          <Link href="/" style={{ color: "#059669", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a página inicial</Link>
+          <Link href="/" style={{ color: "var(--w-600)", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a página inicial</Link>
         </div>
 
       </article>
@@ -235,7 +235,7 @@ export default function TermosPage() {
 }
 
 // ─── Helpers de estilo ────────────────────────────────────────────────
-const linkVerde: React.CSSProperties = { color: "#059669", textDecoration: "none" };
+const linkVerde: React.CSSProperties = { color: "var(--w-600)", textDecoration: "none" };
 const listaStyle: React.CSSProperties = { color: "#CBD5E1", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
 const avisoImportante: React.CSSProperties = { background: "#dc262611", border: "1px solid #dc262644", borderRadius: 8, padding: "14px 16px", color: "#fca5a5", fontSize: 14 };
 
@@ -246,5 +246,5 @@ function H2({ children, id }: { children: React.ReactNode; id?: string }) {
   return <h2 id={id} style={{ color: "white", fontSize: 24, fontWeight: "bold", margin: "40px 0 16px 0", paddingBottom: 8, borderBottom: "1px solid #0F172A", scrollMarginTop: 80 }}>{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
+  return <h3 style={{ color: "var(--w-600)", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
 }

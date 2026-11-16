@@ -43,7 +43,7 @@ export default function Andamento({ dados, ir, alvo }: any) {
               onDragOver={(ev) => { ev.preventDefault(); setSobre(e.key); }}
               onDragLeave={() => setSobre((s) => (s === e.key ? null : s))}
               onDrop={(ev) => { ev.preventDefault(); setSobre(null); if (arrastando) mover(arrastando, e.key); setArrastando(null); }}
-              style={{ flex: "0 0 270px", background: destaque ? "#ECFDF5" : "#EEF2F1", boxShadow: destaque ? "inset 0 0 0 2px #6EE7B7" : "none", borderRadius: 18, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 230px)", transition: "all .15s" }}
+              style={{ flex: "0 0 270px", background: destaque ? "var(--w-50)" : "#EEF2F1", boxShadow: destaque ? "inset 0 0 0 2px var(--w-300)" : "none", borderRadius: 18, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 230px)", transition: "all .15s" }}
             >
               <div style={{ padding: "12px 14px 8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

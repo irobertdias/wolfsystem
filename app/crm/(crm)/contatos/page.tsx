@@ -36,7 +36,7 @@ function iniciaisContato(t?: string | null) {
   return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
 }
 const CORES_AVATAR_CONTATO = [
-  { bg: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", fg: "#065F46" },
+  { bg: "linear-gradient(140deg, var(--w-100), var(--w-200))", fg: "#065F46" },
   { bg: "#FFF7ED", fg: "#C2410C" },
   { bg: "#ECFDF5", fg: "#047857" },
   { bg: "#F1F5F9", fg: "#334155" },
@@ -494,7 +494,7 @@ export default function Contatos() {
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: "50%",
-                  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "white", fontSize: 18, fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -521,12 +521,12 @@ export default function Contatos() {
 
               {/* Stats do contato */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                  <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.totalAtendimentos}</p>
+                <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12, textAlign: "center" }}>
+                  <p style={{ color: "var(--w-600)", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.totalAtendimentos}</p>
                   <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>Atendimentos</p>
                 </div>
-                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12, textAlign: "center" }}>
-                  <p style={{ color: "#059669", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "resolvido").length}</p>
+                <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12, textAlign: "center" }}>
+                  <p style={{ color: "var(--w-600)", fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{contatoEditando.atendimentos.filter(a => a.status === "resolvido").length}</p>
                   <p style={{ color: "#64748B", fontSize: 12, margin: "3px 0 0", fontWeight: 600 }}>Resolvidos</p>
                 </div>
                 <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 12, textAlign: "center" }}>
@@ -614,12 +614,12 @@ export default function Contatos() {
               </button>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => { fecharModal(); router.push("/chatbot"); }}
-                  style={{ background: "#ffffff", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                  style={{ background: "#ffffff", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "9px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                   Abrir chat
                 </button>
                 <button onClick={salvarContato} disabled={salvandoContato}
                   style={{
-                    background: salvandoContato ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                    background: salvandoContato ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                     color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 12,
                     cursor: salvandoContato ? "not-allowed" : "pointer", fontWeight: 700,
                     boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -639,7 +639,7 @@ export default function Contatos() {
           <div onClick={e => e.stopPropagation()} style={{ ...cardStyle, width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ width: 40, height: 40, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={20} /></span>
+                <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={20} /></span>
                 <div>
                   <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Novo contato</h3>
                   <p style={{ color: "#64748B", fontSize: 12.5, margin: "2px 0 0" }}>Cadastre um cliente que ainda não conversou pelo WhatsApp</p>
@@ -683,7 +683,7 @@ export default function Contatos() {
               <button onClick={() => setNovoAberto(false)} disabled={criando}
                 style={{ background: "#ffffff", color: "#475569", border: "1px solid #E6ECEA", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>Cancelar</button>
               <button onClick={criarContato} disabled={criando}
-                style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: criando ? "not-allowed" : "pointer", fontWeight: 800, opacity: criando ? 0.7 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>
+                style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: criando ? "not-allowed" : "pointer", fontWeight: 800, opacity: criando ? 0.7 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>
                 {criando ? "Salvando..." : "Salvar contato"}
               </button>
             </div>
@@ -701,9 +701,9 @@ export default function Contatos() {
           {veTudo && <EquipeSelector />}
           {travadoEquipe && minhaEquipeNome && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#FFFFFF", borderRadius: 13, height: 44, padding: "0 14px", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.2)" }}>
-              <Icone nome="usuarios" tamanho={16} cor="#059669" />
+              <Icone nome="usuarios" tamanho={16} cor="var(--w-600)" />
               <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Equipe</span>
-              <span style={{ color: "#047857", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+              <span style={{ color: "var(--w-700)", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
           <button onClick={exportar} disabled={exportando || contatosFiltrados.length === 0}
@@ -711,14 +711,14 @@ export default function Contatos() {
               height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap",
               display: "flex", alignItems: "center", gap: 8,
               background: "#FFFFFF",
-              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "#047857",
+              color: (exportando || contatosFiltrados.length === 0) ? "#94A3B8" : "var(--w-700)",
               cursor: (exportando || contatosFiltrados.length === 0) ? "not-allowed" : "pointer",
               boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.2)",
             }}>
             <Icone nome="download" tamanho={16} /> {exportando ? "Exportando..." : "Exportar Excel"}
           </button>
           <button onClick={abrirNovo} disabled={!wsId}
-            style={{ height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", cursor: "pointer", boxShadow: "0 10px 22px -10px rgba(5,150,105,.75)" }}>
+            style={{ height: 44, borderRadius: 13, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#FFFFFF", cursor: "pointer", boxShadow: "0 10px 22px -10px rgba(5,150,105,.75)" }}>
             <Icone nome="mais" tamanho={16} /> Novo contato
           </button>
         </div>
@@ -769,7 +769,7 @@ export default function Contatos() {
             const ativo = filtroPeriodo === p.key;
             return (
               <button key={p.key} onClick={() => setFiltroPeriodo(p.key as any)}
-                style={{ height: 42, borderRadius: 12, border: 0, background: ativo ? "#ECFDF5" : "#F3F6F5", color: ativo ? "#047857" : "#475569", fontSize: 13, fontWeight: ativo ? 800 : 600, padding: "0 14px", cursor: "pointer" }}>
+                style={{ height: 42, borderRadius: 12, border: 0, background: ativo ? "var(--w-50)" : "#F3F6F5", color: ativo ? "var(--w-700)" : "#475569", fontSize: 13, fontWeight: ativo ? 800 : 600, padding: "0 14px", cursor: "pointer" }}>
                 {p.label}
               </button>
             );
@@ -803,10 +803,10 @@ export default function Contatos() {
           <div style={{ padding: 48, textAlign: "center", color: "#64748B", borderTop: "1px solid #EEF2F1" }}>Carregando contatos...</div>
         ) : contatos.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center", borderTop: "1px solid #EEF2F1" }}>
-            <span style={{ width: 64, height: 64, borderRadius: 20, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Icone nome="usuarios" tamanho={28} /></span>
+            <span style={{ width: 64, height: 64, borderRadius: 20, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}><Icone nome="usuarios" tamanho={28} /></span>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 6px" }}>Nenhum contato ainda</h3>
             <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 16px" }}>Os leads que chegarem pelo WhatsApp aparecem aqui automaticamente. Você também pode cadastrar um contato à mão.</p>
-            <button onClick={abrirNovo} style={{ height: 42, borderRadius: 12, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, background: "#ECFDF5", color: "#047857", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <button onClick={abrirNovo} style={{ height: 42, borderRadius: 12, border: 0, padding: "0 18px", fontSize: 14, fontWeight: 800, background: "var(--w-50)", color: "var(--w-700)", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 }}>
               <Icone nome="mais" tamanho={16} /> Novo contato
             </button>
           </div>
@@ -884,7 +884,7 @@ export default function Contatos() {
                       <td style={{ padding: "14px 22px", color: "#334155", fontSize: 13 }}>
                         {c.ultimoAtendente ? (
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                            <span style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c.ultimoAtendente === "BOT" ? <Icone nome="robo" tamanho={14} /> : iniciaisContato(c.ultimoAtendente)}</span>
+                            <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", fontSize: 12, fontWeight: 800, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{c.ultimoAtendente === "BOT" ? <Icone nome="robo" tamanho={14} /> : iniciaisContato(c.ultimoAtendente)}</span>
                             <span style={{ maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.ultimoAtendente === "BOT" ? "Bot" : c.ultimoAtendente}</span>
                           </span>
                         ) : <span style={{ color: "#CBD5E1" }}>—</span>}

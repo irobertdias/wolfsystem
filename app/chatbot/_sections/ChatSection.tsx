@@ -56,7 +56,7 @@ function iniciaisNome(t?: string | null) {
   return ((p[0]?.[0] || "?") + (p[1]?.[0] || "")).toUpperCase();
 }
 const CORES_AVATAR = [
-  { bg: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", fg: "#065F46" },
+  { bg: "linear-gradient(140deg, var(--w-100), var(--w-200))", fg: "#065F46" },
   { bg: "#FFF7ED", fg: "#C2410C" },
   { bg: "#ECFDF5", fg: "#047857" },
   { bg: "#F1F5F9", fg: "#334155" },
@@ -2891,17 +2891,17 @@ export function ChatSection() {
   const etiquetasAplicadas = etiquetasWorkspace.filter(e => etiquetasAtendimento.includes(e.id));
 
   const abas = [
-    { key: "automatico", label: "Automático", icon: "🤖", color: "#059669", count: contadoresAbas.automatico },
+    { key: "automatico", label: "Automático", icon: "🤖", color: "var(--w-600)", count: contadoresAbas.automatico },
     { key: "aguardando", label: "Aguardando", icon: "⏳", color: "#f59e0b", count: contadoresAbas.aguardando },
-    { key: "abertos", label: "Abertos", icon: "💬", color: "#059669", count: contadoresAbas.abertos },
-    { key: "finalizados", label: "Finalizados", icon: "✅", color: "#059669", count: contadoresAbas.finalizados },
+    { key: "abertos", label: "Abertos", icon: "💬", color: "var(--w-600)", count: contadoresAbas.abertos },
+    { key: "finalizados", label: "Finalizados", icon: "✅", color: "var(--w-600)", count: contadoresAbas.finalizados },
   ];
 
   const renderBotaoAcaoLista = (a: Atendimento) => {
     const aba = classificarAba(a);
     if (aba === "automatico") return <button onClick={(e) => pararBotDaLista(e, a)} title="Parar BOT e assumir" style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 999, padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>Parar bot</button>;
-    if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", border: "none", borderRadius: 999, padding: "5px 14px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 4px 10px -4px rgba(5,150,105,.8)" }}>Atender</button>;
-    if (aba === "finalizados") return <button onClick={(e) => { e.stopPropagation(); reabrirChat(a); }} title="Reabrir esta conversa" style={{ background: "#ECFDF5", color: "#047857", border: "none", borderRadius: 999, padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>Reabrir</button>;
+    if (aba === "aguardando") return <button onClick={(e) => assumirChatDaLista(e, a)} title="Assumir atendimento" style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#FFFFFF", border: "none", borderRadius: 999, padding: "5px 14px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 4px 10px -4px rgba(5,150,105,.8)" }}>Atender</button>;
+    if (aba === "finalizados") return <button onClick={(e) => { e.stopPropagation(); reabrirChat(a); }} title="Reabrir esta conversa" style={{ background: "var(--w-50)", color: "var(--w-700)", border: "none", borderRadius: 999, padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontWeight: 800, whiteSpace: "nowrap" }}>Reabrir</button>;
     return null;
   };
 
@@ -2935,17 +2935,17 @@ export function ChatSection() {
           <h1 style={{ margin: 0, marginRight: "auto", fontSize: 22, fontWeight: 800, letterSpacing: "-.01em", color: "#0F172A" }}>Conversas</h1>
           {/* 🔔 Toggle de som das notificações — preferência salva no localStorage por usuário */}
           <button onClick={toggleSom} title={somAtivo ? "Som ligado (clique pra silenciar)" : "Som silenciado (clique pra ativar)"}
-            style={{ width: 36, height: 36, borderRadius: 11, background: somAtivo ? "#ECFDF5" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: somAtivo ? "#059669" : "#64748B", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+            style={{ width: 36, height: 36, borderRadius: 11, background: somAtivo ? "var(--w-50)" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: somAtivo ? "var(--w-600)" : "#64748B", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
             <Icone nome={somAtivo ? "sino" : "sinoMudo"} tamanho={16} />
           </button>
           {/* 🆕 Atualizar — agora com feedback visual de spin (animação CSS spin-icon) */}
           <button onClick={atualizarManual} title="Atualizar lista e mensagens" disabled={atualizando}
-            style={{ width: 36, height: 36, borderRadius: 11, background: atualizando ? "#ECFDF5" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: atualizando ? "#059669" : "#64748B", cursor: atualizando ? "wait" : "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+            style={{ width: 36, height: 36, borderRadius: 11, background: atualizando ? "var(--w-50)" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: atualizando ? "var(--w-600)" : "#64748B", cursor: atualizando ? "wait" : "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
             <span style={{ display: "inline-flex", animation: atualizando ? "spin-icon 0.6s linear infinite" : "none" }}><Icone nome="atualizar" tamanho={16} /></span>
           </button>
           {/* 🆕 Botão de filtros — visual tech, badge laranja se ativo */}
           <button onClick={() => setShowFiltros(!showFiltros)} title="Filtros"
-            style={{ width: 36, height: 36, borderRadius: 11, background: temFiltroAtivo || showFiltros ? "#ECFDF5" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: temFiltroAtivo || showFiltros ? "#059669" : "#64748B", cursor: "pointer", padding: 0, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+            style={{ width: 36, height: 36, borderRadius: 11, background: temFiltroAtivo || showFiltros ? "var(--w-50)" : "#FFFFFF", border: "none", boxShadow: "0 1px 2px rgba(16,24,40,.06), inset 0 0 0 1px #EEF2F1", color: temFiltroAtivo || showFiltros ? "var(--w-600)" : "#64748B", cursor: "pointer", padding: 0, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
             <Icone nome="filtro" tamanho={16} />{temFiltroAtivo && <span style={{ position: "absolute", top: 5, right: 5, width: 8, height: 8, background: "#f59e0b", borderRadius: "50%", boxShadow: "0 0 0 2px #ffffff" }} />}
           </button>
           </div>
@@ -3015,7 +3015,7 @@ export function ChatSection() {
               <button key={t.key} role="tab" aria-selected={ativa} onClick={() => setAbaConversa(t.key as any)} title={t.label}
                 style={{ flex: 1, minWidth: 0, border: 0, background: ativa ? "#FFFFFF" : "transparent", borderRadius: 9, padding: "7px 2px", fontSize: 11.5, letterSpacing: "-.01em", fontWeight: ativa ? 800 : 600, color: ativa ? "#0F172A" : "#64748B", cursor: "pointer", boxShadow: ativa ? "0 2px 6px rgba(16,24,40,.1)" : "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 1, transition: "all 0.15s", whiteSpace: "nowrap" }}>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>{t.label}</span>
-                <span style={{ fontSize: 11.5, fontWeight: 800, color: ativa ? "#059669" : "#94A3B8" }}>{badgeLabel}</span>
+                <span style={{ fontSize: 11.5, fontWeight: 800, color: ativa ? "var(--w-600)" : "#94A3B8" }}>{badgeLabel}</span>
               </button>
             );
           })}
@@ -3032,7 +3032,7 @@ export function ChatSection() {
               </p>
             </div>
             <button onClick={() => setMostrarTodosFinalizados(!mostrarTodosFinalizados)}
-              style={{ width: 40, height: 22, background: mostrarTodosFinalizados ? "#059669" : "#CBD5E1", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)" }}>
+              style={{ width: 40, height: 22, background: mostrarTodosFinalizados ? "var(--w-600)" : "#CBD5E1", borderRadius: 11, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)" }}>
               <div style={{ width: 16, height: 16, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: mostrarTodosFinalizados ? 21 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
             </button>
           </div>
@@ -3088,7 +3088,7 @@ export function ChatSection() {
           style={{ overflowY: "auto", flex: 1, minHeight: 0, overflowAnchor: "none", background: tema.listaItem, padding: "6px 10px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
           {atendimentosFiltrados.length === 0 ? (
             <div style={{ padding: 32, textAlign: "center" }}>
-              <span style={{ width: 52, height: 52, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="chat" tamanho={24} /></span>
+              <span style={{ width: 52, height: 52, borderRadius: 16, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="chat" tamanho={24} /></span>
               <p style={{ color: tema.textoFraco, fontSize: 13 }}>{temFiltroAtivo ? "Nenhum resultado para os filtros" : `Nenhum atendimento em ${abas.find(a => a.key === abaConversa)?.label.toLowerCase()}`}</p>
             </div>
           ) : atendimentosFiltrados.map(a => {
@@ -3110,7 +3110,7 @@ export function ChatSection() {
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2, gap: 8 }}>
                       <span style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{a.nome}</span>
                       <span style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
-                        <span style={{ color: temNaoLidas ? "#047857" : "#64748B", fontSize: 12, fontWeight: temNaoLidas ? 800 : 600 }}>{tempoRelativo(dataUltimaMensagem(a))}</span>
+                        <span style={{ color: temNaoLidas ? "var(--w-700)" : "#64748B", fontSize: 12, fontWeight: temNaoLidas ? 800 : 600 }}>{tempoRelativo(dataUltimaMensagem(a))}</span>
                         <button type="button" title={conversasFixadas.has(a.id) ? "Desafixar conversa" : "Fixar conversa"}
                           aria-label={conversasFixadas.has(a.id) ? "Desafixar conversa" : "Fixar conversa"}
                           aria-pressed={conversasFixadas.has(a.id)} disabled={!fixadasCarregadas}
@@ -3139,7 +3139,7 @@ export function ChatSection() {
                       return (
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 6 }}>
                           {etiqs.map(et => (
-                            <span key={et.id} style={{ background: (et.cor || "#059669") + "1A", color: et.cor || "#059669", fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap" }}>
+                            <span key={et.id} style={{ background: (et.cor || "var(--w-600)") + "1A", color: et.cor || "var(--w-600)", fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 700, whiteSpace: "nowrap" }}>
                               {et.nome}
                             </span>
                           ))}
@@ -3149,15 +3149,15 @@ export function ChatSection() {
                     <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                         {a.fila && <span style={{ background: "#F1F5F4", color: "#475569", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999 }}>{a.fila}</span>}
-                        {aba === "automatico" && <span style={{ background: "#ECFDF5", color: "#047857", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>BOT</span>}
+                        {aba === "automatico" && <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>BOT</span>}
                         {aba === "aguardando" && <span style={{ background: "#FFF7ED", color: "#C2410C", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>Aguardando</span>}
                         {(aba === "abertos" || aba === "finalizados") && a.atendente && a.atendente !== "BOT" && (
                           <>
-                            <span style={{ background: "#ECFDF5", color: "#047857", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{nomeDoAtendente(a.atendente)}</span>
+                            <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999 }}>{nomeDoAtendente(a.atendente)}</span>
                           </>
                         )}
                         {temNaoLidas && (
-                          <span style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", fontSize: 11, fontWeight: 800, padding: "0 6px", minWidth: 20, height: 20, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px -4px rgba(5,150,105,.8)" }}>
+                          <span style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#FFFFFF", fontSize: 11, fontWeight: 800, padding: "0 6px", minWidth: 20, height: 20, borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 10px -4px rgba(5,150,105,.8)" }}>
                             {naoLidas > 99 ? "99+" : naoLidas}
                           </span>
                         )}
@@ -3185,7 +3185,7 @@ export function ChatSection() {
                 style={{ display: "flex", gap: 12, alignItems: "center", flex: 1, minWidth: 0, cursor: "pointer", padding: "4px 8px", margin: "-4px -8px", borderRadius: 8, transition: "background 0.15s" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F4")}
                 onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#065F46", fontWeight: 800, fontSize: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(140deg, var(--w-100), var(--w-200))", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--w-800)", fontWeight: 800, fontSize: 14 }}>
                   {iniciaisNome(atendimentoAtivo.nome || atendimentoAtivo.numero)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -3237,7 +3237,7 @@ export function ChatSection() {
                 )}
                 {atendimentoAtivo.status === "resolvido" ? (
                   <button onClick={() => reabrirChat(atendimentoAtivo)} title="Reabrir esta conversa — volta pra aba Abertos"
-                    style={{ background: "linear-gradient(140deg, #10B981, #059669)", border: "none", color: "#FFFFFF", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 16px", borderRadius: 11, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", marginLeft: 4, boxShadow: "0 8px 18px -8px rgba(5,150,105,.75)" }}>
+                    style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", border: "none", color: "#FFFFFF", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 16px", borderRadius: 11, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", marginLeft: 4, boxShadow: "0 8px 18px -8px rgba(5,150,105,.75)" }}>
                     Reabrir Conversa
                   </button>
                 ) : (
@@ -3255,24 +3255,24 @@ export function ChatSection() {
                     })()}
                     {!isMobile && (isDono || permissoes.transferir_chat) && (
                       <button onClick={() => setShowTransferir(!showTransferir)} title="Encaminhar para fila ou atendente"
-                        style={{ ...botaoToolbar(), width: "auto", padding: "0 14px", gap: 6, fontSize: 13, fontWeight: 700, color: "#334155", background: showTransferir ? "#ECFDF5" : "#F3F6F5" }}>Transferir</button>
+                        style={{ ...botaoToolbar(), width: "auto", padding: "0 14px", gap: 6, fontSize: 13, fontWeight: 700, color: "#334155", background: showTransferir ? "var(--w-50)" : "#F3F6F5" }}>Transferir</button>
                     )}
                     {!isMobile && (permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
                       <button onClick={() => window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank")}
                         title="Finalizar venda — abre a tela de proposta em nova aba"
-                        style={{ background: "#ECFDF5", border: "none", color: "#047857", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 14px", borderRadius: 11, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                        style={{ background: "var(--w-50)", border: "none", color: "var(--w-700)", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 14px", borderRadius: 11, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
                         Finalizar Venda
                       </button>
                     )}
                     {!isMobile && (isDono || permissoes.finalizar_chat) && (
                       <button onClick={() => { if (confirm(`Finalizar atendimento de ${atendimentoAtivo.nome}?`)) finalizarChat(atendimentoAtivo.numero, atendimentoAtivo.canal_id); }}
-                        title="Finalizar atendimento" style={{ background: "linear-gradient(140deg, #10B981, #059669)", border: "none", color: "#FFFFFF", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 16px", borderRadius: 11, whiteSpace: "nowrap", boxShadow: "0 8px 18px -8px rgba(5,150,105,.75)" }}>Finalizar</button>
+                        title="Finalizar atendimento" style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", border: "none", color: "#FFFFFF", cursor: "pointer", fontSize: 13, fontWeight: 800, height: 40, padding: "0 16px", borderRadius: 11, whiteSpace: "nowrap", boxShadow: "0 8px 18px -8px rgba(5,150,105,.75)" }}>Finalizar</button>
                     )}
                   </>
                 )}
                 {isMobile && atendimentoAtivo.status !== "resolvido" && (
                   <button onClick={() => setShowMenuMobileChat(!showMenuMobileChat)} title="Mais opções"
-                    style={{ ...botaoToolbar(), fontSize: 20, fontWeight: "bold", background: showMenuMobileChat ? "#ECFDF5" : "#F3F6F5" }}>⋮</button>
+                    style={{ ...botaoToolbar(), fontSize: 20, fontWeight: "bold", background: showMenuMobileChat ? "var(--w-50)" : "#F3F6F5" }}>⋮</button>
                 )}
                 {isMobile && showMenuMobileChat && atendimentoAtivo.status !== "resolvido" && (
                   <>
@@ -3297,7 +3297,7 @@ export function ChatSection() {
                       )}
                       {(permissoes.vendas_proprio || permissoes.vendas_equipe) && atendimentoAtivo.atendente !== "BOT" && atendimentoAtivo.status !== "pendente" && (
                         <button onClick={() => { window.open(`/crm/proposta?nome=${encodeURIComponent(atendimentoAtivo.nome)}&numero=${encodeURIComponent(numeroSanitizado(atendimentoAtivo.numero))}`, "_blank"); setShowMenuMobileChat(false); }}
-                          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#16a34a22", border: "none", color: "#059669", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4 }}
+                          style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", background: "#16a34a22", border: "none", color: "var(--w-600)", padding: "10px 14px", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 6, fontWeight: "bold", marginTop: 4 }}
                           onMouseEnter={e => e.currentTarget.style.background = "#16a34a44"} onMouseLeave={e => e.currentTarget.style.background = "#16a34a22"}>
                           <span style={{ fontSize: 16 }}>💰</span> Finalizar Venda
                         </button>
@@ -3314,7 +3314,7 @@ export function ChatSection() {
                 )}
                 {showTransferir && (
                   <div style={{ position: "absolute", top: 48, right: 0, background: "#FFFFFF", borderRadius: 14, padding: 12, zIndex: 110, width: 270, maxHeight: 440, overflowY: "auto", boxShadow: "0 2px 4px rgba(16,24,40,.06), 0 20px 40px -12px rgba(16,24,40,.28)" }}>
-                    <p style={{ color: "#047857", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para fila</p>
+                    <p style={{ color: "var(--w-700)", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para fila</p>
                     {filas.length === 0 ? (
                       <p style={{ color: "#64748B", fontSize: 11, fontStyle: "italic", margin: "0 0 10px" }}>Nenhuma fila cadastrada.</p>
                     ) : (
@@ -3324,14 +3324,14 @@ export function ChatSection() {
                       ))
                     )}
                     <div style={{ height: 1, background: "#F1F5F4", margin: "12px 0" }} />
-                    <p style={{ color: "#047857", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para atendente</p>
+                    <p style={{ color: "var(--w-700)", fontSize: 12, fontWeight: "bold", margin: "0 0 8px", letterSpacing: 0.5 }}>Encaminhar para atendente</p>
                     {(() => {
                       const outrosAtendentes = usuariosWs.filter(u => u.email && u.email.toLowerCase() !== user?.email?.toLowerCase());
                       if (outrosAtendentes.length === 0) { return <p style={{ color: "#64748B", fontSize: 11, fontStyle: "italic", margin: "0 0 8px" }}>Nenhum outro atendente no workspace.</p>; }
                       return outrosAtendentes.map((u, idx) => (
                         <button key={"user-" + u.email + idx} onClick={() => transferirParaAtendente(u.email, u.nome || u.email.split("@")[0])}
                           style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: "#F7FAF9", border: "none", borderRadius: 9, padding: "8px 12px", color: "#0F172A", fontSize: 12, cursor: "pointer", textAlign: "left", marginBottom: 4 }}>
-                          <div style={{ width: 26, height: 26, borderRadius: 8, background: "#D1FAE5", color: "#065F46", fontWeight: 800, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-100)", color: "var(--w-800)", fontWeight: 800, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             {(u.nome || u.email).charAt(0).toUpperCase()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -3386,11 +3386,11 @@ export function ChatSection() {
                     return (
                       <div key={chaveMensagem(msg)} onMouseEnter={() => setHoverMsgIdx(i)} onMouseLeave={() => { setHoverMsgIdx(prev => prev === i ? null : prev); }}
                         style={{ display: "flex", justifyContent: isCliente ? "flex-start" : "flex-end", position: "relative" }}>
-                        <div style={{ maxWidth, padding: ehMidia ? "5px 5px 8px" : "11px 15px 9px", borderRadius: isCliente ? "6px 18px 18px 18px" : "18px 6px 18px 18px", background: isCliente ? "#ffffff" : bolhaVerde ? (isBot ? "linear-gradient(140deg, #34D399, #10B981 60%, #059669)" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)") : "#ECFDF5", boxShadow: bolhaVerde ? "0 12px 24px -12px rgba(5,150,105,.7)" : "0 1px 2px rgba(16,24,40,.05), 0 8px 20px -12px rgba(16,24,40,.18)", position: "relative" }}>
+                        <div style={{ maxWidth, padding: ehMidia ? "5px 5px 8px" : "11px 15px 9px", borderRadius: isCliente ? "6px 18px 18px 18px" : "18px 6px 18px 18px", background: isCliente ? "#ffffff" : bolhaVerde ? (isBot ? "linear-gradient(140deg, var(--w-400), var(--w-500) 60%, var(--w-600))" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))") : "#ECFDF5", boxShadow: bolhaVerde ? "0 12px 24px -12px rgba(5,150,105,.7)" : "0 1px 2px rgba(16,24,40,.05), 0 8px 20px -12px rgba(16,24,40,.18)", position: "relative" }}>
                           {!isCliente && !ehAudio && !ehMidia && <p style={{ color: "rgba(255,255,255,.82)", fontSize: 12, margin: "0 0 3px", fontWeight: 800, letterSpacing: 0.15 }}>{isBot ? "BOT" : "Voc\u00ea"}</p>}
                           {quoteAutor && quoteTexto && (
                             <div style={{ background: bolhaVerde ? "rgba(255,255,255,0.18)" : "#F3F6F5", borderLeft: `3px solid ${bolhaVerde ? "#FFFFFF" : "#059669"}`, padding: "6px 8px", borderRadius: 8, marginBottom: 6 }}>
-                              <p style={{ fontSize: 11, fontWeight: "bold", color: bolhaVerde ? "#FFFFFF" : "#047857", margin: 0 }}>{quoteAutor}</p>
+                              <p style={{ fontSize: 11, fontWeight: "bold", color: bolhaVerde ? "#FFFFFF" : "var(--w-700)", margin: 0 }}>{quoteAutor}</p>
                               <p style={{ fontSize: 12, color: bolhaVerde ? "rgba(255,255,255,.85)" : "#475569", margin: "2px 0 0", whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 60, overflow: "hidden" }}>{quoteTexto}</p>
                             </div>
                           )}
@@ -3480,11 +3480,11 @@ export function ChatSection() {
                             <p style={{ color: bolhaVerde ? (mensagemApagada ? "rgba(255,255,255,.75)" : "#FFFFFF") : mensagemApagada ? "#64748B" : "#0F172A", fontSize: 14, margin: 0, lineHeight: 1.55, fontStyle: mensagemApagada ? "italic" : "normal", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{mensagemApagada ? "Esta mensagem foi apagada" : msgTextoLimpo}</p>
                           )}
                           {msg.created_at && (
-                            <p title={dataHoraMsg(msg.created_at)} style={{ color: bolhaVerde ? "#D1FAE5" : "#94A3B8", fontSize: 11, fontWeight: 600, margin: "4px 0 0", textAlign: "right", lineHeight: 1 }}>
+                            <p title={dataHoraMsg(msg.created_at)} style={{ color: bolhaVerde ? "var(--w-100)" : "#94A3B8", fontSize: 11, fontWeight: 600, margin: "4px 0 0", textAlign: "right", lineHeight: 1 }}>
                               {foiEditada && <span style={{ fontStyle: "italic", marginRight: 6, opacity: 0.85 }}>editada</span>}
                               {horaMsg(msg.created_at)}{!isCliente && (() => {
                                 const entrega = statusLeituraMensagem(msg.status_entrega);
-                                return <span title={entrega.titulo} aria-label={entrega.titulo} style={{ color: entrega.falhou ? (bolhaVerde ? "#FECACA" : "#dc2626") : entrega.lida ? (bolhaVerde ? "#FFFFFF" : "#059669") : (bolhaVerde ? "rgba(255,255,255,.65)" : "#94A3B8"), fontWeight: 900, marginLeft: 3 }}>{entrega.falhou ? "!" : "\u2713\u2713"}</span>;
+                                return <span title={entrega.titulo} aria-label={entrega.titulo} style={{ color: entrega.falhou ? (bolhaVerde ? "#FECACA" : "#dc2626") : entrega.lida ? (bolhaVerde ? "#FFFFFF" : "var(--w-600)") : (bolhaVerde ? "rgba(255,255,255,.65)" : "#94A3B8"), fontWeight: 900, marginLeft: 3 }}>{entrega.falhou ? "!" : "\u2713\u2713"}</span>;
                               })()}
                             </p>
                           )}
@@ -3499,16 +3499,16 @@ export function ChatSection() {
 
             {!stickyFundo && (
               <button onClick={irParaFundo} title={temMensagemNova ? "Nova mensagem recebida — clique pra ver" : "Ir para a última mensagem"}
-                style={{ position: "absolute", right: isMobile ? 68 : 92, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "#059669" : "#FFFFFF", border: "none", color: temMensagemNova ? "#FFFFFF" : "#334155", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -8px rgba(16,24,40,.35)", zIndex: 10, fontWeight: "bold" }}>
+                style={{ position: "absolute", right: isMobile ? 68 : 92, bottom: 90, width: 42, height: 42, borderRadius: "50%", background: temMensagemNova ? "var(--w-600)" : "#FFFFFF", border: "none", color: temMensagemNova ? "#FFFFFF" : "#334155", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 20px -8px rgba(16,24,40,.35)", zIndex: 10, fontWeight: "bold" }}>
                 <Icone nome="baixo" tamanho={18} espessura={2.2} />{temMensagemNova && <span style={{ position: "absolute", top: -4, right: -4, width: 12, height: 12, background: "#dc2626", borderRadius: "50%", border: "2px solid #ffffff" }} />}
               </button>
             )}
 
             {(respondendoMsg || editandoMsg) && !gravando && (
               <div style={{ background: "#FFFFFF", borderTop: "1px solid #EEF2F1", padding: "10px 20px", display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ color: "#059669", display: "inline-flex" }}><Icone nome={editandoMsg ? "editar" : "voltar"} tamanho={18} /></span>
+                <span style={{ color: "var(--w-600)", display: "inline-flex" }}><Icone nome={editandoMsg ? "editar" : "voltar"} tamanho={18} /></span>
                 <div style={{ flex: 1, paddingLeft: 10, minWidth: 0 }}>
-                  <p style={{ color: "#047857", fontSize: 11, fontWeight: "bold", margin: 0 }}>
+                  <p style={{ color: "var(--w-700)", fontSize: 11, fontWeight: "bold", margin: 0 }}>
                     {editandoMsg ? "Editando sua mensagem" : `Respondendo a ${(respondendoMsg?.de === "cliente" ? (atendimentoAtivo?.nome || "Cliente") : respondendoMsg?.de === "bot" ? "BOT" : "Atendente")}`}
                   </p>
                   <p style={{ color: "#475569", fontSize: 12, margin: "2px 0 0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -3535,7 +3535,7 @@ export function ChatSection() {
                 ) : respostasRapidas.map((r, i) => (
                   <button type="button" key={i} onClick={() => aplicarRespostaRapida(r)}
                     style={{ background: "#F7FAF9", border: "none", borderRadius: 10, padding: "8px 12px", color: "#0F172A", fontSize: 12.5, cursor: "pointer", textAlign: "left", display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ background: "#ECFDF5", color: "#047857", fontWeight: 800, borderRadius: 999, padding: "2px 10px", whiteSpace: "nowrap" }}>{r.atalho}</span>
+                    <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontWeight: 800, borderRadius: 999, padding: "2px 10px", whiteSpace: "nowrap" }}>{r.atalho}</span>
                     <span style={{ color: "#475569", flex: 1 }}>{r.mensagem}</span>
                     {r.midia_url && (
                       <span title={r.midia_nome || "mídia"} style={{ fontSize: 16, flexShrink: 0 }}>
@@ -3560,7 +3560,7 @@ export function ChatSection() {
                   <span style={{ color: "#64748B", fontSize: 13, fontFamily: "monospace", marginLeft: "auto" }}>{formatTempo(tempoGravacao)}</span>
                 </div>
                 <button onClick={enviarAudioGravado} disabled={enviandoAudio} title="Enviar áudio"
-                  style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", border: "none", borderRadius: 12, width: 42, height: 42, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: enviandoAudio ? 0.7 : 1, boxShadow: "0 8px 16px -8px rgba(5,150,105,.8)" }}>{enviandoAudio ? "…" : <Icone nome="enviar" tamanho={18} />}</button>
+                  style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#FFFFFF", border: "none", borderRadius: 12, width: 42, height: 42, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: enviandoAudio ? 0.7 : 1, boxShadow: "0 8px 16px -8px rgba(5,150,105,.8)" }}>{enviandoAudio ? "…" : <Icone nome="enviar" tamanho={18} />}</button>
                 <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
               </div>
             ) : (
@@ -3582,7 +3582,7 @@ export function ChatSection() {
                     <div style={{ display: "flex", gap: 2, borderBottom: "1px solid #EEF2F1", padding: "6px 12px", overflowX: "auto" }}>
                       {EMOJIS_CATEGORIAS.map(cat => (
                         <button key={cat.id} onClick={() => setEmojiCategoria(cat.id)} title={cat.label}
-                          style={{ background: emojiCategoria === cat.id ? "#ECFDF5" : "transparent", border: "none", borderRadius: 8, padding: "6px 10px", fontSize: 18, cursor: "pointer", flexShrink: 0, borderBottom: emojiCategoria === cat.id ? "2px solid #059669" : "2px solid transparent" }}>
+                          style={{ background: emojiCategoria === cat.id ? "var(--w-50)" : "transparent", border: "none", borderRadius: 8, padding: "6px 10px", fontSize: 18, cursor: "pointer", flexShrink: 0, borderBottom: emojiCategoria === cat.id ? "2px solid var(--w-600)" : "2px solid transparent" }}>
                           {cat.icone}
                         </button>
                       ))}
@@ -3604,10 +3604,10 @@ export function ChatSection() {
                 <div style={{ display: "flex", gap: 6, alignItems: "center", background: "#F7FAF9", borderRadius: 16, padding: 6, boxShadow: "inset 0 0 0 1px #EEF2F1" }}>
                   {permissoes.respostas_rapidas && (
                     <button onClick={() => setShowRespostas(!showRespostas)} title="Respostas rápidas"
-                      style={{ ...botaoComp, background: showRespostas ? "#ECFDF5" : "#FFFFFF", color: showRespostas ? "#059669" : "#475569" }}><Icone nome="raio" tamanho={18} /></button>
+                      style={{ ...botaoComp, background: showRespostas ? "var(--w-50)" : "#FFFFFF", color: showRespostas ? "var(--w-600)" : "#475569" }}><Icone nome="raio" tamanho={18} /></button>
                   )}
                   <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} title="Emoji"
-                    style={{ ...botaoComp, background: showEmojiPicker ? "#ECFDF5" : "#FFFFFF", color: showEmojiPicker ? "#059669" : "#475569" }}><Icone nome="sorriso" tamanho={18} /></button>
+                    style={{ ...botaoComp, background: showEmojiPicker ? "var(--w-50)" : "#FFFFFF", color: showEmojiPicker ? "var(--w-600)" : "#475569" }}><Icone nome="sorriso" tamanho={18} /></button>
                   <input ref={fileUploadRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar" onChange={handleArquivoSelecionado} style={{ display: "none" }} />
                   <button onClick={() => fileUploadRef.current?.click()} title="Anexar arquivo"
                     style={botaoComp}><Icone nome="clipe" tamanho={18} /></button>
@@ -3628,7 +3628,7 @@ export function ChatSection() {
                     style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", borderRadius: 10, padding: "10px 8px", color: "#0F172A", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: "1.4", maxHeight: 140, overflowY: "auto", outline: "none" }} />
                   {mensagem ? (
                     <button onClick={enviarMensagem} disabled={enviandoMsg} title="Enviar"
-                      style={{ ...botaoComp, width: 42, height: 42, background: "linear-gradient(140deg, #10B981, #059669)", color: "#FFFFFF", boxShadow: "0 8px 16px -8px rgba(5,150,105,.8)" }}>{enviandoMsg ? "…" : <Icone nome="enviar" tamanho={18} />}</button>
+                      style={{ ...botaoComp, width: 42, height: 42, background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#FFFFFF", boxShadow: "0 8px 16px -8px rgba(5,150,105,.8)" }}>{enviandoMsg ? "…" : <Icone nome="enviar" tamanho={18} />}</button>
                   ) : (
                     <button onClick={iniciarGravacao} title="Gravar áudio"
                       style={{ ...botaoComp, width: 42, height: 42 }}><Icone nome="microfone" tamanho={18} /></button>
@@ -3640,13 +3640,13 @@ export function ChatSection() {
           </>
         ) : (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 18, background: "transparent" }}>
-            <div style={{ width: 96, height: 96, borderRadius: 22, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💬"} tamanho={30} /></div>
+            <div style={{ width: 96, height: 96, borderRadius: 22, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💬"} tamanho={30} /></div>
             <h2 style={{ color: "#0F172A", fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: -0.3 }}>Wolf Chatbot</h2>
             <p style={{ color: "#64748B", fontSize: 14, margin: 0, maxWidth: 400, textAlign: "center", lineHeight: 1.5 }}>Selecione uma conversa à esquerda pra começar a atender</p>
             {meuNome && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 14px", background: "#22c55e15", border: "1px solid #22c55e40", borderRadius: 20 }}>
                 <span style={{ fontSize: 13 }}>👋</span>
-                <span style={{ color: "#047857", fontSize: 12, fontWeight: 600 }}>Olá, {meuNome}!</span>
+                <span style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 600 }}>Olá, {meuNome}!</span>
               </div>
             )}
           </div>
@@ -3689,7 +3689,7 @@ export function ChatSection() {
                 </p>
               </div>
             </div>
-            <div style={{ padding: "12px 16px", background: "#D1FAE5", display: "flex", gap: 8, alignItems: "center" }}>
+            <div style={{ padding: "12px 16px", background: "var(--w-100)", display: "flex", gap: 8, alignItems: "center" }}>
               <textarea
                 placeholder="Adicione uma legenda (opcional)"
                 value={legendaArquivo}
@@ -3703,7 +3703,7 @@ export function ChatSection() {
                 style={{ flex: 1, background: "#F1F5F4", border: "none", borderRadius: 20, padding: "10px 16px", color: "#0F172A", fontSize: 14, resize: "none", fontFamily: "inherit", lineHeight: "1.4", maxHeight: 100, overflowY: "auto" }}
               />
               <button onClick={enviarMidia} disabled={enviandoMidia}
-                style={{ background: enviandoMidia ? "#047857" : "#00a884", color: "#0F172A", border: "none", borderRadius: "50%", width: 44, height: 44, fontSize: 18, cursor: enviandoMidia ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                style={{ background: enviandoMidia ? "var(--w-700)" : "#00a884", color: "#0F172A", border: "none", borderRadius: "50%", width: 44, height: 44, fontSize: 18, cursor: enviandoMidia ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                 {enviandoMidia ? "…" : "➤"}
               </button>
             </div>
@@ -3735,7 +3735,7 @@ export function ChatSection() {
                   Template aprovado ({templatesDoCanal.length} disponíveis)
                 </label>
                 {templatesDoCanal.length === 0 ? (
-                  <div style={{ background: "#D1FAE5", borderRadius: 8, padding: 16, textAlign: "center" }}>
+                  <div style={{ background: "var(--w-100)", borderRadius: 8, padding: 16, textAlign: "center" }}>
                     <p style={{ color: "#f59e0b", fontSize: 13, margin: "0 0 8px" }}>Nenhum template aprovado pra esse canal</p>
                     <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>
                       Cria templates em <b>Chatbot → Templates</b> e aguarda aprovação da Meta.
@@ -3753,10 +3753,10 @@ export function ChatSection() {
                 )}
               </div>
               {templateEscolhido && (
-                <div style={{ background: "#D1FAE5", borderRadius: 10, padding: 14 }}>
+                <div style={{ background: "var(--w-100)", borderRadius: 10, padding: 14 }}>
                   <p style={{ color: "#64748B", fontSize: 12, fontWeight: "bold", margin: "0 0 8px" }}>Preview</p>
                   {(templateEscolhido.componentes || []).map((c: any, i: number) => {
-                    if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "#6EE7B7", fontSize: 12, margin: "0 0 6px", fontWeight: "bold" }}>{c.text}</p>;
+                    if (c.type === "HEADER" && c.format === "TEXT") return <p key={i} style={{ color: "var(--w-300)", fontSize: 12, margin: "0 0 6px", fontWeight: "bold" }}>{c.text}</p>;
                     if (c.type === "HEADER") return <p key={i} style={{ color: "#64748B", fontSize: 11, margin: "0 0 6px" }}>{c.format}</p>;
                     if (c.type === "BODY") return <p key={i} style={{ color: "#0F172A", fontSize: 13, margin: "0 0 6px", whiteSpace: "pre-wrap" }}>{c.text}</p>;
                     if (c.type === "FOOTER") return <p key={i} style={{ color: "#64748B", fontSize: 11, margin: "0 0 6px", fontStyle: "italic" }}>{c.text}</p>;
@@ -3785,7 +3785,7 @@ export function ChatSection() {
                 </div>
               )}
             </div>
-            <div style={{ padding: "12px 20px", borderTop: "1px solid #2a3942", background: "#D1FAE5", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <div style={{ padding: "12px 20px", borderTop: "1px solid #2a3942", background: "var(--w-100)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>
                 Para: <b style={{ color: "#00a884", fontFamily: "monospace" }}>{atendimentoAtivo.numero}</b>
               </p>
@@ -3793,7 +3793,7 @@ export function ChatSection() {
                 <button onClick={() => setShowTemplateModal(false)} disabled={enviandoTemplate}
                   style={{ background: "#F1F5F4", color: "#64748B", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: enviandoTemplate ? "not-allowed" : "pointer" }}>Cancelar</button>
                 <button onClick={enviarTemplateWaba} disabled={enviandoTemplate || !templateEscolhido}
-                  style={{ background: (enviandoTemplate || !templateEscolhido) ? "#047857" : "#00a884", color: "#0F172A", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, cursor: (enviandoTemplate || !templateEscolhido) ? "not-allowed" : "pointer", fontWeight: "bold" }}>
+                  style={{ background: (enviandoTemplate || !templateEscolhido) ? "var(--w-700)" : "#00a884", color: "#0F172A", border: "none", borderRadius: 8, padding: "8px 20px", fontSize: 13, cursor: (enviandoTemplate || !templateEscolhido) ? "not-allowed" : "pointer", fontWeight: "bold" }}>
                   {enviandoTemplate ? "⏳ Enviando..." : "🚀 Enviar Template"}
                 </button>
               </div>
@@ -3808,7 +3808,7 @@ export function ChatSection() {
           <div style={{ padding: "18px 18px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>Dados do contato</h3>
-              <p style={{ color: salvandoContato ? "#047857" : "#94A3B8", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>{salvandoContato ? "Salvando..." : "Salvo automaticamente"}</p>
+              <p style={{ color: salvandoContato ? "var(--w-700)" : "#94A3B8", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>{salvandoContato ? "Salvando..." : "Salvo automaticamente"}</p>
             </div>
             <button onClick={() => setShowPainelContato(false)} title="Fechar" style={{ background: "#F3F6F5", border: "none", color: "#475569", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
           </div>
@@ -3827,10 +3827,10 @@ export function ChatSection() {
               const ativa = abaPainel === a.key;
               return (
                 <button key={a.key} role="tab" aria-selected={ativa} onClick={() => setAbaPainel(a.key as any)} title={a.label}
-                  style={{ flex: 1, height: 34, background: ativa ? "#FFFFFF" : "transparent", border: "none", borderRadius: 9, cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: ativa ? "#059669" : "#64748B", boxShadow: ativa ? "0 2px 6px rgba(16,24,40,.1)" : "none", transition: "all 0.15s" }}>
+                  style={{ flex: 1, height: 34, background: ativa ? "#FFFFFF" : "transparent", border: "none", borderRadius: 9, cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: ativa ? "var(--w-600)" : "#64748B", boxShadow: ativa ? "0 2px 6px rgba(16,24,40,.1)" : "none", transition: "all 0.15s" }}>
                   <Icone nome={a.icon} tamanho={16} />
                   {a.key === "etiquetas" && etiquetasAtendimento.length > 0 && (
-                    <span style={{ position: "absolute", top: 1, right: 1, background: "#059669", color: "#ffffff", borderRadius: 999, minWidth: 14, height: 14, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, padding: "0 3px" }}>{etiquetasAtendimento.length}</span>
+                    <span style={{ position: "absolute", top: 1, right: 1, background: "var(--w-600)", color: "#ffffff", borderRadius: 999, minWidth: 14, height: 14, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, padding: "0 3px" }}>{etiquetasAtendimento.length}</span>
                   )}
                 </button>
               );
@@ -3842,17 +3842,17 @@ export function ChatSection() {
             {abaPainel === "perfil" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, textAlign: "center", padding: "6px 0 2px" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: 22, background: "linear-gradient(140deg, #D1FAE5, #6EE7B7)", color: "#065F46", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, boxShadow: "0 12px 24px -12px rgba(5,150,105,.6)" }}>{iniciaisNome(atendimentoAtivo.nome || atendimentoAtivo.numero)}</div>
+                  <div style={{ width: 72, height: 72, borderRadius: 22, background: "linear-gradient(140deg, var(--w-100), var(--w-300))", color: "var(--w-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, boxShadow: "0 12px 24px -12px rgba(5,150,105,.6)" }}>{iniciaisNome(atendimentoAtivo.nome || atendimentoAtivo.numero)}</div>
                   <p style={{ color: "#0F172A", fontSize: 17, fontWeight: 800, margin: "4px 0 0" }}>{atendimentoAtivo.nome}</p>
                   <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>{atendimentoAtivo.created_at ? `Contato desde ${new Date(atendimentoAtivo.created_at).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}` : numeroSanitizado(atendimentoAtivo.numero)}</p>
                 </div>
                 {(atendimentoAtivo.funil_etapa || Number(atendimentoAtivo.valor) > 0) && (
-                  <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: 18, color: "#FFFFFF", background: "linear-gradient(140deg, #059669, #065F46)", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)", display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ position: "relative", overflow: "hidden", borderRadius: 18, padding: 18, color: "#FFFFFF", background: "linear-gradient(140deg, var(--w-600), var(--w-800))", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)", display: "flex", flexDirection: "column", gap: 6 }}>
                     <div aria-hidden="true" style={{ position: "absolute", right: -40, top: -40, width: 140, height: 140, borderRadius: "50%", background: "rgba(255,255,255,.1)" }} />
                     <span style={{ color: "rgba(255,255,255,.8)", fontSize: 12, fontWeight: 700 }}>Negócio aberto</span>
                     <span style={{ fontSize: 15, fontWeight: 800 }}>{funilEtapas.find(e => e.opcao === atendimentoAtivo.funil_etapa)?.opcao || atendimentoAtivo.funil_etapa || "Sem etapa"}</span>
                     {Number(atendimentoAtivo.valor) > 0 && <span style={{ fontSize: 26, fontWeight: 800 }}>{Number(atendimentoAtivo.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>}
-                    <button onClick={() => setAbaPainel("funil")} style={{ position: "relative", marginTop: 6, height: 40, borderRadius: 11, border: 0, background: "#FFFFFF", color: "#065F46", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Ver no funil</button>
+                    <button onClick={() => setAbaPainel("funil")} style={{ position: "relative", marginTop: 6, height: 40, borderRadius: 11, border: 0, background: "#FFFFFF", color: "var(--w-800)", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Ver no funil</button>
                   </div>
                 )}
                 <PreviaBiblioteca mensagens={historico} urlMidia={audioUrl} onAbrir={() => { setAbaBiblioteca("midia"); setAbaPainel("midia"); }} />
@@ -3886,7 +3886,7 @@ export function ChatSection() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ background: "#FFFFFF", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 8px 20px -14px rgba(16,24,40,.2)" }}>
                   <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Número do protocolo</label>
-                  <p style={{ color: "#047857", fontSize: 20, fontWeight: 800, margin: "4px 0 0", letterSpacing: ".02em" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
+                  <p style={{ color: "var(--w-700)", fontSize: 20, fontWeight: 800, margin: "4px 0 0", letterSpacing: ".02em" }}>#{String(atendimentoAtivo.id).padStart(6, "0")}</p>
                 </div>
                 <div>
                   <label style={{ color: "#64748B", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>Avaliação</label>
@@ -3979,7 +3979,7 @@ export function ChatSection() {
                   return (
                     <div key={item.key} style={{ background: "#FFFFFF", borderRadius: 16, padding: "14px 16px", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 8px 20px -14px rgba(16,24,40,.2)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <div><p style={{ color: "#0F172A", fontSize: 13.5, fontWeight: 800, margin: 0 }}>{item.label}</p><p style={{ color: bloqueado ? "#B91C1C" : "#047857", fontSize: 12, fontWeight: 600, margin: "2px 0 0" }}>{bloqueado ? "Desligado nesta conversa" : "Ligado nesta conversa"}</p></div>
+                        <div><p style={{ color: "#0F172A", fontSize: 13.5, fontWeight: 800, margin: 0 }}>{item.label}</p><p style={{ color: bloqueado ? "#B91C1C" : "var(--w-700)", fontSize: 12, fontWeight: 600, margin: "2px 0 0" }}>{bloqueado ? "Desligado nesta conversa" : "Ligado nesta conversa"}</p></div>
                         <button onClick={() => salvarCampoContato(item.key, !bloqueado)} aria-label={bloqueado ? "Ligar" : "Desligar"} style={{ width: 44, height: 24, background: bloqueado ? "#CBD5E1" : item.cor, borderRadius: 12, cursor: "pointer", border: "none", position: "relative" }}>
                           <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: bloqueado ? 23 : 3, transition: "left 0.2s" }} />
                         </button>

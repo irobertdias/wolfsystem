@@ -158,8 +158,8 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
             <img src="/logo1.png" alt="Wolf" style={{ width: 32, flexShrink: 0 }} />
             <div style={{ minWidth: 0 }}>
               <span style={{ color: "#0F172A", fontWeight: "700", fontSize: 14, display: "block" }}>Wolf Chatbot</span>
-              <span style={{ color: "#059669", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10B981", boxShadow: "0 0 0 2px #22c55e22" }}/>
+              <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--w-500)", boxShadow: "0 0 0 2px #22c55e22" }}/>
                 {workspace?.nome || "Carregando..."}
               </span>
             </div>
@@ -275,7 +275,7 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
         {aba === "dashboard_atendimentos" && permissoes.dashboard && <DashboardSection />}
         {aba === "conexoes" && !permissoes.conexoes && (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
-            <span style={{ width: 64, height: 64, borderRadius: 20, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="cadeado" tamanho={28} cor="#059669" /></span>
+            <span style={{ width: 64, height: 64, borderRadius: 20, background: "var(--w-50)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="cadeado" tamanho={28} cor="var(--w-600)" /></span>
             <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: "bold", margin: 0 }}>Sem permissão</h2>
             <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>Você não tem acesso a esta área</p>
           </div>
@@ -285,14 +285,14 @@ export default function AtendimentoShell({ children }: { children?: ReactNode })
           <div style={{ padding: 32, display: "flex", flexDirection: "column", gap: 24, alignItems: "center", justifyContent: "center", flex: 1 }}>
             <div style={{
               width: 96, height: 96, borderRadius: 24,
-              background: "linear-gradient(140deg, #059669 0%, #065F46 100%)",
+              background: "linear-gradient(140deg, var(--w-600) 0%, var(--w-800) 100%)",
               display: "flex", alignItems: "center", justifyContent: "center",
               boxShadow: "0 18px 36px -14px rgba(5,150,105,.65)"
             }}><Icone nome="robo" tamanho={44} cor="#fff" espessura={1.7} /></div>
             <h1 style={{ color: "#0F172A", fontSize: 24, fontWeight: 800, letterSpacing: "-.02em", margin: 0 }}>Chatbot / Fluxos</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>Crie fluxos de atendimento automático</p>
             <button onClick={() => router.push("/chatbot/fluxos")} style={{
-              background: "linear-gradient(140deg, #10B981 0%, #059669 100%)",
+              background: "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 100%)",
               color: "white", border: "none", borderRadius: 12, display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit",
               padding: "14px 32px", fontSize: 15, cursor: "pointer", fontWeight: "700",
               boxShadow: "0 8px 18px -8px rgba(5,150,105,.7)",

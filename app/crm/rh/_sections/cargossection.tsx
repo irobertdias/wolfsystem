@@ -114,7 +114,7 @@ export function CargosSection() {
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}><b style={{ color: COR_TEXTO }}>{lista.length}</b> cargo(s) · {totalOcupantes} ocupantes</p>
           </div>
         </div>
-        <button onClick={abrirNovo} style={{ background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`, color: "white", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>+ Novo Cargo</button>
+        <button onClick={abrirNovo} style={{ background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`, color: "white", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>+ Novo Cargo</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
@@ -144,7 +144,7 @@ export function CargosSection() {
       {carregando ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}><p style={{ color: "#64748B", fontSize: 13 }}>Carregando cargos...</p></div>
       ) : filtrados.length === 0 ? (
-        <div style={{ ...card, padding: 40, textAlign: "center" }}><span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span><p style={{ color: "#64748B", fontSize: 13 }}>{lista.length === 0 ? "Nenhum cargo cadastrado ainda." : "Nenhum cargo encontrado"}</p></div>
+        <div style={{ ...card, padding: 40, textAlign: "center" }}><span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span><p style={{ color: "#64748B", fontSize: 13 }}>{lista.length === 0 ? "Nenhum cargo cadastrado ainda." : "Nenhum cargo encontrado"}</p></div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
@@ -166,7 +166,7 @@ export function CargosSection() {
                       <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}>{real(c.salMin)}</td>
                       <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>{real(c.salMed)}</td>
                       <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12, whiteSpace: "nowrap" }}>{real(c.salMax)}</td>
-                      <td style={{ padding: "12px 16px" }}><span style={{ background: "#ECFDF5", color: COR_TEXTO, border: "1px solid #A7F3D0", fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.ocupantes}</span></td>
+                      <td style={{ padding: "12px 16px" }}><span style={{ background: "var(--w-50)", color: COR_TEXTO, border: "1px solid var(--w-200)", fontSize: 11, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.ocupantes}</span></td>
                       <td style={{ padding: "12px 16px" }}><button onClick={(e) => { e.stopPropagation(); excluir(c); }} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button></td>
                     </tr>
                   );
@@ -201,7 +201,7 @@ export function CargosSection() {
             </div>
             <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end", background: "#F7FAF9" }}>
               <button onClick={fechar} style={{ background: "#F3F6F5", color: "#334155", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`, color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: salvando ? "wait" : "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", opacity: salvando ? 0.7 : 1 }}>{salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}</button>
+              <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`, color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: salvando ? "wait" : "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", opacity: salvando ? 0.7 : 1 }}>{salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}</button>
             </div>
           </div>
         </div>

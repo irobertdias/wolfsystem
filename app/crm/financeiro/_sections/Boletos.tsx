@@ -120,7 +120,7 @@ export default function Boletos() {
             {carregando ? <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : lista.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🎫" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🎫" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum boleto</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Cole a linha digitável e o sistema preenche valor e vencimento.</p>
                   <button onClick={abrirNovo} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo boleto</button>

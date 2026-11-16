@@ -362,7 +362,7 @@ export default function Vendas() {
     }
     if (c.slug === "valor_plano") {
       return (
-        <span style={{ color: "#059669", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
+        <span style={{ color: "var(--w-600)", fontSize: 13, fontWeight: 800, letterSpacing: -0.2, whiteSpace: "nowrap" }}>
           R$ {Number(raw || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       );
@@ -394,7 +394,7 @@ export default function Vendas() {
       </span>;
     }
     if (c.tipo === "checkbox") {
-      return <span style={{ color: raw === true ? "#059669" : "#94A3B8", fontSize: 12, fontWeight: 600 }}>
+      return <span style={{ color: raw === true ? "var(--w-600)" : "#94A3B8", fontSize: 12, fontWeight: 600 }}>
         {raw === true ? "✓ Sim" : "Não"}
       </span>;
     }
@@ -856,13 +856,13 @@ export default function Vendas() {
       const anexos = anexosDoCampo(c.slug);
       return (
         <div>{lab}
-          <div style={{ border: "1px dashed #A7F3D0", borderRadius: 10, padding: 12, background: "#f8fbff" }}>
+          <div style={{ border: "1px dashed var(--w-200)", borderRadius: 10, padding: 12, background: "#f8fbff" }}>
             <input type="file" multiple onChange={e => uploadArquivoCampo(c, e.target.files)} style={{ ...inputStyle, background: "#ffffff" }} />
             {anexos.length > 0 && (
               <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                 {anexos.map((a, idx) => (
                   <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px", background: "#F7FAF9", borderRadius: 8 }}>
-                    <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "#047857", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <a href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 700, textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {iconeArquivo(a.tipo)} · {a.nome} · {formatarTamanhoArquivo(a.tamanho)}
                     </a>
                     <button type="button" onClick={() => removerArquivoCampo(c.slug, idx)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 8px", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Remover</button>
@@ -891,14 +891,14 @@ export default function Vendas() {
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "9px 14px",
-            background: marcado ? "#ECFDF5" : "#ffffff",
+            background: marcado ? "var(--w-50)" : "#ffffff",
             borderRadius: 10,
             border: `1px solid ${marcado ? "#A7F3D0" : "#E6ECEA"}`,
             cursor: "pointer",
             transition: "all 0.15s",
           }}>
-            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "#059669", width: 16, height: 16, cursor: "pointer" }} />
-            <span style={{ color: marcado ? "#059669" : "#64748B", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
+            <input type="checkbox" checked={marcado} onChange={e => set(e.target.checked)} style={{ accentColor: "var(--w-600)", width: 16, height: 16, cursor: "pointer" }} />
+            <span style={{ color: marcado ? "var(--w-600)" : "#64748B", fontSize: 13, fontWeight: 600 }}>{marcado ? "Sim" : "Não"}</span>
           </label>
         </div>
       );
@@ -1031,7 +1031,7 @@ export default function Vendas() {
     return (
       <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 32 }}>
         <div style={{ background: "white", borderRadius: 16, padding: 48, textAlign: "center", maxWidth: 480, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="cadeado" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="cadeado" tamanho={24} /></span>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Sem acesso a Vendas</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 8px" }}>
             Teu grupo de permissão não tem acesso às vendas.
@@ -1061,13 +1061,13 @@ export default function Vendas() {
             </div>
             <div style={{ padding: 20, overflowY: "auto" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                <button onClick={() => setExportCampos(colunasExportaveis.map(c => c.slug))} style={{ background: "#ecfdf5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Selecionar tudo</button>
+                <button onClick={() => setExportCampos(colunasExportaveis.map(c => c.slug))} style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Selecionar tudo</button>
                 <button onClick={() => setExportCampos([])} style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Limpar</button>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))", gap: 10 }}>
                 {colunasExportaveis.map(c => (
-                  <label key={c.slug} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #E6ECEA", borderRadius: 10, background: exportCampos.includes(c.slug) ? "#ECFDF5" : "#ffffff", cursor: "pointer" }}>
-                    <input type="checkbox" checked={exportCampos.includes(c.slug)} onChange={() => toggleCampoExport(c.slug)} style={{ accentColor: "#059669", width: 16, height: 16 }} />
+                  <label key={c.slug} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #E6ECEA", borderRadius: 10, background: exportCampos.includes(c.slug) ? "var(--w-50)" : "#ffffff", cursor: "pointer" }}>
+                    <input type="checkbox" checked={exportCampos.includes(c.slug)} onChange={() => toggleCampoExport(c.slug)} style={{ accentColor: "var(--w-600)", width: 16, height: 16 }} />
                     <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>{c.label}</span>
                   </label>
                 ))}
@@ -1075,7 +1075,7 @@ export default function Vendas() {
             </div>
             <div style={{ padding: "14px 20px", borderTop: "1px solid #E6ECEA", background: "#F3F6F5", display: "flex", justifyContent: "flex-end", gap: 10 }}>
               <button onClick={() => setShowExportModal(false)} style={{ background: "#F3F6F5", color: "#64748b", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
+              <button onClick={exportarExcel} disabled={exportando || exportCampos.length === 0} style={{ background: exportCampos.length === 0 ? "#94a3b8" : "linear-gradient(135deg, var(--w-600) 0%, var(--w-700) 100%)", color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 22px", fontSize: 13, fontWeight: 800, cursor: exportCampos.length === 0 ? "not-allowed" : "pointer", boxShadow: "0 6px 16px rgba(5,150,105,0.25)" }}>
                 {exportando ? "Exportando..." : "Baixar Excel"}
               </button>
             </div>
@@ -1096,7 +1096,7 @@ export default function Vendas() {
             }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><Icone nome="editar" tamanho={15} /></div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--w-50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}><Icone nome="editar" tamanho={15} /></div>
                 <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 700, margin: 0 }}>Editar Proposta <span style={{ color: "#94A3B8", fontWeight: 500 }}>#{propostaEditando.id}</span></h2>
               </div>
               <button onClick={() => { setShowModal(false); setPropostaEditando(null); }}
@@ -1123,7 +1123,7 @@ export default function Vendas() {
               </button>
               <button onClick={salvar} disabled={salvando}
                 style={{
-                  background: salvando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: salvando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1139,14 +1139,14 @@ export default function Vendas() {
       <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", gap: 18, alignItems: isMobile ? "stretch" : "flex-end" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div>
-            <p style={{ color: "#059669", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Central comercial</p>
+            <p style={{ color: "var(--w-600)", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Central comercial</p>
             <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{vocabularioDoWorkspace(workspaceId).itens}</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {podeVerTudo
-                ? <><b style={{ color: "#059669" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
+                ? <><b style={{ color: "var(--w-600)" }}>{totalGeral}</b> proposta(s) cadastrada(s){totalVisivel !== totalGeral && <> · <b>{totalVisivel}</b> filtradas</>}</>
                 : travadoEquipe
-                  ? <><b style={{ color: "#059669" }}>{totalVisivel}</b> proposta(s) da sua equipe</>
-                  : <><b style={{ color: "#059669" }}>{totalVisivel}</b> proposta(s) suas</>}
+                  ? <><b style={{ color: "var(--w-600)" }}>{totalVisivel}</b> proposta(s) da sua equipe</>
+                  : <><b style={{ color: "var(--w-600)" }}>{totalVisivel}</b> proposta(s) suas</>}
             </p>
           </div>
         </div>
@@ -1156,12 +1156,12 @@ export default function Vendas() {
           {travadoEquipe && minhaEquipeNome && (
             <div style={{
               display: "flex", alignItems: "center", gap: 8,
-              background: "#ECFDF5", border: "1px solid #A7F3D0",
+              background: "var(--w-50)", border: "1px solid var(--w-200)",
               borderRadius: 12, padding: "6px 14px",
             }}>
               <IconeEmoji e="👥" tamanho={15} />
               <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }}>Equipe</span>
-              <span style={{ color: "#047857", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
+              <span style={{ color: "var(--w-700)", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{minhaEquipeNome}</span>
             </div>
           )}
 
@@ -1189,7 +1189,7 @@ export default function Vendas() {
           <button onClick={() => router.push("/crm/proposta")}
             style={{
               flex: isMobile ? 1 : "0 0 auto",
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 22px", fontSize: 13.5, cursor: "pointer", fontWeight: 800,
               whiteSpace: "nowrap", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1212,7 +1212,7 @@ export default function Vendas() {
           ].map((card, idx) => (
             <div key={card.label} style={{
               textAlign: "left", borderRadius: 20, padding: 18, minHeight: 104,
-              background: idx === 0 ? "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)" : "#ffffff",
+              background: idx === 0 ? "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 45%, var(--w-800) 100%)" : "#ffffff",
               boxShadow: idx === 0 ? "0 18px 34px -18px rgba(5,150,105,.75)" : "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
               color: idx === 0 ? "#fff" : "#0F172A", display: "flex", flexDirection: "column", gap: 8,
             }}>
@@ -1229,7 +1229,7 @@ export default function Vendas() {
         <details style={{
           borderRadius: 20,
           border: 0,
-          boxShadow: filtroStatus === "todos" ? "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" : "inset 0 0 0 1.5px #6EE7B7, 0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
+          boxShadow: filtroStatus === "todos" ? "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" : "inset 0 0 0 1.5px var(--w-300), 0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)",
           background: "#ffffff",
           overflow: "hidden",
         }}>
@@ -1247,8 +1247,8 @@ export default function Vendas() {
               <span style={{
                 width: 32, height: 32, borderRadius: 10,
                 display: "grid", placeItems: "center",
-                background: "#ECFDF5", border: 0,
-                color: "#059669", flexShrink: 0,
+                background: "var(--w-50)", border: 0,
+                color: "var(--w-600)", flexShrink: 0,
               }}><Icone nome="grafico" tamanho={16} /></span>
               <span style={{ minWidth: 0 }}>
                 <strong style={{ display: "block", color: "#0F172A", fontSize: 14 }}>Distribuição por status</strong>
@@ -1259,7 +1259,7 @@ export default function Vendas() {
                 </span>
               </span>
             </span>
-            <span style={{ color: "#047857", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 4 }}>Ver status <Icone nome="baixo" tamanho={15} /></span>
+            <span style={{ color: "var(--w-700)", fontSize: 13, fontWeight: 800, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 4 }}>Ver status <Icone nome="baixo" tamanho={15} /></span>
           </summary>
 
           <div style={{
@@ -1304,7 +1304,7 @@ export default function Vendas() {
       </section>
 
       {/* Filtros */}
-      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderRadius: 18, border: "1px solid #D1FAE5", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)", boxShadow: "0 12px 30px rgba(15,23,42,0.05)" }}>
+      <div style={{ ...cardStyle, padding: 14, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", borderRadius: 18, border: "1px solid var(--w-100)", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)", boxShadow: "0 12px 30px rgba(15,23,42,0.05)" }}>
         <input placeholder="Buscar por nome, CPF, vendedor..." value={busca} onChange={e => setBusca(e.target.value)}
           style={{ ...inputStyle, maxWidth: 360, flex: "1 1 220px", borderRadius: 20 }} />
         <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)} style={{ ...inputStyle, maxWidth: 220 }}>
@@ -1321,9 +1321,9 @@ export default function Vendas() {
             ["custom", "Personalizado"],
           ].map(([k, label]) => (
             <button key={k} onClick={() => aplicarRange(k as any)} style={{
-              background: rangeRapido === k ? "linear-gradient(135deg, #047857 0%, #059669 100%)" : "transparent",
+              background: rangeRapido === k ? "linear-gradient(135deg, var(--w-700) 0%, var(--w-600) 100%)" : "transparent",
               color: rangeRapido === k ? "#ffffff" : "#475569",
-              border: rangeRapido === k ? "1px solid #047857" : "1px solid transparent",
+              border: rangeRapido === k ? "1px solid var(--w-700)" : "1px solid transparent",
               boxShadow: rangeRapido === k ? "0 5px 12px rgba(5,150,105,0.22)" : "none",
               borderRadius: 9,
               padding: "8px 10px",
@@ -1343,7 +1343,7 @@ export default function Vendas() {
               style={{ background: "transparent", border: "none", color: "#0f172a", fontSize: 12, padding: "5px 0", outline: "none", fontWeight: 700 }} />
           </div>
         )}
-        <select value={filtroModif} onChange={e => setFiltroModif(e.target.value as any)} style={{ ...inputStyle, maxWidth: 230, borderColor: filtroModif !== "qualquer" ? "#A7F3D0" : "#E6ECEA", background: filtroModif !== "qualquer" ? "#ECFDF5" : "#ffffff", fontWeight: filtroModif !== "qualquer" ? 800 : 500 }}>
+        <select value={filtroModif} onChange={e => setFiltroModif(e.target.value as any)} style={{ ...inputStyle, maxWidth: 230, borderColor: filtroModif !== "qualquer" ? "var(--w-200)" : "#E6ECEA", background: filtroModif !== "qualquer" ? "var(--w-50)" : "#ffffff", fontWeight: filtroModif !== "qualquer" ? 800 : 500 }}>
           <option value="qualquer">Modificacao: qualquer</option>
           <option value="hoje">Modificada hoje</option>
           <option value="7d">Modificada em 7 dias</option>
@@ -1419,7 +1419,7 @@ export default function Vendas() {
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 32, color: "#64748B", textAlign: "center", fontSize: 13 }}>Carregando...</td></tr>
               ) : propostasFiltradas.length === 0 ? (
                 <tr><td colSpan={colunasTabela.length + 1} style={{ padding: 48, textAlign: "center" }}>
-                  <div style={{ width: 72, height: 72, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"💰"} tamanho={28} /></div>
+                  <div style={{ width: 72, height: 72, borderRadius: 16, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"💰"} tamanho={28} /></div>
                   <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>
                     {busca || filtroStatus !== "todos"
                       ? "Nenhum resultado pros filtros"
@@ -1444,9 +1444,9 @@ export default function Vendas() {
                     <td style={{ ...COL_ACOES, background: "inherit", padding: "12px 16px" }}>
                       <div style={{ display: "flex", gap: 6 }}>
                         <button onClick={() => setPropostaVisualizando(v)} title="Ver venda" aria-label="Ver venda"
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="olho" tamanho={15} /></button>
+                          style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="olho" tamanho={15} /></button>
                         <button onClick={() => abrirEditar(v)} title="Editar" aria-label="Editar"
-                          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="editar" tamanho={15} /></button>
+                          style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="editar" tamanho={15} /></button>
                         {podeExcluir && (
                           <button onClick={() => excluir(v)} title="Excluir" aria-label="Excluir"
                             style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center" }}><Icone nome="lixeira" tamanho={15} /></button>
@@ -1491,7 +1491,7 @@ export default function Vendas() {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <button onClick={() => { const p = propostaVisualizando; setPropostaVisualizando(null); abrirEditar(p); }}
-                  style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Editar</button>
+                  style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Editar</button>
                 <button onClick={() => setPropostaVisualizando(null)}
                   style={{ background: "#F3F6F5", color: "#64748b", border: "1px solid #E6ECEA", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 800 }}>Fechar</button>
               </div>
@@ -1556,7 +1556,7 @@ export default function Vendas() {
                   return (
                     <div style={{ display: "grid", gap: 8 }}>
                       {anexos.map((a, idx) => (
-                        <a key={idx} href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#F3F6F5", border: "1px solid #E6ECEA", borderRadius: 10, color: "#047857", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
+                        <a key={idx} href={a.privado ? "#" : a.url} target="_blank" rel="noreferrer" onClick={e=>{if(!a.privado)return;e.preventDefault();void abrirAnexoSeguro(a).catch(error=>alert(error.message));}} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "10px 12px", background: "#F3F6F5", border: "1px solid #E6ECEA", borderRadius: 10, color: "var(--w-700)", textDecoration: "none", fontSize: 12, fontWeight: 800 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{iconeArquivo(a.tipo)} · {a.nome}</span>
                           <span style={{ color: "#64748b", flexShrink: 0 }}>{a.campo} · {formatarTamanhoArquivo(a.tamanho)}</span>
                         </a>
@@ -1586,7 +1586,7 @@ export default function Vendas() {
                         <p style={{ color: "#334155", fontSize: 12, margin: "6px 0 0" }}>
                           <span style={{ color: "#dc2626" }}>{fmtLogVal(l.valor_anterior ?? l.antes)}</span>
                           <span style={{ color: "#94a3b8" }}> → </span>
-                          <span style={{ color: "#059669" }}>{fmtLogVal(l.valor_novo ?? l.depois)}</span>
+                          <span style={{ color: "var(--w-600)" }}>{fmtLogVal(l.valor_novo ?? l.depois)}</span>
                         </p>
                       </div>
                     ))}
@@ -1609,7 +1609,7 @@ export default function Vendas() {
             title="Ir para o topo"
             style={{
               width: 42, height: 42, borderRadius: "50%",
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", cursor: "pointer", fontSize: 18,
               boxShadow: "0 6px 16px rgba(5,150,105,0.35)",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -1621,7 +1621,7 @@ export default function Vendas() {
           style={{
             width: 42, height: 42, borderRadius: "50%",
             background: "#ffffff",
-            color: "#059669", border: "1px solid #A7F3D0", cursor: "pointer", fontSize: 18,
+            color: "var(--w-600)", border: "1px solid var(--w-200)", cursor: "pointer", fontSize: 18,
             boxShadow: "0 6px 16px rgba(0,0,0,0.10)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontWeight: 700,

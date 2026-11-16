@@ -97,13 +97,13 @@ export default function Painel({ dados, ir }: any) {
           <span style={{ flex: 1, minWidth: 220, fontSize: 14, color: "#78350F" }}>
             <b>{aguardandoContrato.length} proposta(s) aceita(s)</b> esperando o contrato: {aguardandoContrato.slice(0, 3).map((p) => p.cliente_nome).join(", ")}{aguardandoContrato.length > 3 ? "…" : ""}
           </span>
-          <a href={`/crm/contratos?revisional=${aguardandoContrato[0].id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 12, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", fontWeight: 800, fontSize: 13.5, textDecoration: "none" }}><Icone nome="documento" tamanho={15} /> Gerar contrato de {aguardandoContrato[0].cliente_nome.split(" ")[0]}</a>
+          <a href={`/crm/contratos?revisional=${aguardandoContrato[0].id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 12, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", fontWeight: 800, fontSize: 13.5, textDecoration: "none" }}><Icone nome="documento" tamanho={15} /> Gerar contrato de {aguardandoContrato[0].cliente_nome.split(" ")[0]}</a>
         </div>
       )}
 
       {/* Destaque + conversão */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, #10B981 0%, #059669 42%, #065F46 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ gridColumn: "span 2", minWidth: 0, borderRadius: 22, padding: "20px 22px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,.85)" }}>Benefício gerado para os clientes</span>
           <span style={{ fontSize: 34, fontWeight: 800, letterSpacing: "-.02em" }}>{carregando ? "…" : brl(beneficioGerado)}</span>
           <span style={{ fontSize: 13, color: "rgba(255,255,255,.82)" }}>
@@ -135,7 +135,7 @@ export default function Painel({ dados, ir }: any) {
           {porMes.map((x) => (
             <div key={x.m} style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", gap: 6, minWidth: 0 }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#0F172A", whiteSpace: "nowrap" }}>{x.valor ? brl(x.valor).replace(",00", "") : ""}</span>
-              <div title={brl(x.valor)} style={{ width: "70%", maxWidth: 56, height: `${Math.max((x.valor / maxMes) * 100, x.valor ? 6 : 2)}%`, background: x.valor ? "linear-gradient(180deg, #34D399, #059669)" : "#EEF2F1", borderRadius: "8px 8px 4px 4px" }} />
+              <div title={brl(x.valor)} style={{ width: "70%", maxWidth: 56, height: `${Math.max((x.valor / maxMes) * 100, x.valor ? 6 : 2)}%`, background: x.valor ? "linear-gradient(180deg, var(--w-400), var(--w-600))" : "#EEF2F1", borderRadius: "8px 8px 4px 4px" }} />
               <span style={{ fontSize: 12, color: "#64748B", textTransform: "capitalize" }}>{new Date(x.m + "-15").toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
             </div>
           ))}

@@ -297,12 +297,12 @@ export default function ConexoesVoipSection() {
         <p style={{ color: "#64748B", textAlign: "center", padding: 40 }}>Carregando...</p>
       ) : conexoes.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}><Icone nome="telefone" tamanho={26} /></div>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}><Icone nome="telefone" tamanho={26} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>Nenhum provedor conectado ainda</h3>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 18px" }}>Conecte Twilio, Zenvia ou um ramal PABX/SIP para começar a fazer ligações.</p>
           <button onClick={() => { limparForm(); setShowModal(true); }}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700,
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -344,21 +344,21 @@ export default function ConexoesVoipSection() {
 
                 {c.numero_bina && (
                   <p style={{ color: "#64748B", fontSize: 11, margin: "8px 0" }}>
-                    Bina: <code style={{ color: "#059669", fontFamily: "monospace", background: "#ECFDF5", padding: "2px 6px", borderRadius: 4, border: "1px solid #A7F3D0", fontWeight: 600 }}>{c.numero_bina}</code>
+                    Bina: <code style={{ color: "var(--w-600)", fontFamily: "monospace", background: "var(--w-50)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--w-200)", fontWeight: 600 }}>{c.numero_bina}</code>
                   </p>
                 )}
                 {c.provider === "twilio" && c.twilio_numero_did && (
                   <p style={{ color: "#64748B", fontSize: 11, margin: "8px 0" }}>
-                    DID: <code style={{ color: "#059669", fontFamily: "monospace", background: "#ECFDF5", padding: "2px 6px", borderRadius: 4, border: "1px solid #A7F3D0", fontWeight: 600 }}>{c.twilio_numero_did}</code>
+                    DID: <code style={{ color: "var(--w-600)", fontFamily: "monospace", background: "var(--w-50)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--w-200)", fontWeight: 600 }}>{c.twilio_numero_did}</code>
                   </p>
                 )}
                                 {c.provider === "sip_manual" && c.sip_extension && (
                   <p style={{ color: "#64748B", fontSize: 11, margin: "8px 0" }}>
-                    Ramal: <code style={{ color: "#047857", fontFamily: "monospace", background: "#ECFDF5", padding: "2px 6px", borderRadius: 4, border: "1px solid #A7F3D0", fontWeight: 600 }}>{c.sip_extension}</code>
+                    Ramal: <code style={{ color: "var(--w-700)", fontFamily: "monospace", background: "var(--w-50)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--w-200)", fontWeight: 600 }}>{c.sip_extension}</code>
                   </p>
                 )}{c.provider === "zenvia" && c.zenvia_numero_did && (
                   <p style={{ color: "#64748B", fontSize: 11, margin: "8px 0" }}>
-                    DID: <code style={{ color: "#059669", fontFamily: "monospace", background: "#ECFDF5", padding: "2px 6px", borderRadius: 4, border: "1px solid #A7F3D0", fontWeight: 600 }}>{c.zenvia_numero_did}</code>
+                    DID: <code style={{ color: "var(--w-600)", fontFamily: "monospace", background: "var(--w-50)", padding: "2px 6px", borderRadius: 4, border: "1px solid var(--w-200)", fontWeight: 600 }}>{c.zenvia_numero_did}</code>
                   </p>
                 )}
 
@@ -377,7 +377,7 @@ export default function ConexoesVoipSection() {
 
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button onClick={() => testarConexao(c)} title="Re-testar credenciais"
-                    style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "6px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                     Testar
                   </button>
                   <button onClick={() => abrirParaEditar(c)}
@@ -462,7 +462,7 @@ export default function ConexoesVoipSection() {
                     </button>
                     <button onClick={() => setProviderEscolhido("sip_manual")}
                       style={{ background: "#F7FAF9", border: "2px solid #E6ECEA", borderRadius: 12, padding: 18, cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
-                      <p style={{ fontSize: 24, margin: "0 0 8px", fontWeight: 800, color: "#047857" }}>SIP</p>
+                      <p style={{ fontSize: 24, margin: "0 0 8px", fontWeight: 800, color: "var(--w-700)" }}>SIP</p>
                       <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>PABX / SIP</p>
                       <p style={{ color: "#64748B", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Canal ou ramal contratado diretamente.<br/>Requer SIP WebRTC com endereco WSS.</p>
                     </button>
@@ -476,7 +476,7 @@ export default function ConexoesVoipSection() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 14, borderBottom: "1px solid #E6ECEA" }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: 12,
-                      background: providerEscolhido === "twilio" ? "#ECFDF5" : providerEscolhido === "sip_manual" ? "#ECFDF5" : "#ECFDF5",
+                      background: providerEscolhido === "twilio" ? "var(--w-50)" : providerEscolhido === "sip_manual" ? "var(--w-50)" : "var(--w-50)",
                       border: `1px solid ${providerEscolhido === "twilio" ? "#A7F3D0" : providerEscolhido === "sip_manual" ? "#A7F3D0" : "#A7F3D0"}`,
                       display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
                     }}>
@@ -487,7 +487,7 @@ export default function ConexoesVoipSection() {
                         {providerEscolhido === "twilio" ? "Twilio" : providerEscolhido === "sip_manual" ? "PABX / SIP" : "Zenvia"}
                       </p>
                       {providerEscolhido !== "sip_manual" && <button onClick={() => setMostrarAjuda(providerEscolhido)}
-                        style={{ background: "none", border: "none", color: "#059669", fontSize: 11, cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 600 }}>
+                        style={{ background: "none", border: "none", color: "var(--w-600)", fontSize: 11, cursor: "pointer", padding: 0, textDecoration: "underline", fontWeight: 600 }}>
                         Como obter as credenciais?
                       </button>}
                     </div>
@@ -527,9 +527,9 @@ export default function ConexoesVoipSection() {
                       <details open style={{ background: "#F7FAF9", borderRadius: 12, padding: "12px 16px" }}>
                         <summary style={{ cursor: "pointer", color: "#EA580C", fontSize: 12, fontWeight: 700 }}>Credenciais para ligações no navegador (obrigatório)</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
-                          <div style={{ background: "#ffffff", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-                            <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>URL pra cadastrar no TwiML App da Twilio:</p>
-                            <code style={{ display: "block", fontSize: 11, background: "#0F172A", color: "#6EE7B7", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
+                          <div style={{ background: "#ffffff", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
+                            <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>URL pra cadastrar no TwiML App da Twilio:</p>
+                            <code style={{ display: "block", fontSize: 11, background: "#0F172A", color: "var(--w-300)", padding: "8px 10px", borderRadius: 6, wordBreak: "break-all", fontFamily: "monospace" }}>
                               https://api.wolfgyn.com.br/voip/twilio/twiml/{wsId || "SEU_WORKSPACE"}
                             </code>
                             <p style={{ color: "#64748B", fontSize: 12, margin: "8px 0 0" }}>
@@ -590,7 +590,7 @@ export default function ConexoesVoipSection() {
                         <div><label style={{ color: "#64748B", fontSize: 11, display: "block", marginBottom: 6, fontWeight: 700 }}>SENHA SIP * {modoEdicao && <span style={{ color: "#EA580C", fontWeight: 500 }}>(vazio mantem)</span>}</label><input type="password" value={sipPassword} onChange={e => setSipPassword(e.target.value)} style={IS} /></div>
                       </div>
                       <details style={{ background: "#F7FAF9", borderRadius: 12, padding: "12px 16px" }}>
-                        <summary style={{ cursor: "pointer", color: "#047857", fontSize: 12, fontWeight: 700 }}>Configuracoes avancadas WebRTC</summary>
+                        <summary style={{ cursor: "pointer", color: "var(--w-700)", fontSize: 12, fontWeight: 700 }}>Configuracoes avancadas WebRTC</summary>
                         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
                           <input value={sipOutboundProxy} onChange={e => setSipOutboundProxy(e.target.value)} placeholder="Outbound proxy SIP (opcional)" style={IS} />
                           <input value={sipStunUrl} onChange={e => setSipStunUrl(e.target.value)} placeholder="stun:stun.l.google.com:19302" style={IS} />
@@ -628,9 +628,9 @@ export default function ConexoesVoipSection() {
                         return (
                           <button key={id} onClick={() => toggleDia(id)}
                             style={{
-                              background: ativo ? "#ECFDF5" : "#F7FAF9",
+                              background: ativo ? "var(--w-50)" : "#F7FAF9",
                               border: `1px solid ${ativo ? "#059669" : "#E6ECEA"}`,
-                              color: ativo ? "#059669" : "#64748B",
+                              color: ativo ? "var(--w-600)" : "#64748B",
                               borderRadius: 10, padding: "7px 16px", fontSize: 12,
                               cursor: "pointer", fontWeight: 700,
                               boxShadow: ativo ? "0 2px 6px rgba(5,150,105,0.15)" : "none",
@@ -645,12 +645,12 @@ export default function ConexoesVoipSection() {
 
                   <label style={{
                     display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                    background: permiteGravacao ? "#ECFDF5" : "#F7FAF9",
+                    background: permiteGravacao ? "var(--w-50)" : "#F7FAF9",
                     border: `1px solid ${permiteGravacao ? "#A7F3D0" : "#E6ECEA"}`,
                     padding: "12px 14px", borderRadius: 12,
                     transition: "all 0.15s",
                   }}>
-                    <input type="checkbox" checked={permiteGravacao} onChange={e => setPermiteGravacao(e.target.checked)} style={{ accentColor: "#059669", width: 16, height: 16 }} />
+                    <input type="checkbox" checked={permiteGravacao} onChange={e => setPermiteGravacao(e.target.checked)} style={{ accentColor: "var(--w-600)", width: 16, height: 16 }} />
                     <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 600 }}>Gravar chamadas automaticamente</span>
                   </label>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: "-8px 0 0", paddingLeft: 4 }}>
@@ -668,7 +668,7 @@ export default function ConexoesVoipSection() {
                 </button>
                 <button onClick={salvar} disabled={enviando}
                   style={{
-                    background: enviando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                    background: enviando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                     color: "white", border: "none", borderRadius: 10,
                     padding: "10px 24px", fontSize: 13,
                     cursor: enviando ? "not-allowed" : "pointer", fontWeight: 700,
@@ -691,7 +691,7 @@ export default function ConexoesVoipSection() {
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
               <div style={{
                 width: 44, height: 44, borderRadius: 12,
-                background: mostrarAjuda === "twilio" ? "#ECFDF5" : "#ECFDF5",
+                background: mostrarAjuda === "twilio" ? "var(--w-50)" : "var(--w-50)",
                 border: `1px solid ${mostrarAjuda === "twilio" ? "#A7F3D0" : "#A7F3D0"}`,
                 display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
               }}>
@@ -704,7 +704,7 @@ export default function ConexoesVoipSection() {
 
             {mostrarAjuda === "twilio" ? (
               <ol style={{ color: "#334155", fontSize: 13, lineHeight: 1.8, paddingLeft: 20 }}>
-                <li>Acesse <a href="https://www.twilio.com/try-twilio" target="_blank" style={{ color: "#059669", fontWeight: 600 }}>twilio.com/try-twilio</a> e crie uma conta (trial tem USD 15 grátis).</li>
+                <li>Acesse <a href="https://www.twilio.com/try-twilio" target="_blank" style={{ color: "var(--w-600)", fontWeight: 600 }}>twilio.com/try-twilio</a> e crie uma conta (trial tem USD 15 grátis).</li>
                 <li>No painel, copie o <b>Account SID</b> e <b>Auth Token</b> da página inicial.</li>
                 <li>Menu esquerdo <b>Phone Numbers → Buy a Number</b> compra um número BR (~USD 1/mês).</li>
                 <li>Cole o número no campo <b>DID (Caller ID)</b> com prefixo internacional: <code style={{ background: "#F1F5F4", color: "#0F172A", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", border: "1px solid #E6ECEA" }}>+55...</code></li>
@@ -713,8 +713,8 @@ export default function ConexoesVoipSection() {
               </ol>
             ) : (
               <ol style={{ color: "#334155", fontSize: 13, lineHeight: 1.8, paddingLeft: 20 }}>
-                <li>Acesse <a href="https://zenvia.com" target="_blank" style={{ color: "#059669", fontWeight: 600 }}>zenvia.com</a> e solicite demonstração comercial (é pay-as-you-go após setup).</li>
-                <li>Após ativar a conta, entre no painel <a href="https://app.zenvia.com" target="_blank" style={{ color: "#059669", fontWeight: 600 }}>app.zenvia.com</a>.</li>
+                <li>Acesse <a href="https://zenvia.com" target="_blank" style={{ color: "var(--w-600)", fontWeight: 600 }}>zenvia.com</a> e solicite demonstração comercial (é pay-as-you-go após setup).</li>
+                <li>Após ativar a conta, entre no painel <a href="https://app.zenvia.com" target="_blank" style={{ color: "var(--w-600)", fontWeight: 600 }}>app.zenvia.com</a>.</li>
                 <li>Menu <b>API Tokens</b> gere um token com permissão de <b>Voice</b>.</li>
                 <li>Menu <b>DIDs</b> aluga um número brasileiro. Anote o <b>ID do DID</b> e o <b>número</b>.</li>
                 <li>Cole o token, DID ID e o número nos campos aqui.</li>
@@ -725,7 +725,7 @@ export default function ConexoesVoipSection() {
             <div style={{ marginTop: 22, display: "flex", justifyContent: "flex-end" }}>
               <button onClick={() => setMostrarAjuda(null)}
                 style={{
-                  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",

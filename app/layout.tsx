@@ -52,8 +52,13 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} ${jakarta.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        {/* Cor do nicho do workspace (Consignado, Vendas, Roupas) antes de pintar a tela, só nas telas internas. */}
+        <Script id="cor-nicho" strategy="beforeInteractive">
+          {`try{var n=localStorage.getItem("wolf_nicho");if(n&&/^\\/(crm|chatbot|meu-perfil)/.test(location.pathname))document.documentElement.dataset.nicho=n;}catch(e){}`}
+        </Script>
         <Script id="google-tag-manager" strategy="afterInteractive">
           {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}

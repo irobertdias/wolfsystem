@@ -118,7 +118,7 @@ export function EncargosSection() {
         </div>
       ) : baseBruta === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             Sem folha lançada para calcular encargos. Lance itens na tela <b>Folha</b>.
           </p>

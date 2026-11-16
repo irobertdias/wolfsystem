@@ -47,7 +47,7 @@ export default function ExcluirDadosPage() {
             Como solicitar a exclusão
           </h2>
           <p style={{ color: "#CBD5E1", fontSize: 14, margin: "0 0 20px 0" }}>
-            Envie um e-mail para o endereço abaixo com o assunto <strong style={{ color: "#059669" }}>"Exclusão de Dados"</strong> e os seguintes dados:
+            Envie um e-mail para o endereço abaixo com o assunto <strong style={{ color: "var(--w-600)" }}>"Exclusão de Dados"</strong> e os seguintes dados:
           </p>
           <ul style={{ color: "#CBD5E1", fontSize: 14, paddingLeft: 24, margin: "0 0 24px 0" }}>
             <li>Seu nome completo</li>
@@ -62,15 +62,15 @@ export default function ExcluirDadosPage() {
               <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 4px 0", fontWeight: "bold" }}>
                 E-mail para solicitação
               </p>
-              <p style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: 0, fontFamily: "monospace" }}>
+              <p style={{ color: "var(--w-600)", fontSize: 17, fontWeight: "bold", margin: 0, fontFamily: "monospace" }}>
                 privacidade@wolfgyn.com.br
               </p>
             </div>
             <button
               onClick={copiarEmail}
               style={{
-                background: copiouEmail ? "#059669" : "#16a34a22",
-                color: copiouEmail ? "white" : "#059669",
+                background: copiouEmail ? "var(--w-600)" : "#16a34a22",
+                color: copiouEmail ? "white" : "var(--w-600)",
                 border: "1px solid #16a34a44",
                 borderRadius: 8,
                 padding: "10px 16px",
@@ -116,7 +116,7 @@ export default function ExcluirDadosPage() {
         {/* Prazo */}
         <H2>Prazo de resposta</H2>
         <Section>
-          <p>Nos termos do art. 19 da LGPD, atendemos à sua solicitação em até <strong style={{ color: "#059669" }}>15 dias corridos</strong> contados a partir do recebimento do pedido com identidade confirmada.</p>
+          <p>Nos termos do art. 19 da LGPD, atendemos à sua solicitação em até <strong style={{ color: "var(--w-600)" }}>15 dias corridos</strong> contados a partir do recebimento do pedido com identidade confirmada.</p>
           <p>Você receberá um e-mail de confirmação assim que a exclusão for concluída.</p>
         </Section>
 
@@ -145,7 +145,7 @@ export default function ExcluirDadosPage() {
 
         {/* CTA final */}
         <div style={{ marginTop: 48, paddingTop: 32, borderTop: "1px solid #0F172A", textAlign: "center" }}>
-          <Link href="/privacidade" style={{ color: "#059669", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a Política de Privacidade</Link>
+          <Link href="/privacidade" style={{ color: "var(--w-600)", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a Política de Privacidade</Link>
         </div>
 
       </article>
@@ -159,7 +159,7 @@ export default function ExcluirDadosPage() {
 }
 
 // ─── Helpers de estilo ────────────────────────────────────────────────
-const linkVerde: React.CSSProperties = { color: "#059669", textDecoration: "none" };
+const linkVerde: React.CSSProperties = { color: "var(--w-600)", textDecoration: "none" };
 const listaStyle: React.CSSProperties = { color: "#CBD5E1", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
 
 function Section({ children }: { children: React.ReactNode }) {

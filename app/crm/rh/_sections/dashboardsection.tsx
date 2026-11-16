@@ -229,7 +229,7 @@ export function DashboardSection() {
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
           <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
@@ -246,7 +246,7 @@ export function DashboardSection() {
             {kpis.map((k, i) => {
               const hero = i === 0;
               return (
-                <div key={k.label} style={{ ...card, padding: 18, position: "relative", overflow: "hidden", ...(hero ? { background: "linear-gradient(140deg, #10B981 0%, #059669 45%, #065F46 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)" } : {}) }}>
+                <div key={k.label} style={{ ...card, padding: 18, position: "relative", overflow: "hidden", ...(hero ? { background: "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 45%, var(--w-800) 100%)", boxShadow: "0 18px 34px -18px rgba(5,150,105,.75)" } : {}) }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                     <span style={{ width: 34, height: 34, borderRadius: 10, background: hero ? "rgba(255,255,255,.18)" : `${k.cor}14`, color: hero ? "#fff" : k.cor, display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <IconeEmoji e={k.icon} tamanho={17} />
@@ -335,7 +335,7 @@ export function DashboardSection() {
                           width: 38,
                           height: 38,
                           borderRadius: "50%",
-                          background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                          background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -402,8 +402,8 @@ export function DashboardSection() {
             </h3>
             {pendencias.length === 0 ? (
               <div style={{ textAlign: "center", padding: "10px 0" }}>
-                <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="check" tamanho={24} /></span>
-                <p style={{ color: "#059669", fontSize: 13, fontWeight: 700, margin: 0 }}>
+                <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="check" tamanho={24} /></span>
+                <p style={{ color: "var(--w-600)", fontSize: 13, fontWeight: 700, margin: 0 }}>
                   Tudo em dia, nenhuma pendência!
                 </p>
               </div>

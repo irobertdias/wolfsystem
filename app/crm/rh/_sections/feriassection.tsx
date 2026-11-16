@@ -195,7 +195,7 @@ export function FeriasSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -273,7 +273,7 @@ export function FeriasSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum registro de férias.</p>
         </div>
       ) : (
@@ -318,7 +318,7 @@ export function FeriasSection() {
                       </td>
                       <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{f.aquisitivo}</td>
                       <td style={{ padding: "12px 16px", fontSize: 12 }}>
-                        <span style={{ color: "#059669", fontWeight: 700 }}>{restantes}</span>{" "}
+                        <span style={{ color: "var(--w-600)", fontWeight: 700 }}>{restantes}</span>{" "}
                         <span style={{ color: "#94A3B8" }}>de {f.diasDireito}</span>
                       </td>
                       <td
@@ -349,9 +349,9 @@ export function FeriasSection() {
                             setDataAg(f.inicioAgendado || "");
                           }}
                           style={{
-                            background: "#ECFDF5",
+                            background: "var(--w-50)",
                             color: COR_TEXTO,
-                            border: "1px solid #A7F3D0",
+                            border: "1px solid var(--w-200)",
                             borderRadius: 8,
                             padding: "5px 11px",
                             fontSize: 11,
@@ -527,7 +527,7 @@ export function FeriasSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -631,7 +631,7 @@ export function FeriasSection() {
               <button
                 onClick={confirmarAgendamento}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

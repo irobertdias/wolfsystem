@@ -165,12 +165,12 @@ const STATUS_META: Record<StatusFatura, {
 }> = {
   pendente:     { label: "Em vencer",          icone: "⏳", bg: "#fffbeb", border: "#fde68a", color: "#C2410C", recebido: false, pendencia: true,  descricao: "Ainda não venceu" },
   atrasada:     { label: "Em aberto",          icone: "🔴", bg: "#fef2f2", border: "#fecaca", color: "#dc2626", recebido: false, pendencia: true,  descricao: "Venceu e não foi paga" },
-  paga:         { label: "Paga",               icone: "✅", bg: "#ECFDF5", border: "#A7F3D0", color: "#059669", recebido: true,  pendencia: false, descricao: "Paga em dia" },
-  paga_atraso:  { label: "Paga c/ atraso",     icone: "⏰", bg: "#ecfdf5", border: "#a7f3d0", color: "#059669", recebido: true,  pendencia: false, descricao: "Paga depois do vencimento" },
+  paga:         { label: "Paga",               icone: "✅", bg: "#ECFDF5", border: "#A7F3D0", color: "var(--w-600)", recebido: true,  pendencia: false, descricao: "Paga em dia" },
+  paga_atraso:  { label: "Paga c/ atraso",     icone: "⏰", bg: "#ecfdf5", border: "#a7f3d0", color: "var(--w-600)", recebido: true,  pendencia: false, descricao: "Paga depois do vencimento" },
   paga_parcial: { label: "Paga parcial",       icone: "💰", bg: "#fffbeb", border: "#fcd34d", color: "#b45309", recebido: true,  pendencia: true,  descricao: "Pagou só parte do valor" },
-  promessa:     { label: "Promessa pagto",     icone: "🤝", bg: "#ECFDF5", border: "#A7F3D0", color: "#047857", recebido: false, pendencia: true,  descricao: "Cliente prometeu pagar" },
-  negociacao:   { label: "Em negociação",      icone: "📞", bg: "#ECFDF5", border: "#A7F3D0", color: "#047857", recebido: false, pendencia: true,  descricao: "Renegociando prazo/valor" },
-  acordo:       { label: "Acordo / Parcelada", icone: "📋", bg: "#ECFDF5", border: "#A7F3D0", color: "#047857", recebido: false, pendencia: true,  descricao: "Acordo de parcelamento ativo" },
+  promessa:     { label: "Promessa pagto",     icone: "🤝", bg: "#ECFDF5", border: "#A7F3D0", color: "var(--w-700)", recebido: false, pendencia: true,  descricao: "Cliente prometeu pagar" },
+  negociacao:   { label: "Em negociação",      icone: "📞", bg: "#ECFDF5", border: "#A7F3D0", color: "var(--w-700)", recebido: false, pendencia: true,  descricao: "Renegociando prazo/valor" },
+  acordo:       { label: "Acordo / Parcelada", icone: "📋", bg: "#ECFDF5", border: "#A7F3D0", color: "var(--w-700)", recebido: false, pendencia: true,  descricao: "Acordo de parcelamento ativo" },
   nao_pagara:   { label: "Não vai pagar",      icone: "❌", bg: "#fef2f2", border: "#fca5a5", color: "#991b1b", recebido: false, pendencia: false, descricao: "Cliente recusou pagar" },
   cancelada:    { label: "Cancelada",          icone: "🚫", bg: "#F1F5F4", border: "#CBD5E1", color: "#64748B", recebido: false, pendencia: false, descricao: "Fatura anulada / cortesia" },
   juridico:     { label: "Jurídico",           icone: "⚖️", bg: "#fef2f2", border: "#fca5a5", color: "#7f1d1d", recebido: false, pendencia: true,  descricao: "Escalonada pro jurídico" },
@@ -202,7 +202,7 @@ const labelStyle = {
   display: "block", marginBottom: 6,
 };
 const btnPrimario = {
-  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+  background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
   color: "#ffffff", border: "none", borderRadius: 10, padding: "10px 18px",
   fontSize: 13, cursor: "pointer", fontWeight: 700,
   boxShadow: "0 4px 12px rgba(5,150,105,.45)",
@@ -1322,7 +1322,7 @@ export default function CobrancaPage() {
             <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Cobrança — Negociações</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
               {/* 🆕 multi-tenant: mostra o workspace logado em vez do "Grupo Unita" fixo */}
-              <b style={{ color: "#065F46" }}>{workspace?.nome || "Wolf System"}</b> · Cobre direto do CRM ou suba uma planilha
+              <b style={{ color: "var(--w-800)" }}>{workspace?.nome || "Wolf System"}</b> · Cobre direto do CRM ou suba uma planilha
             </p>
           </div>
         </div>
@@ -1362,14 +1362,14 @@ export default function CobrancaPage() {
       {/* TABS */}
       <div style={{ alignSelf: "flex-start", maxWidth: "100%", background: "#ffffff", borderRadius: 14, boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 6px 16px -10px rgba(16,24,40,.25)", padding: 5, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         {([
-          { key: "do_crm",    label: "Do CRM",   color: "#059669" },
-          { key: "campanhas", label: "Campanhas", color: "#059669" },
-          { key: "atendimentos", label: "Atendimentos", color: "#059669" },
+          { key: "do_crm",    label: "Do CRM",   color: "var(--w-600)" },
+          { key: "campanhas", label: "Campanhas", color: "var(--w-600)" },
+          { key: "atendimentos", label: "Atendimentos", color: "var(--w-600)" },
         ] as { key: AbaKey; label: string; color: string }[]).map(t => {
           const at = aba === t.key;
           return (
             <button key={t.key} onClick={() => setAba(t.key)}
-              style={{ background: at ? "#ECFDF5" : "transparent", color: at ? "#065F46" : "#64748B", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontWeight: at ? 800 : 600, whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ background: at ? "var(--w-50)" : "transparent", color: at ? "var(--w-800)" : "#64748B", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13.5, cursor: "pointer", fontWeight: at ? 800 : 600, whiteSpace: "nowrap", flexShrink: 0 }}>
               {t.label}
             </button>
           );
@@ -1390,7 +1390,7 @@ export default function CobrancaPage() {
                   <p style={{ margin: "3px 0 0", color: "#64748B", fontSize: 12 }}>Clientes da cobrança com conversa movimentada após o 1º disparo · {respostasCob.length} encontrado(s)</p>
                 </div>
                 <button onClick={fetchRespostasCobranca} disabled={carregandoResp}
-                  style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   {carregandoResp ? "⏳ Buscando..." : "Atualizar"}
                 </button>
               </div>
@@ -1409,7 +1409,7 @@ export default function CobrancaPage() {
                           <p style={{ margin: "2px 0 0", color: "#64748B", fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.mensagem || "(sem prévia)"}</p>
                         </div>
                         <div style={{ textAlign: "right" }}>
-                          <p style={{ margin: 0, color: "#059669", fontSize: 12.5, fontWeight: 800 }}>R$ {Number(cli.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
+                          <p style={{ margin: 0, color: "var(--w-600)", fontSize: 12.5, fontWeight: 800 }}>R$ {Number(cli.valor_plano || 0).toFixed(2).replace(".", ",")}</p>
                           <p style={{ margin: "2px 0 0", color: "#94A3B8", fontSize: 12 }}>{cli.plano || ""}</p>
                         </div>
                         <div style={{ textAlign: "right", minWidth: 110 }}>
@@ -1427,7 +1427,7 @@ export default function CobrancaPage() {
                               {msgsConv.map((m: any, i: number) => {
                                 const doCliente = m.de === "cliente";
                                 return (
-                                  <div key={m.id || i} style={{ alignSelf: doCliente ? "flex-start" : "flex-end", maxWidth: "78%", background: doCliente ? "#ffffff" : "#D1FAE5", border: "1px solid " + (doCliente ? "#E6ECEA" : "#A7F3D0"), borderRadius: 10, padding: "7px 11px" }}>
+                                  <div key={m.id || i} style={{ alignSelf: doCliente ? "flex-start" : "flex-end", maxWidth: "78%", background: doCliente ? "#ffffff" : "var(--w-100)", border: "1px solid " + (doCliente ? "#E6ECEA" : "#A7F3D0"), borderRadius: 10, padding: "7px 11px" }}>
                                     <p style={{ margin: 0, color: "#0F172A", fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.mensagem}</p>
                                     <p style={{ margin: "3px 0 0", color: "#94A3B8", fontSize: 11, textAlign: "right" }}>{doCliente ? "cliente" : m.de} · {m.created_at ? new Date(m.created_at).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</p>
                                   </div>
@@ -1436,7 +1436,7 @@ export default function CobrancaPage() {
                             </div>
                           )}
                           <div style={{ display: "flex", gap: 8, marginTop: 10, justifyContent: "flex-end" }}>
-                            <a href="/chatbot" style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", borderRadius: 9, padding: "8px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Responder no Atendimento</a>
+                            <a href="/chatbot" style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", borderRadius: 9, padding: "8px 14px", fontSize: 12, fontWeight: 800, textDecoration: "none", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Responder no Atendimento</a>
                           </div>
                         </div>
                       )}
@@ -1567,14 +1567,14 @@ export default function CobrancaPage() {
 
                 {clientesTabela.length === 0 ? (
                   <div style={{ padding: 40, textAlign: "center" }}>
-                    <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="documento" tamanho={24} /></span>
+                    <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="documento" tamanho={24} /></span>
                     <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhum cliente nesse filtro</p>
                     <p style={{ color: "#94A3B8", fontSize: 12, margin: "0 0 14px" }}>
                       As faturas vêm da planilha de status (uma linha por fatura). Suba a planilha em <b>Atualizar planilha</b> pra preencher os dados.<br/>
                       Confira também os filtros ativos acima — eles se somam.
                     </p>
                     <button onClick={() => { setFiltroVenc("todos"); setFiltroStatus("todas"); setFiltroBusca(""); setMesInst(""); setFiltroVencSel(""); setColNome(""); setColOs(""); setColCust(""); }}
-                      style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 20, padding: "8px 18px", fontSize: 12.5, cursor: "pointer", fontWeight: 700 }}>
+                      style={{ background: "var(--w-50)", color: "var(--w-700)", border: "1px solid var(--w-200)", borderRadius: 20, padding: "8px 18px", fontSize: 12.5, cursor: "pointer", fontWeight: 700 }}>
                       Limpar todos os filtros
                     </button>
                   </div>
@@ -1587,7 +1587,7 @@ export default function CobrancaPage() {
                             <th style={{ width: 36, padding: "11px 12px", borderBottom: "1px solid #E6ECEA", textAlign: "center" }}>
                               <input type="checkbox" title="Selecionar página"
                                 checked={clientesPagina.length > 0 && clientesPagina.every(c => clientesSel.has(c.proposta.id))}
-                                onChange={selecionarTodosClientesPagina} style={{ cursor: "pointer", width: 15, height: 15, accentColor: "#047857" }} />
+                                onChange={selecionarTodosClientesPagina} style={{ cursor: "pointer", width: 15, height: 15, accentColor: "var(--w-700)" }} />
                             </th>
                           )}
                           {["Cliente", "Fraude", "Churn", "OS", "Custcode", "Situação", "Faturas", "Total em aberto", "Próximo vencimento", ""].map(h => (
@@ -1638,13 +1638,13 @@ export default function CobrancaPage() {
                           const inad = c.situacao === "inadimplente";
                           return (
                             <tr key={c.proposta.id} onClick={() => setModalCliente(c.proposta.id)}
-                              style={{ borderTop: "1px solid #F1F5F4", background: clientesSel.has(c.proposta.id) ? "#ECFDF5" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"), cursor: "pointer" }}
+                              style={{ borderTop: "1px solid #F1F5F4", background: clientesSel.has(c.proposta.id) ? "var(--w-50)" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"), cursor: "pointer" }}
                               onMouseEnter={e => (e.currentTarget.style.background = "#F0FDFA")}
                               onMouseLeave={e => (e.currentTarget.style.background = clientesSel.has(c.proposta.id) ? "#F0FDFA" : (i % 2 === 0 ? "#ffffff" : "#F7FAF9"))}>
                               {podeDisparar && (
                                 <td onClick={e => e.stopPropagation()} style={{ padding: "12px", textAlign: "center" }}>
                                   <input type="checkbox" checked={clientesSel.has(c.proposta.id)} onChange={() => toggleSelCliente(c.proposta.id)}
-                                    style={{ cursor: "pointer", width: 15, height: 15, accentColor: "#047857" }} />
+                                    style={{ cursor: "pointer", width: 15, height: 15, accentColor: "var(--w-700)" }} />
                                 </td>
                               )}
                               <td style={{ padding: "12px 14px", maxWidth: 240, borderLeft: `3px solid ${inad ? "#dc2626" : "#059669"}` }}>
@@ -1665,13 +1665,13 @@ export default function CobrancaPage() {
                               </td>
                               <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                                 {c.proposta.dados_customizados?.os
-                                  ? <span style={{ fontFamily: "monospace", fontSize: 11.5, color: "#047857", fontWeight: 700 }}>{c.proposta.dados_customizados.os}</span>
+                                  ? <span style={{ fontFamily: "monospace", fontSize: 11.5, color: "var(--w-700)", fontWeight: 700 }}>{c.proposta.dados_customizados.os}</span>
                                   : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
                               </td>
                               <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                                   {c.proposta.dados_customizados?.custcode
-                                    ? <span style={{ fontFamily: "monospace", fontSize: 11.5, color: "#047857", fontWeight: 700 }}>{c.proposta.dados_customizados.custcode}</span>
+                                    ? <span style={{ fontFamily: "monospace", fontSize: 11.5, color: "var(--w-700)", fontWeight: 700 }}>{c.proposta.dados_customizados.custcode}</span>
                                     : <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>}
                                   <button onClick={e => { e.stopPropagation(); abrirEdicaoCliente(c.proposta); }} title="Editar OS / custcode" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#94A3B8", padding: "0 2px" }}>✏️</button>
                                 </span>
@@ -1680,14 +1680,14 @@ export default function CobrancaPage() {
                                 {inad ? (
                                   <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700 }}>Inadimplente</span>
                                 ) : (
-                                  <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700 }}>Em dia</span>
+                                  <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700 }}>Em dia</span>
                                 )}
                               </td>
                               <td style={{ padding: "12px 14px", whiteSpace: "nowrap" }}>
                                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                                   <span title="Total de faturas" style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>{c.faturas.length}</span>
                                   <span style={{ display: "flex", gap: 5, fontSize: 11, fontWeight: 700 }}>
-                                    <span title="Pagas" style={{ color: c.pagas > 0 ? "#059669" : "#CBD5E1" }}>✅{c.pagas}</span>
+                                    <span title="Pagas" style={{ color: c.pagas > 0 ? "var(--w-600)" : "#CBD5E1" }}>✅{c.pagas}</span>
                                     <span title="Em aberto (vencidas)" style={{ color: c.emAberto > 0 ? "#dc2626" : "#CBD5E1" }}>🔴{c.emAberto}</span>
                                     <span title="A vencer" style={{ color: c.aVencer > 0 ? "#C2410C" : "#CBD5E1" }}>⏳{c.aVencer}</span>
                                   </span>
@@ -1700,18 +1700,18 @@ export default function CobrancaPage() {
                                 {c.proxVenc ? (
                                   <div>
                                     <div style={{ color: "#0F172A", fontSize: 12, fontWeight: 600 }}>{formatData(c.proxVenc)}</div>
-                                    <div style={{ color: c.proxDias <= 5 ? "#C2410C" : "#047857", fontSize: 12, fontWeight: 700 }}>
+                                    <div style={{ color: c.proxDias <= 5 ? "#C2410C" : "var(--w-700)", fontSize: 12, fontWeight: 700 }}>
                                       {c.proxDias === 0 ? "vence hoje" : `em ${c.proxDias}d`}
                                     </div>
                                   </div>
                                 ) : c.atrasadas > 0 ? (
                                   <span style={{ color: "#dc2626", fontSize: 11, fontWeight: 700 }}>{c.atrasoMax}d em atraso</span>
                                 ) : (
-                                  <span style={{ color: "#059669", fontSize: 11, fontWeight: 600 }}>tudo pago</span>
+                                  <span style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 600 }}>tudo pago</span>
                                 )}
                               </td>
                               <td style={{ padding: "12px 14px", whiteSpace: "nowrap", textAlign: "right" }}>
-                                <span style={{ color: "#047857", fontSize: 12, fontWeight: 700 }}>Ver faturas</span>
+                                <span style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 700 }}>Ver faturas</span>
                               </td>
                             </tr>
                           );
@@ -1769,16 +1769,16 @@ export default function CobrancaPage() {
                         return (
                           <button key={c.proposta.id} onClick={() => { setModalCliente(c.proposta.id); setShowSidebar(false); }}
                             style={{ width: "100%", textAlign: "left", display: "flex", gap: 10, alignItems: "center", padding: "11px 12px", border: "none", borderLeft: `3px solid ${inad ? "#dc2626" : "#059669"}`, borderBottom: "1px solid #f6f7f9", background: "#ffffff", cursor: "pointer" }}>
-                            <span style={{ width: 9, height: 9, borderRadius: 999, background: inad ? "#dc2626" : "#059669", flexShrink: 0 }} />
+                            <span style={{ width: 9, height: 9, borderRadius: 999, background: inad ? "#dc2626" : "var(--w-600)", flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
                                 <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.proposta.nome || "—"}</span>
                                 <span onClick={ev => { ev.stopPropagation(); abrirEdicaoCliente(c.proposta); }} title="Editar OS / custcode" style={{ fontSize: 11, cursor: "pointer", color: "#94A3B8", flexShrink: 0 }}>✏️</span>
                               </div>
                               <div style={{ fontFamily: "monospace", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                <span style={{ color: c.proposta.dados_customizados?.os ? "#047857" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.os || "sem OS"}</span>
+                                <span style={{ color: c.proposta.dados_customizados?.os ? "var(--w-700)" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.os || "sem OS"}</span>
                                 <span style={{ color: "#CBD5E1" }}> · </span>
-                                <span style={{ color: c.proposta.dados_customizados?.custcode ? "#047857" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.custcode || "sem custcode"}</span>
+                                <span style={{ color: c.proposta.dados_customizados?.custcode ? "var(--w-700)" : "#CBD5E1", fontWeight: 700 }}>{c.proposta.dados_customizados?.custcode || "sem custcode"}</span>
                               </div>
                               <div style={{ color: "#94A3B8", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.proposta.plano || "—"}</div>
                             </div>
@@ -1789,7 +1789,7 @@ export default function CobrancaPage() {
                                   <div style={{ color: "#94A3B8", fontSize: 12 }}>{c.atrasadas} mês · {c.atrasoMax}d</div>
                                 </>
                               ) : (
-                                <div style={{ color: "#059669", fontSize: 12, fontWeight: 700 }}>em dia</div>
+                                <div style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700 }}>em dia</div>
                               )}
                             </div>
                           </button>
@@ -1812,7 +1812,7 @@ export default function CobrancaPage() {
               </div>
               {campanhas.length === 0 ? (
                 <div style={{ padding: 48, textAlign: "center" }}>
-                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
+                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 700, margin: "0 0 6px" }}>Nenhuma campanha ainda</p>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>
                     Dispare uma cobrança na aba Do CRM ou Planilha que ela aparece aqui.
@@ -1834,12 +1834,12 @@ export default function CobrancaPage() {
                           <td style={{ padding: "12px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{c.nome}</td>
                           <td style={{ padding: "12px", color: "#64748B", fontSize: 12 }}>{c.modo === "planilha" ? "Planilha" : "CRM"}</td>
                           <td style={{ padding: "12px" }}>
-                            <span style={{ background: c.status === "concluida" ? "#ECFDF5" : c.status === "rodando" ? "#fffbeb" : "#fef2f2", color: c.status === "concluida" ? "#059669" : c.status === "rodando" ? "#EA580C" : "#dc2626", border: "1px solid", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
+                            <span style={{ background: c.status === "concluida" ? "var(--w-50)" : c.status === "rodando" ? "#fffbeb" : "#fef2f2", color: c.status === "concluida" ? "var(--w-600)" : c.status === "rodando" ? "#EA580C" : "#dc2626", border: "1px solid", borderRadius: 8, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>
                               {c.status}
                             </span>
                           </td>
-                          <td style={{ padding: "12px", color: "#047857", fontSize: 12, fontWeight: 700 }}>{c.total_contatos}</td>
-                          <td style={{ padding: "12px", color: "#059669", fontSize: 12, fontWeight: 700 }}>{c.total_enviados}</td>
+                          <td style={{ padding: "12px", color: "var(--w-700)", fontSize: 12, fontWeight: 700 }}>{c.total_contatos}</td>
+                          <td style={{ padding: "12px", color: "var(--w-600)", fontSize: 12, fontWeight: 700 }}>{c.total_enviados}</td>
                           <td style={{ padding: "12px", color: "#dc2626", fontSize: 12, fontWeight: 700 }}>{c.total_falhas}</td>
                           <td style={{ padding: "12px", color: "#94A3B8", fontSize: 11 }}>{new Date(c.created_at).toLocaleString("pt-BR")}</td>
                         </tr>
@@ -1857,7 +1857,7 @@ export default function CobrancaPage() {
       {showEnvio && (
         <div onClick={() => !envioEnviando && setShowEnvio(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#ffffff", borderRadius: 16, maxWidth: 720, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.25)" }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(135deg, #ECFDF5 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", background: "linear-gradient(135deg, var(--w-50) 0%, #ffffff 100%)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: 0 }}>Disparar cobrança</h3>
                 <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{envioContatos.length} contato(s) · fonte: {envioFonte === "crm" ? "CRM" : "Planilha"}</p>
@@ -1881,7 +1881,7 @@ export default function CobrancaPage() {
                       { v: "fatura",  l: "1 mensagem por fatura", sub: "uma msg para cada fatura em aberto" },
                     ] as { v: "cliente" | "fatura"; l: string; sub: string }[]).map(o => (
                       <button key={o.v} onClick={() => { setEnvioModo(o.v); setEnvioContatos(montarContatosClientes(envioOrigemClientes, o.v)); }}
-                        style={{ flex: 1, padding: "10px 12px", borderRadius: 10, textAlign: "left", border: envioModo === o.v ? "2px solid #047857" : "1px solid #E6ECEA", background: envioModo === o.v ? "#ECFDF5" : "#ffffff", color: envioModo === o.v ? "#047857" : "#64748B", cursor: "pointer" }}>
+                        style={{ flex: 1, padding: "10px 12px", borderRadius: 10, textAlign: "left", border: envioModo === o.v ? "2px solid var(--w-700)" : "1px solid #E6ECEA", background: envioModo === o.v ? "var(--w-50)" : "#ffffff", color: envioModo === o.v ? "var(--w-700)" : "#64748B", cursor: "pointer" }}>
                         <div style={{ fontSize: 12.5, fontWeight: 700 }}>{o.l}</div>
                         <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{o.sub}</div>
                       </button>
@@ -1901,7 +1901,7 @@ export default function CobrancaPage() {
                     { v: "waba",  l: "WABA (template aprovado)" },
                   ] as { v: "webjs" | "waba"; l: string }[]).map(o => (
                     <button key={o.v} onClick={() => setEnvioTipo(o.v)}
-                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid #047857" : "1px solid #E6ECEA", background: envioTipo === o.v ? "#ECFDF5" : "#ffffff", color: envioTipo === o.v ? "#047857" : "#64748B", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                      style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: envioTipo === o.v ? "2px solid var(--w-700)" : "1px solid #E6ECEA", background: envioTipo === o.v ? "var(--w-50)" : "#ffffff", color: envioTipo === o.v ? "var(--w-700)" : "#64748B", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                       {o.l}
                     </button>
                   ))}
@@ -1928,7 +1928,7 @@ export default function CobrancaPage() {
                     <textarea value={envioMensagem} onChange={e => setEnvioMensagem(e.target.value)} rows={6} style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
                   </div>
                   {envioContatos.length > 0 && (
-                    <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
+                    <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
                       <p style={{ color: "#14532d", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Preview (1º contato: {envioContatos[0].nome})</p>
                       <p style={{ color: "#334155", fontSize: 13, margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{previewMensagem}</p>
                     </div>
@@ -2161,8 +2161,8 @@ export default function CobrancaPage() {
                     {precoce && <span style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#b91c1c", fontSize: 12, fontWeight: 800, padding: "2px 8px", borderRadius: 999 }}>INADIMPLÊNCIA PRECOCE</span>}
                   </div>
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 6, fontSize: 12 }}>
-                    <span style={{ color: "#64748B" }}>OS: <b style={{ fontFamily: "monospace", color: "#047857" }}>{c.proposta.dados_customizados?.os || "—"}</b></span>
-                    <span style={{ color: "#64748B" }}>Custcode: <b style={{ fontFamily: "monospace", color: "#047857" }}>{c.proposta.dados_customizados?.custcode || "—"}</b></span>
+                    <span style={{ color: "#64748B" }}>OS: <b style={{ fontFamily: "monospace", color: "var(--w-700)" }}>{c.proposta.dados_customizados?.os || "—"}</b></span>
+                    <span style={{ color: "#64748B" }}>Custcode: <b style={{ fontFamily: "monospace", color: "var(--w-700)" }}>{c.proposta.dados_customizados?.custcode || "—"}</b></span>
                     <span style={{ color: "#64748B" }}>Plano: <b style={{ color: "#334155" }}>{c.proposta.plano || "—"}</b></span>
                     <span style={{ color: "#64748B" }}>Tel: <b style={{ fontFamily: "monospace", color: "#334155" }}>{c.proposta.telefone1 || "—"}</b></span>
                   </div>
@@ -2173,7 +2173,7 @@ export default function CobrancaPage() {
               {/* resumo rápido */}
               <div style={{ padding: "10px 22px", borderBottom: "1px solid #f1f5f9", display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12.5 }}>
                 <span style={{ color: "#334155" }}>📄 <b>{c.faturas.length}</b> fatura(s)</span>
-                <span style={{ color: "#059669" }}>✅ <b>{c.pagas}</b> paga(s)</span>
+                <span style={{ color: "var(--w-600)" }}>✅ <b>{c.pagas}</b> paga(s)</span>
                 <span style={{ color: "#dc2626" }}>🔴 <b>{c.emAberto}</b> em aberto</span>
                 <span style={{ color: "#C2410C" }}>⏳ <b>{c.aVencer}</b> a vencer</span>
                 {c.totalAberto > 0 && <span style={{ color: "#dc2626", marginLeft: "auto", fontWeight: 800 }}>Total em aberto: {formatBRL(c.totalAberto)}</span>}
@@ -2197,15 +2197,15 @@ export default function CobrancaPage() {
                       const cc = corCod(f.codigo_status);
                       const st = corStatus(f.status_visual);
                       return (
-                        <tr key={k} style={{ borderTop: "1px solid #F1F5F4", background: sel ? "#ECFDF5" : (i % 2 === 0 ? "#fff" : "#F7FAF9") }}>
+                        <tr key={k} style={{ borderTop: "1px solid #F1F5F4", background: sel ? "var(--w-50)" : (i % 2 === 0 ? "#fff" : "#F7FAF9") }}>
                           {podeDisparar && (
                             <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                              <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 15, height: 15, accentColor: "#047857" }} />
+                              <input type="checkbox" checked={sel} onChange={() => toggleSelFat(k)} style={{ cursor: "pointer", width: 15, height: 15, accentColor: "var(--w-700)" }} />
                             </td>
                           )}
                           <td style={{ padding: "10px 12px", textAlign: "center" }}>
                             {f.numero_fatura != null
-                              ? <span style={{ background: "#ECFDF5", color: "#047857", fontWeight: 800, fontSize: 12, padding: "2px 9px", borderRadius: 999 }}>{f.numero_fatura}</span>
+                              ? <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontWeight: 800, fontSize: 12, padding: "2px 9px", borderRadius: 999 }}>{f.numero_fatura}</span>
                               : <span style={{ color: "#CBD5E1" }}>—</span>}
                           </td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap" }}>
@@ -2221,10 +2221,10 @@ export default function CobrancaPage() {
                             {formatData(f.data_vencimento)}
                             {f.status_visual === "atrasada" && <div style={{ color: "#dc2626", fontSize: 12, fontWeight: 700 }}>{f.dias_atraso}d atraso</div>}
                           </td>
-                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: f.data_pagamento ? "#059669" : "#CBD5E1", fontWeight: f.data_pagamento ? 700 : 400 }}>{f.data_pagamento ? formatData(f.data_pagamento) : "—"}</td>
+                          <td style={{ padding: "10px 12px", whiteSpace: "nowrap", color: f.data_pagamento ? "var(--w-600)" : "#CBD5E1", fontWeight: f.data_pagamento ? 700 : 400 }}>{f.data_pagamento ? formatData(f.data_pagamento) : "—"}</td>
                           <td style={{ padding: "10px 12px", whiteSpace: "nowrap", fontSize: 11 }}>
                             {f.nome_banco && <div style={{ color: "#334155" }}>{f.nome_banco}</div>}
-                            {f.opcao_pagamento && <span style={{ background: "#ECFDF5", color: "#047857", fontWeight: 700, fontSize: 12, padding: "1px 7px", borderRadius: 999 }}>{f.opcao_pagamento}</span>}
+                            {f.opcao_pagamento && <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontWeight: 700, fontSize: 12, padding: "1px 7px", borderRadius: 999 }}>{f.opcao_pagamento}</span>}
                             {!f.nome_banco && !f.opcao_pagamento && <span style={{ color: "#CBD5E1" }}>—</span>}
                           </td>
                           <td style={{ padding: "10px 12px", textAlign: "center" }}>
@@ -2243,13 +2243,13 @@ export default function CobrancaPage() {
                                 <>
                                   {STATUS_META[f.status]?.pendencia !== false || f.status === "pendente" ? (
                                     <button onClick={() => abrirStatus(f, "paga")} title="Marcar como paga"
-                                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Paga</button>
+                                      style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>Paga</button>
                                   ) : (
                                     <button onClick={() => marcarAPagar(f)} title="Reverter status"
                                       style={{ background: "#fffbeb", color: "#C2410C", border: "1px solid #fde68a", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>A pagar</button>
                                   )}
                                   <button onClick={() => abrirStatus(f, "promessa")} title="Mais status"
-                                    style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>⚙</button>
+                                    style={{ background: "var(--w-50)", color: "var(--w-700)", border: "1px solid var(--w-200)", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>⚙</button>
                                 </>
                               ) : (
                                 <span style={{ color: "#94A3B8", fontSize: 12, fontStyle: "italic" }}>leitura</span>
@@ -2269,7 +2269,7 @@ export default function CobrancaPage() {
                 {podeDisparar && (
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <button onClick={() => abrirEnvioClientes([c], "cliente")}
-                      style={{ ...btnSecundario, padding: "8px 14px", borderColor: "#A7F3D0", color: "#047857" }}>
+                      style={{ ...btnSecundario, padding: "8px 14px", borderColor: "var(--w-200)", color: "var(--w-700)" }}>
                       Cobrar cliente
                     </button>
                     <button onClick={selecionarTodasDoModal} style={{ ...btnSecundario, padding: "8px 14px" }}>
@@ -2335,11 +2335,11 @@ export default function CobrancaPage() {
               </div>
               <div>
                 <label style={labelStyle}>Ordem de serviço (OS)</label>
-                <input value={editForm.os || ""} onChange={e => setEditForm(f => ({ ...f, os: e.target.value }))} placeholder="ex: 1-1688493179641" style={{ ...inputStyle, fontFamily: "monospace", borderColor: "#A7F3D0" }} />
+                <input value={editForm.os || ""} onChange={e => setEditForm(f => ({ ...f, os: e.target.value }))} placeholder="ex: 1-1688493179641" style={{ ...inputStyle, fontFamily: "monospace", borderColor: "var(--w-200)" }} />
               </div>
               <div>
                 <label style={labelStyle}>Custcode</label>
-                <input value={editForm.custcode || ""} onChange={e => setEditForm(f => ({ ...f, custcode: e.target.value }))} placeholder="ex: 1.347330633" style={{ ...inputStyle, fontFamily: "monospace", borderColor: "#A7F3D0" }} />
+                <input value={editForm.custcode || ""} onChange={e => setEditForm(f => ({ ...f, custcode: e.target.value }))} placeholder="ex: 1.347330633" style={{ ...inputStyle, fontFamily: "monospace", borderColor: "var(--w-200)" }} />
               </div>
             </div>
             <p style={{ color: "#94A3B8", fontSize: 11, margin: "14px 0 0", lineHeight: 1.5 }}>A <b>OS</b> é como a planilha de pagamento acha esse cliente. O <b>custcode</b> preenche sozinho quando você sobe a planilha na Atualização — aqui é só pra ajuste manual.</p>

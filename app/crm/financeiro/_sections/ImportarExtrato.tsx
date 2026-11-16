@@ -111,11 +111,11 @@ export default function ImportarExtrato() {
           onDrop={(e) => { e.preventDefault(); setDrag(false); importar(e.dataTransfer.files); }}
           style={{ display: "block", border: `2px dashed ${conta ? (drag ? COR : COR + "88") : "#E6ECEA"}`, borderRadius: 14, padding: 26, textAlign: "center", cursor: conta ? "pointer" : "not-allowed", background: drag ? `${COR}10` : conta ? "#F3F6F5" : "#fafafa", opacity: conta ? 1 : 0.6 }}>
           <input type="file" accept=".ofx,.OFX" style={{ display: "none" }} disabled={!conta} onChange={(e) => importar(e.target.files)} />
-          <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📥" tamanho={24} /></div>
+          <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📥" tamanho={24} /></div>
           <div style={{ fontSize: 14.5, fontWeight: 800, color: conta ? COR : "#94A3B8", marginTop: 6 }}>{importando ? "Lendo arquivo…" : conta ? "Arraste o .ofx aqui ou clique" : "Escolha a conta acima primeiro"}</div>
           <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 3 }}>Importa as transações e evita duplicar pelo FITID</div>
         </label>
-        {msg && <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 14px", color: "#047857", fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+        {msg && <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "10px 14px", color: "var(--w-700)", fontSize: 13, fontWeight: 600 }}>{msg}</div>}
       </div>
 
       <div style={{ ...card, overflow: "hidden" }}>
@@ -126,7 +126,7 @@ export default function ImportarExtrato() {
             {carregando ? <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : linhas.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📑" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📑" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhuma linha importada</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Escolha a conta e suba um arquivo .ofx do seu banco.</p>
                 </td></tr>
@@ -135,8 +135,8 @@ export default function ImportarExtrato() {
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(l.data)}</td>
                   <td style={{ ...td, fontWeight: 600 }}>{l.descricao}</td>
                   <td style={{ ...td, color: "#64748B" }}>{nome(l.conta_id)}</td>
-                  <td style={td}>{l.conciliado ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Conciliado</span> : <span style={{ background: "#fefce8", color: "#ca8a04", border: "1px solid #fde68a", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>A conciliar</span>}</td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: l.tipo === "credito" ? "#059669" : "#dc2626", whiteSpace: "nowrap" }}>{l.tipo === "credito" ? "+" : "-"}{brl(l.valor)}</td>
+                  <td style={td}>{l.conciliado ? <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Conciliado</span> : <span style={{ background: "#fefce8", color: "#ca8a04", border: "1px solid #fde68a", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>A conciliar</span>}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: l.tipo === "credito" ? "var(--w-600)" : "#dc2626", whiteSpace: "nowrap" }}>{l.tipo === "credito" ? "+" : "-"}{brl(l.valor)}</td>
                 </tr>
               ))}
           </tbody>

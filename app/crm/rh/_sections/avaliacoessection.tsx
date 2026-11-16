@@ -156,7 +156,7 @@ export function AvaliacoesSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -216,7 +216,7 @@ export function AvaliacoesSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhuma avaliação cadastrada.</p>
         </div>
       ) : (
@@ -259,7 +259,7 @@ export function AvaliacoesSection() {
                     <td style={{ padding: "12px 16px" }}>
                       <span
                         style={{
-                          background: "#ECFDF5",
+                          background: "var(--w-50)",
                           color: COR_TEXTO,
                           fontSize: 11,
                           padding: "3px 10px",
@@ -304,8 +304,8 @@ export function AvaliacoesSection() {
                     <td style={{ padding: "12px 16px" }}>
                       <span
                         style={{
-                          background: a.status === "concluida" ? "#ECFDF5" : "#FFF7ED",
-                          color: a.status === "concluida" ? "#059669" : "#C2410C",
+                          background: a.status === "concluida" ? "var(--w-50)" : "#FFF7ED",
+                          color: a.status === "concluida" ? "var(--w-600)" : "#C2410C",
                           border: `1px solid ${a.status === "concluida" ? "#A7F3D0" : "#fde68a"}`,
                           fontSize: 11,
                           padding: "3px 10px",
@@ -470,7 +470,7 @@ export function AvaliacoesSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

@@ -134,11 +134,11 @@ export default function DashboardFinanceiro() {
           return (
             <div key={k.label}
               style={destaque
-                ? { position: "relative", overflow: "hidden", borderRadius: 18, padding: "20px 22px", color: "#fff", background: "linear-gradient(140deg, #059669, #065F46)", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)" }
+                ? { position: "relative", overflow: "hidden", borderRadius: 18, padding: "20px 22px", color: "#fff", background: "linear-gradient(140deg, var(--w-600), var(--w-800))", boxShadow: "0 16px 32px -16px rgba(6,95,70,.7)" }
                 : { ...cardStyle, padding: "20px 22px", borderRadius: 18 }}>
               {destaque && <div aria-hidden style={{ position: "absolute", right: -30, top: -30, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,.1)" }} />}
               <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 10, background: destaque ? "rgba(255,255,255,.18)" : negativo ? "#FEF2F2" : "#ECFDF5", color: destaque ? "#fff" : negativo ? "#B91C1C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: destaque ? "rgba(255,255,255,.18)" : negativo ? "#FEF2F2" : "#ECFDF5", color: destaque ? "#fff" : negativo ? "#B91C1C" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <IconeEmoji e={k.icone} tamanho={16} />
                 </span>
                 <span style={{ color: destaque ? "rgba(255,255,255,.85)" : "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
@@ -158,7 +158,7 @@ export default function DashboardFinanceiro() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
             <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Entradas × Saídas <span style={{ color: "#94A3B8", fontWeight: 600, fontSize: 12 }}>· últimos 6 meses</span></h3>
             <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#64748B", fontWeight: 600 }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#059669", display: "inline-block" }} /> Entradas</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--w-600)", display: "inline-block" }} /> Entradas</span>
               <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#dc2626", display: "inline-block" }} /> Saídas</span>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function DashboardFinanceiro() {
             {serie.map((m, i) => (
               <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
                 <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 5, width: "100%", justifyContent: "center" }}>
-                  <div title={`Entradas: ${brl(m.entrada)}`} style={{ width: "42%", maxWidth: 26, height: `${Math.max((m.entrada / maxBar) * 100, m.entrada > 0 ? 4 : 0)}%`, minHeight: m.entrada > 0 ? 4 : 0, background: "linear-gradient(180deg, #10B981 0%, #059669 100%)", borderRadius: "6px 6px 0 0" }} />
+                  <div title={`Entradas: ${brl(m.entrada)}`} style={{ width: "42%", maxWidth: 26, height: `${Math.max((m.entrada / maxBar) * 100, m.entrada > 0 ? 4 : 0)}%`, minHeight: m.entrada > 0 ? 4 : 0, background: "linear-gradient(180deg, var(--w-500) 0%, var(--w-600) 100%)", borderRadius: "6px 6px 0 0" }} />
                   <div title={`Saídas: ${brl(m.saida)}`} style={{ width: "42%", maxWidth: 26, height: `${Math.max((m.saida / maxBar) * 100, m.saida > 0 ? 4 : 0)}%`, minHeight: m.saida > 0 ? 4 : 0, background: "linear-gradient(180deg, #f87171 0%, #dc2626 100%)", borderRadius: "6px 6px 0 0" }} />
                 </div>
                 <span style={{ fontSize: 12, color: "#64748B", fontWeight: 700 }}>{m.label}</span>
@@ -184,26 +184,26 @@ export default function DashboardFinanceiro() {
           {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
             : contas.length === 0 ? (
               <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="predio" tamanho={20} /></span>
+                <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="predio" tamanho={20} /></span>
                 <p style={{ fontSize: 13, margin: 0, color: "#64748B" }}>Nenhuma conta cadastrada.</p>
               </div>
             ) : contas.map((c, i) => {
               const t = TIPO_CONTA[c.tipo] || TIPO_CONTA.corrente;
               return (
                 <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 0", borderTop: i === 0 ? "none" : "1px solid #F1F5F4" }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={t.i} tamanho={16} /></div>
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={t.i} tamanho={16} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, color: "#0F172A", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8" }}>{t.l}</div>
                   </div>
-                  <span style={{ fontSize: 14.5, fontWeight: 800, color: (c.saldo_atual || 0) >= 0 ? "#059669" : "#dc2626" }}>{brl(c.saldo_atual)}</span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: (c.saldo_atual || 0) >= 0 ? "var(--w-600)" : "#dc2626" }}>{brl(c.saldo_atual)}</span>
                 </div>
               );
             })}
           {contas.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, paddingTop: 14, borderTop: "2px solid #F1F5F4" }}>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#64748B", }}>Total</span>
-              <span style={{ fontSize: 17, fontWeight: 800, color: saldoTotal >= 0 ? "#059669" : "#dc2626" }}>{brl(saldoTotal)}</span>
+              <span style={{ fontSize: 17, fontWeight: 800, color: saldoTotal >= 0 ? "var(--w-600)" : "#dc2626" }}>{brl(saldoTotal)}</span>
             </div>
           )}
         </div>
@@ -230,7 +230,7 @@ export default function DashboardFinanceiro() {
                 <tr><td colSpan={4} style={{ padding: "34px", textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               ) : proximos.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: "40px 24px", textAlign: "center" }}>
-                  <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} /></span>
+                  <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} /></span>
                   <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 800, margin: "8px 0 2px" }}>Nada pendente à frente</p>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>Você está em dia com os vencimentos.</p>
                 </td></tr>
@@ -243,7 +243,7 @@ export default function DashboardFinanceiro() {
                     <td style={{ padding: "12px 20px", borderTop: "1px solid #F1F5F4" }}>
                       <span style={{ background: st.c === "#dc2626" ? "#FEF2F2" : "#FFF7ED", color: st.c === "#dc2626" ? "#B91C1C" : "#C2410C", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 700 }}>{st.l}</span>
                     </td>
-                    <td style={{ padding: "12px 20px", fontSize: 14, fontWeight: 800, textAlign: "right", color: l.tipo === "receita" ? "#059669" : "#dc2626", borderTop: "1px solid #F1F5F4", whiteSpace: "nowrap" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</td>
+                    <td style={{ padding: "12px 20px", fontSize: 14, fontWeight: 800, textAlign: "right", color: l.tipo === "receita" ? "var(--w-600)" : "#dc2626", borderTop: "1px solid #F1F5F4", whiteSpace: "nowrap" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</td>
                   </tr>
                 );
               })}
@@ -257,7 +257,7 @@ export default function DashboardFinanceiro() {
           {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
             : topDesp.length === 0 ? (
               <div style={{ textAlign: "center", padding: "20px 0", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 44, height: 44, borderRadius: 13, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="grafico" tamanho={20} /></span>
+                <span style={{ width: 44, height: 44, borderRadius: 13, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="grafico" tamanho={20} /></span>
                 <p style={{ fontSize: 13, margin: 0, color: "#64748B" }}>Sem despesas pagas ainda.</p>
               </div>
             ) : topDesp.map((d, i) => (

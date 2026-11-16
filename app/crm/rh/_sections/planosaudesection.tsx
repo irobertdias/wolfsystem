@@ -166,7 +166,7 @@ export function PlanoSaudeSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -226,7 +226,7 @@ export function PlanoSaudeSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum plano cadastrado.</p>
         </div>
       ) : (
@@ -277,8 +277,8 @@ export function PlanoSaudeSection() {
                     <td style={{ padding: "12px 16px" }}>
                       <span
                         style={{
-                          background: p.coparticipacao ? "#FFF7ED" : "#ECFDF5",
-                          color: p.coparticipacao ? "#C2410C" : "#059669",
+                          background: p.coparticipacao ? "#FFF7ED" : "var(--w-50)",
+                          color: p.coparticipacao ? "#C2410C" : "var(--w-600)",
                           fontSize: 11,
                           padding: "3px 10px",
                           borderRadius: 10,
@@ -463,7 +463,7 @@ export function PlanoSaudeSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

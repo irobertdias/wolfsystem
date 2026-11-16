@@ -50,7 +50,7 @@ export default function ConfigFinanceiro() {
     return (
       <div style={{ ...card, padding: 22 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={icone} tamanho={19} /></div>
+          <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={icone} tamanho={19} /></div>
           <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{titulo}</div><div style={{ fontSize: 12.5, color: "#94A3B8" }}>{desc}</div></div>
           {badge}
         </div>

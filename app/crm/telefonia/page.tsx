@@ -29,7 +29,7 @@ export default function TelefoniaPage() {
           <div style={{
             width: 18, height: 18, borderRadius: "50%",
             border: "3px solid #E6ECEA",
-            borderTopColor: "#059669",
+            borderTopColor: "var(--w-600)",
             animation: "wolf-spin 0.8s linear infinite",
           }} />
           <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>Carregando módulo de telefonia...</span>

@@ -260,7 +260,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
     <div style={{ minHeight: "calc(100vh - 120px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ maxWidth: 520, width: "100%", background: "#fff", borderRadius: 24, overflow: "hidden", boxShadow: "0 1px 2px rgba(16,24,40,.05), 0 24px 48px -24px rgba(16,24,40,.28)" }}>
         {/* Faixa esmeralda */}
-        <div style={{ position: "relative", overflow: "hidden", padding: "30px 30px 26px", color: "#fff", background: "linear-gradient(130deg, #10B981 0%, #059669 42%, #065F46 100%)" }}>
+        <div style={{ position: "relative", overflow: "hidden", padding: "30px 30px 26px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)" }}>
           <div aria-hidden style={{ position: "absolute", right: -70, top: -90, width: 240, height: 240, borderRadius: "50%", background: "rgba(255,255,255,.09)" }} />
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 14 }}>
             <span style={{ width: 52, height: 52, borderRadius: 15, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -287,7 +287,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={solicitarLiberacao}
-              style={{ flex: "1 1 200px", height: 50, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
+              style={{ flex: "1 1 200px", height: 50, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
               <Icone nome="whatsapp" tamanho={18} /> Solicitar liberação
             </button>
             <button onClick={() => router.push("/crm/dashboard")}

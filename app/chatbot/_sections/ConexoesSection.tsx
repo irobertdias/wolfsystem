@@ -934,7 +934,7 @@ export function ConexoesSection() {
   const iaLabel: Record<string, string> = { gpt: "ChatGPT", claude: "Claude AI", gemini: "Gemini", deepseek: "DeepSeek" };
 
   const Toggle = ({ value, onChange }: { value: boolean; onChange: () => void }) => (
-    <button onClick={onChange} style={{ width: 44, height: 24, background: value ? "#059669" : "#CBD5E1", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, transition: "background 0.2s", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
+    <button onClick={onChange} style={{ width: 44, height: 24, background: value ? "var(--w-600)" : "#CBD5E1", borderRadius: 12, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, transition: "background 0.2s", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
       <div style={{ width: 18, height: 18, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: value ? 23 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
     </button>
   );
@@ -974,7 +974,7 @@ export function ConexoesSection() {
         <p style={{ color: "#64748b", fontSize: 12, margin: "7px 0 0", lineHeight: 1.6 }}>
           Limite: <b>{formatarLimiteMeta(dados)}</b>
           {dados.enviados24h !== null && <> · Enviadas em 24h: <b>{dados.enviados24h.toLocaleString("pt-BR")}</b></>}
-          {dados.falhas24h !== null && <> · Falhas em 24h: <b style={{ color: dados.falhas24h ? "#dc2626" : "#047857" }}>{dados.falhas24h.toLocaleString("pt-BR")}</b></>}
+          {dados.falhas24h !== null && <> · Falhas em 24h: <b style={{ color: dados.falhas24h ? "#dc2626" : "var(--w-700)" }}>{dados.falhas24h.toLocaleString("pt-BR")}</b></>}
         </p>
         {dados.nome && <p style={{ color: "#64748b", fontSize: 12, margin: "2px 0 0" }}>Conta consultada: <b>{dados.nome}</b></p>}
         {dados.erro && <p style={{ color: "#b45309", fontSize: 12, fontWeight: 700, margin: "6px 0 0", lineHeight: 1.45 }}>{dados.erro}</p>}
@@ -1000,12 +1000,12 @@ export function ConexoesSection() {
       {showModalQR && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ ...cardStyle, padding: 32, width: 460, maxHeight: "92vh", overflowY: "auto", textAlign: "center" }}>
-            <div style={{ width: 56, height: 56, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={25} /></div>
+            <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={25} /></div>
             <h2 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Conectar WhatsApp</h2>
             <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 20px" }}>Leia o código QR com seu WhatsApp</p>
             <div style={{ background: "#F7FAF9", borderRadius: 14, padding: 16, minHeight: 260, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
               {resetando ? <p style={{ color: "#C2410C", fontSize: 14, fontWeight: 600 }}>Iniciando sessão...</p>
-                : qrConectado ? <div><span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="check" tamanho={24} /></span><p style={{ color: "#059669", fontSize: 16, fontWeight: 700, margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#64748B", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
+                : qrConectado ? <div><span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="check" tamanho={24} /></span><p style={{ color: "var(--w-600)", fontSize: 16, fontWeight: 700, margin: 0 }}>WhatsApp Conectado!</p>{qrNumero && <p style={{ color: "#64748B", fontSize: 13, margin: "8px 0 0" }}>{qrNumero}</p>}</div>
                 : qrImageUrl ? <img src={qrImageUrl} alt="Código QR" style={{ width: 220, height: 220, borderRadius: 8 }} />
                 : <div><p style={{ color: "#64748B", fontSize: 14, margin: "0 0 8px" }}>Gerando código QR...</p><p style={{ color: "#94A3B8", fontSize: 11, margin: 0 }}>Aguarde alguns segundos</p></div>}
             </div>
@@ -1066,7 +1066,7 @@ export function ConexoesSection() {
                 } catch (e: any) {
                   notify("Falha ao verificar conexão", "erro", traduzirErro(e));
                 }
-              }} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Verificar conexão</button>}
+              }} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "10px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Verificar conexão</button>}
             </div>
           </div>
         </div>
@@ -1144,8 +1144,8 @@ export function ConexoesSection() {
                             display: "flex", alignItems: "center", gap: 6,
                             padding: "7px 12px", borderRadius: 9,
                             border: `1.5px solid ${marcado ? "#059669" : "#E6ECEA"}`,
-                            background: marcado ? "#ECFDF5" : "#fff",
-                            color: marcado ? "#047857" : "#64748B",
+                            background: marcado ? "var(--w-50)" : "#fff",
+                            color: marcado ? "var(--w-700)" : "#64748B",
                             fontSize: 12.5, fontWeight: 700, cursor: "pointer",
                             transition: "all 0.15s",
                           }}>
@@ -1160,8 +1160,8 @@ export function ConexoesSection() {
                 </div>
               </div>
               {editandoId && (form.tipo === "instagram" || form.tipo === "messenger") && (
-                <div style={{ background: "#ECFDF5", borderRadius: 12, padding: 14, border: "1px solid #A7F3D0" }}>
-                  <p style={{ color: "#047857", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+                <div style={{ background: "var(--w-50)", borderRadius: 12, padding: 14, border: "1px solid var(--w-200)" }}>
+                  <p style={{ color: "var(--w-700)", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
                     {form.tipo === "instagram" ? "Canal Instagram" : "Canal Messenger"} conectado pelo acesso do Facebook.
                   </p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "6px 0 0", lineHeight: 1.4 }}>
@@ -1180,16 +1180,16 @@ export function ConexoesSection() {
                       Uma janela oficial do Facebook será aberta para autorizar as permissões; depois disso, o sistema criará os canais automaticamente.
                     </p>
                     <button onClick={conectarMeta} disabled={conectandoMeta}
-                      style={{ background: conectandoMeta ? "#065F46" : "#1877f2", color: "white", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 700, cursor: conectandoMeta ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(24,119,242,0.3)" }}>
+                      style={{ background: conectandoMeta ? "var(--w-800)" : "#1877f2", color: "white", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 14, fontWeight: 700, cursor: conectandoMeta ? "not-allowed" : "pointer", boxShadow: "0 4px 12px rgba(24,119,242,0.3)" }}>
                       {conectandoMeta ? "⏳ Conectando..." : "Conectar com Facebook"}
                     </button>
                     {resultadoMeta && (
                       <div style={{ background: resultadoMeta.sucesso ? "#ECFDF5" : "#fef2f2", border: `1px solid ${resultadoMeta.sucesso ? "#A7F3D0" : "#fecaca"}`, borderRadius: 10, padding: 14 }}>
-                        <p style={{ color: resultadoMeta.sucesso ? "#047857" : "#dc2626", fontSize: 13, margin: "0 0 6px", fontWeight: 700 }}>
+                        <p style={{ color: resultadoMeta.sucesso ? "var(--w-700)" : "#dc2626", fontSize: 13, margin: "0 0 6px", fontWeight: 700 }}>
                           {resultadoMeta.sucesso ? "✅ " : "❌ "}{resultadoMeta.mensagem}
                         </p>
                         {resultadoMeta.pages && resultadoMeta.pages.length > 0 && (
-                          <ul style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: "#047857", fontSize: 12 }}>
+                          <ul style={{ margin: "8px 0 0", padding: "0 0 0 18px", color: "var(--w-700)", fontSize: 12 }}>
                             {resultadoMeta.pages.map((p: any, i: number) => (
                               <li key={i}>
                                 <b>{p.page_name}</b>
@@ -1211,7 +1211,7 @@ export function ConexoesSection() {
                     <div><label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>ID do número de telefone *</label><input placeholder="123456789012345" value={form.phoneNumberId} onChange={e => setForm(p => ({ ...p, phoneNumberId: e.target.value }))} style={IS} /></div>
                     <div><label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>ID da conta WhatsApp Business</label><input placeholder="123456789012345" value={form.wabaId} onChange={e => setForm(p => ({ ...p, wabaId: e.target.value }))} style={IS} /></div>
                     <div><label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>Token Permanente {editandoId ? "" : "*"}</label><input type="password" placeholder={editandoId ? "Deixe em branco pra manter o token atual" : "EAAxxxxx..."} value={form.token} onChange={e => { setForm(p => ({ ...p, token: e.target.value })); setTokenTocado(true); }} style={IS} /></div>
-                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "#047857" : "#14B8A615", color: "#059669", border: "1px solid #14B8A630", borderRadius: 10, padding: 10, fontSize: 13, cursor: testandoWABA ? "wait" : "pointer", fontWeight: 700 }}>{testandoWABA ? "⏳ Verificando..." : "Verificar conexão e integridade"}</button>
+                    <button onClick={testarWABA} disabled={testandoWABA} style={{ background: testandoWABA ? "var(--w-700)" : "#14B8A615", color: "var(--w-600)", border: "1px solid #14B8A630", borderRadius: 10, padding: 10, fontSize: 13, cursor: testandoWABA ? "wait" : "pointer", fontWeight: 700 }}>{testandoWABA ? "⏳ Verificando..." : "Verificar conexão e integridade"}</button>
                     {wabaTeste && <PainelIntegridadeWaba dados={normalizarIntegridadeWaba(wabaTeste)} titulo="Resultado da verificação" />}
                     {!wabaTeste && editandoId && integridadesWaba[editandoId] && (
                       <PainelIntegridadeWaba
@@ -1225,13 +1225,13 @@ export function ConexoesSection() {
                     )}
                     <div style={{ background: "#F7FAF9", borderRadius: 10, padding: 12 }}>
                       <p style={{ color: "#64748B", fontSize: 11, margin: "0 0 4px", fontWeight: 600 }}>URL do Webhook</p>
-                      <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
+                      <p style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700, margin: 0, wordBreak: "break-all" }}>https://api.wolfgyn.com.br/webhook/meta</p>
                     </div>
                     <div><label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>Token de Verificação</label><input placeholder="meu_token_secreto" value={form.webhookToken} onChange={e => setForm(p => ({ ...p, webhookToken: e.target.value }))} style={IS} /></div>
                     {!editandoId && (
-                      <div style={{ background: "#ECFDF5", borderRadius: 10, padding: 12, border: "1px solid #A7F3D0" }}>
-                        <p style={{ color: "#047857", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Importante</p>
-                        <p style={{ color: "#065F46", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>Ativar Número na Meta</b> pra deixar seu número online.</p>
+                      <div style={{ background: "var(--w-50)", borderRadius: 10, padding: 12, border: "1px solid var(--w-200)" }}>
+                        <p style={{ color: "var(--w-700)", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Importante</p>
+                        <p style={{ color: "var(--w-800)", fontSize: 11, margin: 0, lineHeight: 1.5 }}>Depois de criar o canal, clique em <b>Ativar Número na Meta</b> pra deixar seu número online.</p>
                       </div>
                     )}
                     {editandoId && (
@@ -1246,7 +1246,7 @@ export function ConexoesSection() {
               )}
               <div>
                 <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>{editandoId ? "2" : form.tipo === "waba" ? "4" : "3"}. Automação</p>
-                {['webjs','waba'].includes(form.tipo)&&<label style={{display:'flex',gap:10,alignItems:'flex-start',padding:12,marginBottom:14,border:'1px solid #A7F3D0',borderRadius:10,background:'#ECFDF5'}}>
+                {['webjs','waba'].includes(form.tipo)&&<label style={{display:'flex',gap:10,alignItems:'flex-start',padding:12,marginBottom:14,border:'1px solid var(--w-200)',borderRadius:10,background:'var(--w-50)'}}>
                   <input type="checkbox" checked={somenteConfirmacoes(form.modulos)} onChange={e=>setForm(p=>({...p,modulos:definirSomenteConfirmacoes(p.modulos,e.target.checked)}))} style={{marginTop:3}} />
                   <span><strong style={{fontSize:13}}>Somente confirmações e BKO</strong><span style={{display:'block',fontSize:12,color:'#475569',marginTop:4}}>Marcado: envia vendas e trata os retornos do BKO, sem iniciar atendimento com IA. Desmarcado: também atende leads com a automação selecionada abaixo. O fluxo e os destinatários são preservados.</span></span>
                 </label>}
@@ -1270,7 +1270,7 @@ export function ConexoesSection() {
                 </div>
                 {form.modo === "ia" && (
                   <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#10b981", fontSize: 11, fontWeight: 700, margin: 0 }}>Configurar IA</p>
+                    <p style={{ color: "var(--w-500)", fontSize: 11, fontWeight: 700, margin: 0 }}>Configurar IA</p>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       {[{ key: "gpt", label: "ChatGPT", sub: "OpenAI", cor: "#10b981" }, { key: "claude", label: "Claude AI", sub: "Anthropic", cor: "#0F766E" }, { key: "gemini", label: "Gemini", sub: "Google", cor: "#C2410C" }, { key: "deepseek", label: "DeepSeek", sub: "DeepSeek AI", cor: "#14B8A6" }].map(ia => (
                         <button key={ia.key} onClick={() => { setForm(p => ({ ...p, ia: ia.key, apiKey: "" })); setApiKeyTocada(true); }} style={{
@@ -1285,16 +1285,16 @@ export function ConexoesSection() {
                     </div>
                     <div>
                       <label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                        Chave da API {editandoId && !apiKeyTocada && <span style={{ color: "#10b981", fontSize: 12 }}>(já salva)</span>}
+                        Chave da API {editandoId && !apiKeyTocada && <span style={{ color: "var(--w-500)", fontSize: 12 }}>(já salva)</span>}
                       </label>
                       <input type="password" placeholder={editandoId ? "Deixe vazio para manter" : "Cole sua chave da API"} value={form.apiKey} onChange={e => { setForm(p => ({ ...p, apiKey: e.target.value })); setApiKeyTocada(true); }} style={IS} />
                     </div>
                     <div><label style={{ color: "#475569", fontSize: 12.5, display: "block", marginBottom: 4, fontWeight: 600 }}>Instruções do sistema</label><textarea placeholder="Ex.: Você é um atendente virtual..." value={form.prompt} onChange={e => setForm(p => ({ ...p, prompt: e.target.value }))} style={TA} /></div>
-                    <div style={{background:form.iaCrmAtivo?"#ecfdf5":"#fff",border:"1px solid #a7f3d0",borderRadius:10,padding:12}}>
+                    <div style={{background:form.iaCrmAtivo?"var(--w-50)":"#fff",border:"1px solid var(--w-200)",borderRadius:10,padding:12}}>
                       <label style={{display:"flex",alignItems:"flex-start",gap:8,cursor:"pointer"}}>
-                        <input type="checkbox" checked={form.iaCrmAtivo} onChange={e=>setForm(p=>({...p,iaCrmAtivo:e.target.checked}))} style={{accentColor:"#10b981",marginTop:2}}/>
+                        <input type="checkbox" checked={form.iaCrmAtivo} onChange={e=>setForm(p=>({...p,iaCrmAtivo:e.target.checked}))} style={{accentColor:"var(--w-500)",marginTop:2}}/>
                         <span>
-                          <b style={{display:"block",color:"#047857",fontSize:12}}>Cadastrar vendas da IA no CRM</b>
+                          <b style={{display:"block",color:"var(--w-700)",fontSize:12}}>Cadastrar vendas da IA no CRM</b>
                           <span style={{color:"#64748B",fontSize: 12,lineHeight:1.4}}>Desativado: a IA somente conversa. Ativado: salva as variáveis abaixo, mostra o resumo e só cadastra após confirmação.</span>
                         </span>
                       </label>
@@ -1342,11 +1342,11 @@ export function ConexoesSection() {
                 )}
                 {form.modo === "fluxo" && (
                   <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: 0 }}>Selecionar Fluxo</p>
+                    <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: 0 }}>Selecionar Fluxo</p>
                     {fluxos.length === 0 ? (
                       <div style={{ background: "#ffffff", borderRadius: 16, padding: 16, textAlign: "center", boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
                         <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 10px" }}>Nenhum fluxo criado ainda</p>
-                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Criar Fluxo</button>
+                        <button onClick={() => { router.push("/chatbot/fluxos"); setShowModalNovoCanal(false); }} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "8px 16px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Criar Fluxo</button>
                       </div>
                     ) : fluxos.map(f => (
                       <button type="button" key={f.id} onClick={() => setForm(p => ({ ...p, fluxoId: f.id.toString() }))} style={{
@@ -1358,18 +1358,18 @@ export function ConexoesSection() {
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <IconeEmoji e="🔀" tamanho={16} />
                           <div>
-                            <p style={{ color: form.fluxoId === f.id.toString() ? "#059669" : "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
+                            <p style={{ color: form.fluxoId === f.id.toString() ? "var(--w-600)" : "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>{f.nome}</p>
                             <p style={{ color: "#64748B", fontSize: 11, margin: 0 }}>{f.ativo ? "Ativo" : "Inativo"}</p>
                           </div>
                         </div>
-                        {form.fluxoId === f.id.toString() && <span style={{ color: "#059669", fontSize: 18, fontWeight: 700 }}>✓</span>}
+                        {form.fluxoId === f.id.toString() && <span style={{ color: "var(--w-600)", fontSize: 18, fontWeight: 700 }}>✓</span>}
                       </button>
                     ))}
                   </div>
                 )}
                 {form.modo === "typebot" && (
                   <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
-                    <p style={{ color: "#34D399", fontSize: 11, fontWeight: 700, margin: 0 }}>Configurar Typebot</p>
+                    <p style={{ color: "var(--w-400)", fontSize: 11, fontWeight: 700, margin: 0 }}>Configurar Typebot</p>
                     <p style={{ color: "#64748B", fontSize: 11, margin: "-4px 0 0", lineHeight: 1.4 }}>
                       Cole a URL de publicação do seu Typebot. O sistema vai usar a API dele pra processar os atendimentos automaticamente.
                     </p>
@@ -1453,9 +1453,9 @@ export function ConexoesSection() {
             <div style={{ padding: "16px 28px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 12, justifyContent: "flex-end" }}>
               <button onClick={fecharModalNovoCanal} style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
               {!editandoId && form.tipo === "meta_oauth" ? (
-                <button onClick={fecharModalNovoCanal} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Concluir</button>
+                <button onClick={fecharModalNovoCanal} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>Concluir</button>
               ) : (
-                <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "Salvar" : "Criar Canal"}</button>
+                <button onClick={salvarCanal} disabled={salvandoCanal} style={{ background: salvandoCanal ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvandoCanal ? "⏳ Salvando..." : editandoId ? "Salvar" : "Criar Canal"}</button>
               )}
             </div>
           </div>
@@ -1478,7 +1478,7 @@ export function ConexoesSection() {
           onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }}
           disabled={limiteAtingido}
           style={{
-            background: limiteAtingido ? "#E6ECEA" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: limiteAtingido ? "#E6ECEA" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: limiteAtingido ? "#94A3B8" : "white",
             border: "none", borderRadius: 12, padding: "12px 22px", fontSize: 13,
             cursor: limiteAtingido ? "not-allowed" : "pointer", fontWeight: 700,
@@ -1491,10 +1491,10 @@ export function ConexoesSection() {
       {/* ═══ CARDS DE CONEXÕES ═══ */}
       {conexoes.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={30} /></div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"📱"} tamanho={30} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px" }}>Nenhum canal conectado</h3>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 20px" }}>Crie seu primeiro canal pra começar</p>
-          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }} style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo Canal</button>
+          <button onClick={() => { setShowModalNovoCanal(true); setEditandoId(null); setForm(formInicial); setApiKeyTocada(false); setTokenTocado(false); fetchFluxos(); fetchFilas(); fetchEquipes(); }} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 12, padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo Canal</button>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
@@ -1519,21 +1519,21 @@ export function ConexoesSection() {
                   </div>
                 </div>
                 <span style={{
-                  background: c.status === "conectado" ? "#ECFDF5" : "#fef2f2",
-                  color: c.status === "conectado" ? "#059669" : "#dc2626",
+                  background: c.status === "conectado" ? "var(--w-50)" : "#fef2f2",
+                  color: c.status === "conectado" ? "var(--w-600)" : "#dc2626",
                   border: `1px solid ${c.status === "conectado" ? "#A7F3D0" : "#fecaca"}`,
                   fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 700
                 }}>{c.status === "conectado" ? "Conectado" : "Desconectado"}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Automação:</span><span style={{ color: modoColor[c.modo] || "#64748B", fontSize: 12, fontWeight: 700 }}>{somenteConfirmacoes(c.modulos)?'Somente confirmações/BKO':c.modo === "ia" ? `IA (${iaLabel[c.ia] || c.ia})` : c.modo === "fluxo" ? `${c.fluxo_nome}` : c.modo === "typebot" ? `Typebot` : "Sem automação"}</span></div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Fila:</span><span style={{ color: "#059669", fontSize: 12, fontWeight: 600 }}>{c.fila || "—"}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Fila:</span><span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 600 }}>{c.fila || "—"}</span></div>
                 {/* 👥 Equipe — derivada da fila do canal (a fila carrega o equipe_id) */}
                 {(() => {
                   const eqId = filasBanco.find(f => f.nome === c.fila)?.equipe_id;
                   const eqNome = eqId ? equipes.find(e => e.id === eqId)?.nome : null;
                   if (!eqNome) return null;
-                  return <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Equipe:</span><span style={{ color: "#059669", fontSize: 12, fontWeight: 600 }}>{eqNome}</span></div>;
+                  return <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Equipe:</span><span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 600 }}>{eqNome}</span></div>;
                 })()}
                 {c.numero && <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "#64748B", fontSize: 12 }}>Número:</span><span style={{ color: "#0F172A", fontSize: 12, fontWeight: 600 }}>{c.numero}</span></div>}
               </div>
@@ -1549,7 +1549,7 @@ export function ConexoesSection() {
                 <button
                   onClick={() => abrirRecuperacao(c)}
                   title="Recuperar somente mensagens ausentes em segundo plano"
-                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0", borderRadius: 9, padding: "8px 10px", marginBottom: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, background: "var(--w-50)", color: "var(--w-800)", border: "1px solid var(--w-200)", borderRadius: 9, padding: "8px 10px", marginBottom: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
                 >
                   <span aria-hidden="true">↻</span> Recuperar conversas
                 </button>
@@ -1557,14 +1557,14 @@ export function ConexoesSection() {
               <div style={{ display: "flex", gap: 8 }}>
                 {c.tipo === "webjs" && (c.status === "desconectado"
                   ? <>
-                      <button onClick={() => reconectarCanal(c)} title="Tenta reconectar SEM apagar o login" style={{ flex: 1, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(5,150,105,0.25)" }}>Reconectar</button>
+                      <button onClick={() => reconectarCanal(c)} title="Tenta reconectar SEM apagar o login" style={{ flex: 1, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(5,150,105,0.25)" }}>Reconectar</button>
                       <button onClick={() => abrirQR(c.id)} title="Apaga sessão salva e gera QR novo" style={{ background: "#F3F6F5", color: "#64748B", borderRadius: 10, padding: "9px 12px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>QR</button>
                     </>
-                  : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro" style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Desconectar</button></>
+                  : <><button onClick={() => reconectarCanal(c)} title="Reconectar caso esteja com erro" style={{ flex: 1, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Conectado · 🔄</button><button onClick={() => desconectarCanal(c)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 12, cursor: "pointer", fontWeight: 600 }}>Desconectar</button></>
                 )}
                 {c.tipo === "waba" && (c.status === "conectado"
-                  ? <button disabled style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700 }}>API conectada</button>
-                  : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(5,150,105,0.25)" }}>Ativar Número na Meta</button>
+                  ? <button disabled style={{ flex: 1, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 9, fontSize: 12, fontWeight: 700 }}>API conectada</button>
+                  : <button onClick={() => registrarNumeroWaba(c)} style={{ flex: 1, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: 9, fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 2px 8px rgba(5,150,105,0.25)" }}>Ativar Número na Meta</button>
                 )}
                 {c.tipo === "meta" && (
                   <div style={{ flex: 1, display: "flex", gap: 6 }}>
@@ -1590,13 +1590,13 @@ export function ConexoesSection() {
                   {showMenuEngrenagem === c.id && (
                     <div style={{ position: "absolute", bottom: 44, right: 0, ...cardStyle, overflow: "hidden", zIndex: 100, minWidth: 240, padding: 4 }}>
                       <button onClick={() => abrirEditar(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#0F172A", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#F7FAF9"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Editar Canal</button>
-                      {c.tipo === "webjs" && c.status === "conectado" && <button onClick={() => abrirRecuperacao(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#047857", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Recuperar conversas</button>}
-                      {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#059669", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Reconectar (preserva login)</button>}
+                      {c.tipo === "webjs" && c.status === "conectado" && <button onClick={() => abrirRecuperacao(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "var(--w-700)", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Recuperar conversas</button>}
+                      {c.tipo === "webjs" && <button onClick={() => reconectarCanal(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "var(--w-600)", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Reconectar (preserva login)</button>}
                       {c.tipo === "webjs" && <button onClick={() => { setShowMenuEngrenagem(null); abrirQR(c.id); }} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#0F172A", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#F7FAF9"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Resetar e Escanear QR</button>}
-                      {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#059669", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Ativar Número na Meta</button>}
+                      {c.tipo === "waba" && <button onClick={() => registrarNumeroWaba(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "var(--w-600)", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Ativar Número na Meta</button>}
                       <button onClick={() => encerrarAtendimentosEmMassa("aguardando", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#C2410C", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#FFF7ED"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Encerrar Aguardando</button>
-                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#059669", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Encerrar Abertos</button>
-                      {conexoes.length > 1 && <button onClick={() => abrirTransferencia(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#047857", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Transferir conversas</button>}
+                      <button onClick={() => encerrarAtendimentosEmMassa("abertos", c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "var(--w-600)", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Encerrar Abertos</button>
+                      {conexoes.length > 1 && <button onClick={() => abrirTransferencia(c)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "var(--w-700)", fontSize: 13, cursor: "pointer", textAlign: "left", fontWeight: 700, borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#ECFDF5"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Transferir conversas</button>}
                       <div style={{ height: 1, background: "#E6ECEA", margin: "4px 0" }} />
                       <button onClick={() => excluirCanal(c.id)} style={{ display: "block", width: "100%", background: "none", border: "none", padding: "10px 16px", color: "#dc2626", fontSize: 13, cursor: "pointer", textAlign: "left", borderRadius: 8 }} onMouseEnter={e => e.currentTarget.style.background = "#fef2f2"} onMouseLeave={e => e.currentTarget.style.background = "none"}>Excluir Canal</button>
                     </div>
@@ -1617,8 +1617,8 @@ export function ConexoesSection() {
             </div>
             <div style={{ padding: 22 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "#065F46", fontSize: 22 }}>{resumoTransferencia?.atendimentos ?? "..."}</strong><span style={{ color: "#64748B", fontSize: 11 }}>Conversas</span></div>
-                <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "#065F46", fontSize: 22 }}>{resumoTransferencia?.mensagens ?? "..."}</strong><span style={{ color: "#64748B", fontSize: 11 }}>Mensagens</span></div>
+                <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "var(--w-800)", fontSize: 22 }}>{resumoTransferencia?.atendimentos ?? "..."}</strong><span style={{ color: "#64748B", fontSize: 11 }}>Conversas</span></div>
+                <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 12, padding: 14 }}><strong style={{ display: "block", color: "var(--w-800)", fontSize: 22 }}>{resumoTransferencia?.mensagens ?? "..."}</strong><span style={{ color: "#64748B", fontSize: 11 }}>Mensagens</span></div>
               </div>
               <label style={{ display: "block", color: "#334155", fontSize: 12, fontWeight: 800, marginBottom: 7 }}>Canal de destino</label>
               <select value={canalDestinoId} onChange={e => { setCanalDestinoId(e.target.value); setErroTransferencia(""); }} disabled={transferindoConversas} style={{ width: "100%", padding: "11px 12px", borderRadius: 10, border: "1px solid #cbd5e1", background: "#fff", color: "#0f172a", fontSize: 13 }}>
@@ -1630,7 +1630,7 @@ export function ConexoesSection() {
             </div>
             <div style={{ padding: "14px 22px", borderTop: "1px solid #E6ECEA", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => setCanalTransferencia(null)} disabled={transferindoConversas} style={{ padding: "10px 16px", borderRadius: 9, background: "#F3F6F5", color: "#475569", fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
-              <button onClick={() => confirmarTransferencia(false)} disabled={transferindoConversas || !canalDestinoId || !resumoTransferencia} style={{ padding: "10px 16px", borderRadius: 9, border: "none", background: transferindoConversas || !canalDestinoId ? "#6EE7B7" : "#047857", color: "#fff", fontWeight: 800, cursor: transferindoConversas ? "wait" : "pointer" }}>{transferindoConversas ? "Transferindo..." : "Transferir agora"}</button>
+              <button onClick={() => confirmarTransferencia(false)} disabled={transferindoConversas || !canalDestinoId || !resumoTransferencia} style={{ padding: "10px 16px", borderRadius: 9, border: "none", background: transferindoConversas || !canalDestinoId ? "var(--w-300)" : "var(--w-700)", color: "#fff", fontWeight: 800, cursor: transferindoConversas ? "wait" : "pointer" }}>{transferindoConversas ? "Transferindo..." : "Transferir agora"}</button>
             </div>
           </div>
         </div>
@@ -1642,7 +1642,7 @@ export function ConexoesSection() {
           <div style={{ ...cardStyle, width: "100%", maxWidth: 610, overflow: "hidden" }}>
             <div style={{ padding: "18px 22px", borderBottom: "1px solid #E6ECEA", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 11, minWidth: 0 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 9, background: "#D1FAE5", color: "#065F46", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, fontWeight: 800, flexShrink: 0 }}>↻</div>
+                <div style={{ width: 38, height: 38, borderRadius: 9, background: "var(--w-100)", color: "var(--w-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 21, fontWeight: 800, flexShrink: 0 }}>↻</div>
                 <div style={{ minWidth: 0 }}>
                   <h2 style={{ color: "#0f172a", fontSize: 17, fontWeight: 800, margin: 0 }}>Recuperar conversas</h2>
                   <p style={{ color: "#64748b", fontSize: 11.5, margin: "2px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{canalRecuperacao.nome} · WhatsApp Web</p>
@@ -1654,7 +1654,7 @@ export function ConexoesSection() {
             <div style={{ padding: 22 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 9 }}>
                 <p style={{ color: "#334155", fontSize: 12, fontWeight: 800, margin: 0 }}>Período a verificar</p>
-                <span style={{ color: "#047857", fontSize: 12, fontWeight: 700 }}>Padrão: últimas 24 horas</span>
+                <span style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 700 }}>Padrão: últimas 24 horas</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))", gap: 6, padding: 4, background: "#f1f5f9", borderRadius: 10 }}>
                 {[
@@ -1672,7 +1672,7 @@ export function ConexoesSection() {
                       key={periodo.valor}
                       onClick={() => setPeriodoRecuperacao(periodo.valor)}
                       disabled={!!bloqueado}
-                      style={{ minWidth: 0, background: periodoRecuperacao === periodo.valor ? "#fff" : "transparent", color: periodoRecuperacao === periodo.valor ? "#065F46" : "#64748b", border: periodoRecuperacao === periodo.valor ? "1px solid #A7F3D0" : "1px solid transparent", borderRadius: 7, padding: "8px 3px", fontSize: 11, fontWeight: 800, cursor: bloqueado ? "not-allowed" : "pointer", boxShadow: periodoRecuperacao === periodo.valor ? "0 1px 2px rgba(15,23,42,0.08)" : "none", opacity: bloqueado ? 0.7 : 1 }}
+                      style={{ minWidth: 0, background: periodoRecuperacao === periodo.valor ? "#fff" : "transparent", color: periodoRecuperacao === periodo.valor ? "var(--w-800)" : "#64748b", border: periodoRecuperacao === periodo.valor ? "1px solid var(--w-200)" : "1px solid transparent", borderRadius: 7, padding: "8px 3px", fontSize: 11, fontWeight: 800, cursor: bloqueado ? "not-allowed" : "pointer", boxShadow: periodoRecuperacao === periodo.valor ? "0 1px 2px rgba(15,23,42,0.08)" : "none", opacity: bloqueado ? 0.7 : 1 }}
                     >{periodo.label}</button>
                   );
                 })}
@@ -1691,20 +1691,20 @@ export function ConexoesSection() {
                 </div>
               )}
 
-              <div style={{ marginTop: 14, padding: "11px 13px", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 9, color: "#065F46", fontSize: 11.5, lineHeight: 1.55 }}>
+              <div style={{ marginTop: 14, padding: "11px 13px", background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 9, color: "var(--w-800)", fontSize: 11.5, lineHeight: 1.55 }}>
                 O sistema compara o WhatsApp com o chatbot e importa somente o que estiver faltando. O trabalho roda uma conversa por vez, pode continuar com esta janela fechada e pausa quando chegam mensagens ao vivo.
               </div>
 
               {jobRecuperacao && (
                 <div style={{ marginTop: 15, border: `1px solid ${jobRecuperacao.status === "erro" ? "#fecaca" : jobRecuperacao.status === "concluido" ? "#A7F3D0" : "#A7F3D0"}`, borderLeft: `4px solid ${jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#059669" : "#047857"}`, borderRadius: 9, overflow: "hidden" }}>
-                  <div style={{ padding: "11px 13px", background: jobRecuperacao.status === "erro" ? "#fef2f2" : jobRecuperacao.status === "concluido" ? "#ECFDF5" : "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ padding: "11px 13px", background: jobRecuperacao.status === "erro" ? "#fef2f2" : jobRecuperacao.status === "concluido" ? "var(--w-50)" : "var(--w-50)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                     <div>
                       <strong style={{ display: "block", color: "#0f172a", fontSize: 12.5 }}>
                         {jobRecuperacao.status === "aguardando" ? "Aguardando na fila" : jobRecuperacao.status === "processando" ? "Atualizando em segundo plano" : jobRecuperacao.status === "concluido" ? "Recuperação concluída" : "Recuperação interrompida"}
                       </strong>
                       <span style={{ color: "#64748b", fontSize: 12 }}>{jobRecuperacao.etapa}</span>
                     </div>
-                    <strong style={{ color: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#059669" : "#047857", fontSize: 14 }}>{jobRecuperacao.percentual}%</strong>
+                    <strong style={{ color: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "var(--w-600)" : "var(--w-700)", fontSize: 14 }}>{jobRecuperacao.percentual}%</strong>
                   </div>
                   <div style={{ height: 5, background: "#e2e8f0" }}>
                     <div style={{ width: `${jobRecuperacao.percentual}%`, height: "100%", background: jobRecuperacao.status === "erro" ? "#dc2626" : jobRecuperacao.status === "concluido" ? "#059669" : "#047857", transition: "width 0.3s" }} />
@@ -1773,7 +1773,7 @@ export function ConexoesSection() {
                   <button key={p.id} onClick={() => togglePage(p.id)}
                     style={{
                       display: "flex", width: "100%", alignItems: "center", gap: 12,
-                      background: selecionada ? "#ECFDF5" : "#F7FAF9",
+                      background: selecionada ? "var(--w-50)" : "#F7FAF9",
                       border: `2px solid ${selecionada ? "#059669" : "#E6ECEA"}`,
                       borderRadius: 12, padding: "12px 14px", marginBottom: 10,
                       cursor: "pointer", textAlign: "left", transition: "all 0.15s",

@@ -114,7 +114,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
             {modelos.map((m, i) => (
               <button key={i} type="button" onClick={() => setAtivo(i)}
                 style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "7px 14px", fontSize: 13, fontWeight: 800,
-                  background: i === ativo ? "#059669" : "#F1F5F9", color: i === ativo ? "#fff" : "#475569" }}>
+                  background: i === ativo ? "var(--w-600)" : "#F1F5F9", color: i === ativo ? "#fff" : "#475569" }}>
                 {m.nome || `Modelo ${i + 1}`}
               </button>
             ))}
@@ -145,7 +145,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
                         setModelo(novo);
                         requestAnimationFrame(() => { el.focus(); el.setSelectionRange(ini + marca.length, ini + marca.length); });
                       }}
-                      style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "4px 10px", background: "#ECFDF5", color: "#047857", fontSize: 12, fontWeight: 700, fontFamily: "ui-monospace, monospace" }}>
+                      style={{ border: 0, cursor: "pointer", borderRadius: 999, padding: "4px 10px", background: "var(--w-50)", color: "var(--w-700)", fontSize: 12, fontWeight: 700, fontFamily: "ui-monospace, monospace" }}>
                       {`{${c.chave}}`}
                     </button>
                   ))}

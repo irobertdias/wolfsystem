@@ -175,7 +175,7 @@ export function SelecaoSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             Nenhum candidato no pipeline. Cadastre em “Candidatos”.
           </p>
@@ -271,8 +271,8 @@ export function SelecaoSection() {
                               onClick={() => mover(c, -1)}
                               disabled={idx === 0}
                               style={{
-                                background: idx === 0 ? "#F1F5F4" : "#ECFDF5",
-                                color: idx === 0 ? "#cbd5e1" : "#065F46",
+                                background: idx === 0 ? "#F1F5F4" : "var(--w-50)",
+                                color: idx === 0 ? "#cbd5e1" : "var(--w-800)",
                                 border: "none",
                                 borderRadius: 7,
                                 padding: "3px 10px",
@@ -287,8 +287,8 @@ export function SelecaoSection() {
                               onClick={() => mover(c, 1)}
                               disabled={idx === COLUNAS.length - 1}
                               style={{
-                                background: idx === COLUNAS.length - 1 ? "#F1F5F4" : "#ECFDF5",
-                                color: idx === COLUNAS.length - 1 ? "#cbd5e1" : "#065F46",
+                                background: idx === COLUNAS.length - 1 ? "#F1F5F4" : "var(--w-50)",
+                                color: idx === COLUNAS.length - 1 ? "#cbd5e1" : "var(--w-800)",
                                 border: "none",
                                 borderRadius: 7,
                                 padding: "3px 10px",
@@ -373,9 +373,9 @@ export function SelecaoSection() {
                       onClick={() => reativar(c)}
                       title="Voltar ao funil"
                       style={{
-                        background: "#ECFDF5",
-                        color: "#065F46",
-                        border: "1px solid #A7F3D0",
+                        background: "var(--w-50)",
+                        color: "var(--w-800)",
+                        border: "1px solid var(--w-200)",
                         borderRadius: 8,
                         padding: "5px 10px",
                         fontSize: 11,
@@ -421,7 +421,7 @@ export function SelecaoSection() {
               height: 34,
               borderRadius: 9,
               flexShrink: 0,
-              background: aviso.tipo === "erro" ? "#fef2f2" : "#ECFDF5",
+              background: aviso.tipo === "erro" ? "#fef2f2" : "var(--w-50)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",

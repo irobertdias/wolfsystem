@@ -3,9 +3,9 @@
   --voice-ink: #0F172A;
   --voice-muted: #64748B;
   --voice-line: #E6ECEA;
-  --voice-blue: #059669;
-  --voice-indigo: #047857;
-  --voice-green: #10B981;
+  --voice-blue: var(--w-600);
+  --voice-indigo: var(--w-700);
+  --voice-green: var(--w-500);
   max-width: 1440px !important;
   padding: 4px 0 40px !important;
   font-family: inherit !important;
@@ -21,7 +21,7 @@
   padding: 30px 34px !important;
   border: 0;
   border-radius: 24px;
-  background: linear-gradient(130deg, #10B981 0%, #059669 40%, #065F46 80%, #064E3B 100%);
+  background: linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 40%, var(--w-800) 80%, var(--w-900) 100%);
   box-shadow: 0 24px 48px -26px rgba(6, 95, 70, .8);
   color: white;
 }
@@ -74,7 +74,7 @@
 
 .sectionKicker {
   display: block;
-  color: #059669;
+  color: var(--w-600);
   font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0;
@@ -129,7 +129,7 @@
 
 .tabActive {
   background: #fff !important;
-  color: #065F46 !important;
+  color: var(--w-800) !important;
   box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .35);
 }
 
@@ -154,8 +154,8 @@
   height: 32px;
   place-items: center;
   border-radius: 10px;
-  background: #ECFDF5;
-  color: #059669;
+  background: var(--w-50);
+  color: var(--w-600);
   font-weight: 800;
 }
 
@@ -208,8 +208,8 @@
   padding: 0 10px;
   place-items: center;
   border-radius: 10px;
-  background: #ECFDF5;
-  color: #059669;
+  background: var(--w-50);
+  color: var(--w-600);
   font-size: 13px;
   font-weight: 800;
 }
@@ -242,7 +242,7 @@
 .editorPanel input:focus,
 .editorPanel select:focus,
 .editorPanel textarea:focus {
-  border-color: #10B981 !important;
+  border-color: var(--w-500) !important;
   background: white;
   box-shadow: 0 0 0 4px rgba(16, 185, 129, .14);
 }
@@ -263,7 +263,7 @@
 .campaignForm > button:last-child {
   min-height: 50px;
   border-radius: 14px !important;
-  background: linear-gradient(140deg, #10B981, #059669 60%, #047857) !important;
+  background: linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700)) !important;
   box-shadow: 0 14px 26px -14px rgba(5, 150, 105, .8);
   font-weight: 800 !important;
 }
@@ -317,7 +317,7 @@
   bottom: 16px;
   width: 3px;
   border-radius: 0 4px 4px 0;
-  background: linear-gradient(#10B981, #047857);
+  background: linear-gradient(var(--w-500), var(--w-700));
 }
 
 @media (max-width: 1100px) {

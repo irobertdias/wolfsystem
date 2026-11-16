@@ -219,17 +219,17 @@ export function RespostasRapidasSection() {
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"⚡"} tamanho={22} /></div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"⚡"} tamanho={22} /></div>
           <div>
             <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Respostas Rápidas</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
-              Digite <code style={{ background: "#F1F5F4", color: "#059669", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
+              Digite <code style={{ background: "#F1F5F4", color: "var(--w-600)", padding: "1px 6px", borderRadius: 4, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>/</code> no chat para usar
             </p>
           </div>
         </div>
         <button onClick={() => setShowForm(!showForm)}
           style={{
-            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -241,7 +241,7 @@ export function RespostasRapidasSection() {
       {/* ═══ FILTRO DE EQUIPE ═══ */}
       {equipes.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
+          <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
           <select value={filtroEquipe} onChange={e => setFiltroEquipe(e.target.value)} style={{ ...IS, width: "auto", minWidth: 200, cursor: "pointer" }}>
             <option value="todas">Todas as equipes</option>
             <option value="">Geral (sem equipe)</option>
@@ -255,7 +255,7 @@ export function RespostasRapidasSection() {
         <div style={{ ...cardStyle, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "#14B8A615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>➕</div>
-            <p style={{ color: "#059669", fontSize: 12, fontWeight: 700, margin: 0 }}>Nova Resposta Rápida</p>
+            <p style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700, margin: 0 }}>Nova Resposta Rápida</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", gap: 12 }}>
             <div>
@@ -334,7 +334,7 @@ export function RespostasRapidasSection() {
             </button>
             <button onClick={salvar} disabled={salvando || uploadandoMidia}
               style={{
-                background: (salvando || uploadandoMidia) ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                background: (salvando || uploadandoMidia) ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "9px 22px", fontSize: 12, cursor: "pointer", fontWeight: 700,
                 boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -353,7 +353,7 @@ export function RespostasRapidasSection() {
           </div>
         ) : respostasFiltradas.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-            <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"⚡"} tamanho={28} /></div>
+            <div style={{ width: 80, height: 80, borderRadius: 18, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"⚡"} tamanho={28} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px" }}>
               {filtroEquipe !== "todas" ? "Nenhuma resposta nessa equipe" : "Nenhuma resposta rápida cadastrada ainda"}
             </h3>
@@ -372,7 +372,7 @@ export function RespostasRapidasSection() {
           >
             <span style={{
               background: "#14B8A615",
-              color: "#059669",
+              color: "var(--w-600)",
               border: "1px solid #14B8A630",
               fontSize: 12, padding: "5px 12px",
               borderRadius: 8, fontWeight: 700,
@@ -402,7 +402,7 @@ export function RespostasRapidasSection() {
               </a>
             )}
             {equipeNomeDe(r.equipe_id) && (
-              <span style={{ background: "#a855f715", color: "#059669", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{equipeNomeDe(r.equipe_id)}</span>
+              <span style={{ background: "#a855f715", color: "var(--w-600)", border: "1px solid #a855f730", fontSize: 11, padding: "4px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{equipeNomeDe(r.equipe_id)}</span>
             )}
             <button onClick={() => remover(r)}
               style={{

@@ -166,7 +166,7 @@ export function RoletaSection() {
 
       {/* ═══ HEADER ═══ */}
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🎯"} tamanho={22} /></div>
+        <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🎯"} tamanho={22} /></div>
         <div>
           <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Roleta de Distribuição</h1>
           <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0", maxWidth: 720, lineHeight: 1.5 }}>
@@ -178,7 +178,7 @@ export function RoletaSection() {
       {/* ═══ CARD DE ATIVAÇÃO ═══ */}
       <div style={{
         ...cardStyle,
-        background: config.ativa ? "#ECFDF5" : "#ffffff",
+        background: config.ativa ? "var(--w-50)" : "#ffffff",
         border: `1px solid ${config.ativa ? "#A7F3D0" : "#E6ECEA"}`,
         borderLeft: `4px solid ${config.ativa ? "#059669" : "#CBD5E1"}`,
         padding: 22, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
@@ -204,7 +204,7 @@ export function RoletaSection() {
           </div>
         </div>
         <button onClick={() => setConfig(c => ({ ...c, ativa: !c.ativa }))}
-          style={{ width: 56, height: 30, background: config.ativa ? "#059669" : "#CBD5E1", borderRadius: 15, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, transition: "background 0.2s", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
+          style={{ width: 56, height: 30, background: config.ativa ? "var(--w-600)" : "#CBD5E1", borderRadius: 15, cursor: "pointer", border: "none", position: "relative", flexShrink: 0, transition: "background 0.2s", boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)" }}>
           <div style={{ width: 24, height: 24, background: "white", borderRadius: "50%", position: "absolute", top: 3, left: config.ativa ? 29 : 3, transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
         </button>
       </div>
@@ -270,7 +270,7 @@ export function RoletaSection() {
                 {/* 👥 Filtro de equipe — afunila a lista de atendentes abaixo */}
                 {equipes.length > 0 && (
                   <div style={{ padding: "10px 14px", borderBottom: "1px solid #F1F5F4", background: "#F7FAF9", display: "flex", alignItems: "center", gap: 8, position: "sticky", top: 0, zIndex: 1 }}>
-                    <span style={{ color: "#059669", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
+                    <span style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>Equipe</span>
                     <select value={filtroEquipeUsuarios} onChange={e => setFiltroEquipeUsuarios(e.target.value)}
                       style={{ ...inputStyle, padding: "6px 10px", fontSize: 12, flex: 1, cursor: "pointer" }}>
                       <option value="todas">Todas as equipes</option>
@@ -287,17 +287,17 @@ export function RoletaSection() {
                     style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "11px 14px",
                       cursor: "pointer", borderBottom: "1px solid #F1F5F4",
-                      background: config.usuarios.includes(u.email) ? "#ECFDF5" : "transparent",
+                      background: config.usuarios.includes(u.email) ? "var(--w-50)" : "transparent",
                       transition: "background 0.1s",
                     }}
                     onMouseEnter={(e) => { if (!config.usuarios.includes(u.email)) e.currentTarget.style.background = "#F7FAF9"; }}
                     onMouseLeave={(e) => { if (!config.usuarios.includes(u.email)) e.currentTarget.style.background = "transparent"; }}
                   >
-                    <input type="checkbox" checked={config.usuarios.includes(u.email)} onChange={() => toggleUsuario(u.email)} style={{ accentColor: "#059669", width: 16, height: 16 }} />
+                    <input type="checkbox" checked={config.usuarios.includes(u.email)} onChange={() => toggleUsuario(u.email)} style={{ accentColor: "var(--w-600)", width: 16, height: 16 }} />
                     <div style={{ flex: 1 }}>
                       <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600 }}>
                         {u.nome}
-                        {equipeNomeDe(u.equipe_id) && <span style={{ marginLeft: 8, background: "#a855f715", color: "#059669", fontSize: 12, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(u.equipe_id)}</span>}
+                        {equipeNomeDe(u.equipe_id) && <span style={{ marginLeft: 8, background: "#a855f715", color: "var(--w-600)", fontSize: 12, padding: "1px 7px", borderRadius: 10, fontWeight: 700 }}>{equipeNomeDe(u.equipe_id)}</span>}
                       </p>
                       <p style={{ color: "#94A3B8", fontSize: 11, margin: "2px 0 0" }}>
                         {u.email} · {u.perfil}{u.fila ? ` · Fila${u.fila.includes(",") ? "s" : ""}: ${u.fila.split(",").map(s => s.trim()).filter(Boolean).join(", ")}` : ""}
@@ -307,7 +307,7 @@ export function RoletaSection() {
                 ))}
                 <div style={{ padding: 10, display: "flex", gap: 6, background: "#F7FAF9", borderTop: "1px solid #E6ECEA" }}>
                   <button onClick={() => setConfig(c => ({ ...c, usuarios: [...new Set([...c.usuarios, ...usuariosVisiveis.map(u => u.email)])] }))}
-                    style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
+                    style={{ flex: 1, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "7px 12px", fontSize: 11, cursor: "pointer", fontWeight: 700 }}>
                     {filtroEquipeUsuarios === "todas" ? "Selecionar todos" : "Selecionar a equipe"}
                   </button>
                   <button onClick={() => { const vis = new Set(usuariosVisiveis.map(u => u.email)); setConfig(c => ({ ...c, usuarios: c.usuarios.filter(e => !vis.has(e)) })); }}
@@ -326,14 +326,14 @@ export function RoletaSection() {
                 {usuariosSelecionados.map(u => (
                   <span key={u.email}
                     style={{
-                      background: "#ECFDF5", color: "#059669",
+                      background: "var(--w-50)", color: "var(--w-600)",
                       fontSize: 11, padding: "5px 12px", borderRadius: 20,
-                      border: "1px solid #A7F3D0",
+                      border: "1px solid var(--w-200)",
                       display: "flex", alignItems: "center", gap: 6, fontWeight: 600,
                     }}>
                     {u.nome}
                     <button onClick={() => toggleUsuario(u.email)}
-                      style={{ background: "none", border: "none", color: "#059669", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 700, lineHeight: 1 }}>×</button>
+                      style={{ background: "none", border: "none", color: "var(--w-600)", cursor: "pointer", padding: 0, fontSize: 14, fontWeight: 700, lineHeight: 1 }}>×</button>
                   </span>
                 ))}
               </div>
@@ -351,12 +351,12 @@ export function RoletaSection() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <label style={{
             display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-            background: config.respeitar_fila ? "#ECFDF5" : "#F7FAF9",
+            background: config.respeitar_fila ? "var(--w-50)" : "#F7FAF9",
             borderRadius: 12, cursor: "pointer",
             border: `1px solid ${config.respeitar_fila ? "#A7F3D0" : "#E6ECEA"}`,
             transition: "all 0.15s",
           }}>
-            <input type="checkbox" checked={config.respeitar_fila} onChange={e => setConfig(c => ({ ...c, respeitar_fila: e.target.checked }))} style={{ accentColor: "#059669", width: 16, height: 16 }} />
+            <input type="checkbox" checked={config.respeitar_fila} onChange={e => setConfig(c => ({ ...c, respeitar_fila: e.target.checked }))} style={{ accentColor: "var(--w-600)", width: 16, height: 16 }} />
             <div style={{ flex: 1 }}>
               <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>Respeitar fila do lead</p>
               <p style={{ color: "#64748B", fontSize: 11, margin: "3px 0 0" }}>
@@ -367,12 +367,12 @@ export function RoletaSection() {
 
           <label style={{
             display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-            background: config.apenas_horario_comercial ? "#ECFDF5" : "#F7FAF9",
+            background: config.apenas_horario_comercial ? "var(--w-50)" : "#F7FAF9",
             borderRadius: 12, cursor: "pointer",
             border: `1px solid ${config.apenas_horario_comercial ? "#A7F3D0" : "#E6ECEA"}`,
             transition: "all 0.15s",
           }}>
-            <input type="checkbox" checked={config.apenas_horario_comercial} onChange={e => setConfig(c => ({ ...c, apenas_horario_comercial: e.target.checked }))} style={{ accentColor: "#059669", width: 16, height: 16 }} />
+            <input type="checkbox" checked={config.apenas_horario_comercial} onChange={e => setConfig(c => ({ ...c, apenas_horario_comercial: e.target.checked }))} style={{ accentColor: "var(--w-600)", width: 16, height: 16 }} />
             <div style={{ flex: 1 }}>
               <p style={{ color: "#0F172A", fontSize: 13, fontWeight: 700, margin: 0 }}>Distribuir apenas em horário comercial</p>
               <p style={{ color: "#64748B", fontSize: 11, margin: "3px 0 0" }}>
@@ -401,8 +401,8 @@ export function RoletaSection() {
       {/* ═══ STATUS E CONTADOR ═══ */}
       {config.tipo === "balanceada" && config.usuarios.length > 0 && (
         <div style={{
-          background: "#ECFDF5",
-          border: "1px solid #A7F3D0",
+          background: "var(--w-50)",
+          border: "1px solid var(--w-200)",
           borderRadius: 12,
           padding: 16,
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap",
@@ -410,10 +410,10 @@ export function RoletaSection() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: "#14B8A615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>📍</div>
             <div>
-              <p style={{ color: "#065F46", fontSize: 13, margin: 0, fontWeight: 700 }}>
+              <p style={{ color: "var(--w-800)", fontSize: 13, margin: 0, fontWeight: 700 }}>
                 Próximo atendente: {usuarios.find(u => u.email === config.usuarios[config.proximo_index % config.usuarios.length])?.nome || "—"}
               </p>
-              <p style={{ color: "#059669", fontSize: 11, margin: "3px 0 0" }}>
+              <p style={{ color: "var(--w-600)", fontSize: 11, margin: "3px 0 0" }}>
                 Índice atual: {config.proximo_index} (posição {config.proximo_index % config.usuarios.length + 1} de {config.usuarios.length})
               </p>
             </div>
@@ -435,7 +435,7 @@ export function RoletaSection() {
       {/* ═══ BOTÃO SALVAR ═══ */}
       <button onClick={salvar} disabled={salvando}
         style={{
-          background: salvando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+          background: salvando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
           color: "white", border: "none", borderRadius: 12,
           padding: "14px", fontSize: 14,
           cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,

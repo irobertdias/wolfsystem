@@ -179,7 +179,7 @@ export function TreinamentosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -240,7 +240,7 @@ export function TreinamentosSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum treinamento cadastrado.</p>
         </div>
       ) : (
@@ -304,7 +304,7 @@ export function TreinamentosSection() {
                     {t.participantes} · ⏱️ {t.cargaHoraria}h
                   </span>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <span style={{ color: "#065F46", fontSize: 12, fontWeight: 700 }}>{dataBR(t.data)}</span>
+                    <span style={{ color: "var(--w-800)", fontSize: 12, fontWeight: 700 }}>{dataBR(t.data)}</span>
                     <button
                       onClick={() => excluir(t)}
                       style={{
@@ -474,7 +474,7 @@ export function TreinamentosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

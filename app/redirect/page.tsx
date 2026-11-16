@@ -40,7 +40,7 @@ export default function RedirectPage() {
             width: 40,
             height: 40,
             border: "3px solid #0F172A",
-            borderTopColor: "#059669",
+            borderTopColor: "var(--w-600)",
             borderRadius: "50%",
             margin: "0 auto 16px",
             animation: "spin 0.8s linear infinite",

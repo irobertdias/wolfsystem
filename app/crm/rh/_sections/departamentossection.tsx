@@ -111,7 +111,7 @@ export function DepartamentosSection() {
           </div>
         </div>
         <button onClick={abrirNovo}
-          style={{ background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`, color: "white", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>
+          style={{ background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`, color: "white", border: "none", borderRadius: 12, padding: "11px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>
           + Novo Departamento
         </button>
       </div>
@@ -141,7 +141,7 @@ export function DepartamentosSection() {
         <div style={{ ...card, padding: 40, textAlign: "center" }}><p style={{ color: "#64748B", fontSize: 13 }}>Carregando departamentos...</p></div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>{lista.length === 0 ? "Nenhum departamento cadastrado ainda." : "Nenhum departamento encontrado"}</p>
         </div>
       ) : (
@@ -160,7 +160,7 @@ export function DepartamentosSection() {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                    <button onClick={() => abrirEditar(d)} style={{ background: "#ECFDF5", color: COR_TEXTO, border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 9px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
+                    <button onClick={() => abrirEditar(d)} style={{ background: "var(--w-50)", color: COR_TEXTO, border: "1px solid var(--w-200)", borderRadius: 8, padding: "4px 9px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => excluir(d)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "4px 9px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
                   </div>
                 </div>
@@ -210,7 +210,7 @@ export function DepartamentosSection() {
             </div>
             <div style={{ padding: "14px 24px", borderTop: "1px solid #E6ECEA", display: "flex", gap: 10, justifyContent: "flex-end", background: "#F7FAF9" }}>
               <button onClick={fechar} style={{ background: "#F3F6F5", color: "#334155", borderRadius: 10, padding: "9px 18px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`, color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: salvando ? "wait" : "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", opacity: salvando ? 0.7 : 1 }}>{salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}</button>
+              <button onClick={salvar} disabled={salvando} style={{ background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`, color: "white", border: "none", borderRadius: 10, padding: "9px 22px", fontSize: 13, cursor: salvando ? "wait" : "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", opacity: salvando ? 0.7 : 1 }}>{salvando ? "Salvando..." : editando ? "Salvar" : "+ Cadastrar"}</button>
             </div>
           </div>
         </div>

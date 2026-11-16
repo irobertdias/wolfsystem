@@ -323,7 +323,7 @@ export default function BaterPontoPage() {
       ) : semVinculo ? (
         // login não vinculado a um funcionário
         <div style={{ ...card, padding: 36, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#0f172a", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>
             Seu login ainda não está vinculado a um funcionário
           </p>
@@ -357,7 +357,7 @@ export default function BaterPontoPage() {
               position: "relative",
               overflow: "hidden",
               color: "#fff",
-              background: "linear-gradient(140deg, #10B981 0%, #059669 42%, #065F46 100%)",
+              background: "linear-gradient(140deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)",
               boxShadow: "0 24px 48px -26px rgba(6,95,70,.8)",
             }}
           >
@@ -394,7 +394,7 @@ export default function BaterPontoPage() {
                 style={{
                   width: "100%",
                   background: "#ffffff",
-                  color: "#065F46",
+                  color: "var(--w-800)",
                   border: "none",
                   borderRadius: 16,
                   padding: "18px 24px",
@@ -413,8 +413,8 @@ export default function BaterPontoPage() {
                 style={{
                   marginTop: 20,
                   padding: "14px 18px",
-                  background: "#ECFDF5",
-                  border: "1px solid #A7F3D0",
+                  background: "var(--w-50)",
+                  border: "1px solid var(--w-200)",
                   borderRadius: 12,
                   display: "inline-flex",
                   alignItems: "center",
@@ -423,7 +423,7 @@ export default function BaterPontoPage() {
               >
                 <IconeEmoji e="✅" tamanho={20} />
                 <div style={{ textAlign: "left" }}>
-                  <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
+                  <p style={{ color: "var(--w-600)", fontSize: 14, fontWeight: 800, margin: 0 }}>
                     {ultima.tipo} registrada às {ultima.hora}
                   </p>
                   <p style={{ color: "#64748b", fontSize: 11, margin: "2px 0 0" }}>
@@ -605,7 +605,7 @@ export default function BaterPontoPage() {
                   disabled={!!erroCam}
                   style={{
                     width: "100%",
-                    background: erroCam ? "#cbd5e1" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                    background: erroCam ? "#cbd5e1" : `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                     color: "#fff",
                     border: "none",
                     borderRadius: 14,
@@ -639,7 +639,7 @@ export default function BaterPontoPage() {
                     disabled={enviando}
                     style={{
                       flex: 2,
-                      background: enviando ? "#6EE7B7" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                      background: enviando ? "var(--w-300)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                       color: "#fff",
                       border: "none",
                       borderRadius: 14,

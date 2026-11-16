@@ -181,7 +181,7 @@ export function AfastamentosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -270,7 +270,7 @@ export function AfastamentosSection() {
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhum afastamento registrado." : "Nada com esse filtro"}
           </p>
@@ -341,8 +341,8 @@ export function AfastamentosSection() {
                       <td style={{ padding: "12px 16px" }}>
                         <span
                           style={{
-                            background: ativo ? "#fef2f2" : "#ECFDF5",
-                            color: ativo ? "#dc2626" : "#059669",
+                            background: ativo ? "#fef2f2" : "var(--w-50)",
+                            color: ativo ? "#dc2626" : "var(--w-600)",
                             border: `1px solid ${ativo ? "#fecaca" : "#A7F3D0"}`,
                             fontSize: 11,
                             padding: "3px 10px",
@@ -501,7 +501,7 @@ export function AfastamentosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

@@ -170,7 +170,7 @@ export function ContratosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -274,7 +274,7 @@ export function ContratosSection() {
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhum contrato cadastrado." : "Nada com esse filtro"}
           </p>
@@ -320,7 +320,7 @@ export function ContratosSection() {
                       <td style={{ padding: "12px 16px" }}>
                         <span
                           style={{
-                            background: "#ECFDF5",
+                            background: "var(--w-50)",
                             color: COR_TEXTO,
                             fontSize: 11,
                             padding: "3px 10px",
@@ -509,7 +509,7 @@ export function ContratosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

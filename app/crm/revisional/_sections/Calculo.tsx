@@ -128,7 +128,7 @@ export default function Calculo({ dados, alvo }: any) {
               <div style={{ maxHeight: 420, overflowY: "auto" }}>
                 <Table cols={[{ label: "Mês" }, { label: "Juros contratado", align: "right" }, { label: "Saldo contratado", align: "right" }, { label: "Juros revisado", align: "right" }, { label: "Saldo revisado", align: "right" }]}>
                   {linhasC.map((l, k) => (
-                    <tr key={l.n} style={{ background: l.n <= (d.parcelas_pagas || 0) ? "#ECFDF5" : undefined }}>
+                    <tr key={l.n} style={{ background: l.n <= (d.parcelas_pagas || 0) ? "var(--w-50)" : undefined }}>
                       <td style={tdStyle}>{l.n}{l.n <= (d.parcelas_pagas || 0) ? " ✓" : ""}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{brl(l.juros)}</td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>{brl(l.saldo)}</td>

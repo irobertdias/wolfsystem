@@ -210,7 +210,7 @@ export default function Register() {
       <CampoA2 rotulo="Nome de usuário *" erro={usernameStatus === "taken" || usernameStatus === "invalid"}
         direita={usernameStatus === "checking"
           ? <span style={{ width: 16, height: 16, marginRight: 8, borderRadius: "50%", border: "2px solid #FDBA74", borderTopColor: "#C2410C", animation: "spin .7s linear infinite" }} />
-          : usernameStatus === "available" ? <span style={{ marginRight: 8, color: "#059669", display: "flex" }}><Icone nome="check" tamanho={18} espessura={2.6} /></span>
+          : usernameStatus === "available" ? <span style={{ marginRight: 8, color: "var(--w-600)", display: "flex" }}><Icone nome="check" tamanho={18} espessura={2.6} /></span>
           : usernameStatus === "taken" || usernameStatus === "invalid" ? <span style={{ marginRight: 8, color: "#DC2626", display: "flex" }}><Icone nome="alerta" tamanho={18} /></span>
           : null}
         dica={
@@ -237,15 +237,15 @@ export default function Register() {
                 style={{
                   textAlign: "left", border: 0, cursor: "pointer", borderRadius: 16, padding: "14px 14px",
                   background: sel ? "#fff" : "#F7FAF9",
-                  outline: sel ? "2px solid #059669" : "none",
+                  outline: sel ? "2px solid var(--w-600)" : "none",
                   boxShadow: sel ? "0 10px 24px -14px rgba(5,150,105,.55)" : "inset 0 0 0 1px #E6ECEA",
                   display: "flex", flexDirection: "column", gap: 4,
                 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: "#0F172A" }}>{p.nome}</span>
-                  {sel && <span style={{ marginLeft: "auto", width: 20, height: 20, borderRadius: 6, background: "#059669", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={12} espessura={2.8} /></span>}
+                  {sel && <span style={{ marginLeft: "auto", width: 20, height: 20, borderRadius: 6, background: "var(--w-600)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={12} espessura={2.8} /></span>}
                 </span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: "#047857", letterSpacing: "-.01em" }}>{p.preco}<span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>/mês</span></span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "var(--w-700)", letterSpacing: "-.01em" }}>{p.preco}<span style={{ fontSize: 12, fontWeight: 600, color: "#64748B" }}>/mês</span></span>
                 <span style={{ fontSize: 12, color: "#64748B" }}>até {p.usuarios} usuários</span>
               </button>
             );
@@ -261,7 +261,7 @@ export default function Register() {
 
       <p style={{ textAlign: "center", fontSize: 13.5, color: "#64748B", margin: 0 }}>
         Já tem conta?{" "}
-        <button type="button" onClick={() => router.push("/")} className="a2-auth-link" style={{ background: "none", border: 0, padding: 0, color: "#059669", fontWeight: 800, cursor: "pointer", fontSize: 13.5 }}>Entrar</button>
+        <button type="button" onClick={() => router.push("/")} className="a2-auth-link" style={{ background: "none", border: 0, padding: 0, color: "var(--w-600)", fontWeight: 800, cursor: "pointer", fontSize: 13.5 }}>Entrar</button>
       </p>
     </MolduraAuth>
   );

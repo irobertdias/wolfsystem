@@ -208,7 +208,7 @@ export function BaterPontoSection() {
           ...card,
           padding: 32,
           textAlign: "center",
-          background: "linear-gradient(180deg, #ffffff 0%, #ECFDF5 100%)",
+          background: "linear-gradient(180deg, #ffffff 0%, var(--w-50) 100%)",
         }}
       >
         <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 4px", textTransform: "capitalize" }}>
@@ -252,7 +252,7 @@ export function BaterPontoSection() {
             onClick={bater}
             disabled={!nome || registrando}
             style={{
-              background: !nome ? "#E6ECEA" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+              background: !nome ? "#E6ECEA" : `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
               color: !nome ? "#94A3B8" : "white",
               border: "none",
               borderRadius: 16,
@@ -272,8 +272,8 @@ export function BaterPontoSection() {
             style={{
               marginTop: 20,
               padding: "14px 18px",
-              background: "#ECFDF5",
-              border: "1px solid #A7F3D0",
+              background: "var(--w-50)",
+              border: "1px solid var(--w-200)",
               borderRadius: 12,
               display: "inline-flex",
               alignItems: "center",
@@ -282,7 +282,7 @@ export function BaterPontoSection() {
           >
             <IconeEmoji e="✅" tamanho={20} />
             <div style={{ textAlign: "left" }}>
-              <p style={{ color: "#059669", fontSize: 14, fontWeight: 800, margin: 0 }}>
+              <p style={{ color: "var(--w-600)", fontSize: 14, fontWeight: 800, margin: 0 }}>
                 {ultima.tipo} registrada às {ultima.hora}
               </p>
               <p style={{ color: "#64748B", fontSize: 11, margin: "2px 0 0" }}>

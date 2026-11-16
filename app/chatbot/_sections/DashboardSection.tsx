@@ -178,9 +178,9 @@ export function DashboardSection() {
 
   const cards = [
     { label: "Aguardando", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "aguardando").length, color: "#C2410C", icon: "⏳", bgLight: "#FFF7ED" },
-    { label: "Em Atendimento", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "abertos").length, color: "#059669", icon: "👤", bgLight: "#ECFDF5" },
-    { label: "Resolvidos", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "finalizados").length, color: "#059669", icon: "✅", bgLight: "#ECFDF5" },
-    { label: "Total", value: atendimentosFiltrados.length, color: "#059669", icon: "📊", bgLight: "#ECFDF5" },
+    { label: "Em Atendimento", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "abertos").length, color: "var(--w-600)", icon: "👤", bgLight: "#ECFDF5" },
+    { label: "Resolvidos", value: atendimentosFiltrados.filter(a => classificarAtendimento(a) === "finalizados").length, color: "var(--w-600)", icon: "✅", bgLight: "#ECFDF5" },
+    { label: "Total", value: atendimentosFiltrados.length, color: "var(--w-600)", icon: "📊", bgLight: "#ECFDF5" },
   ];
 
   const porCanal = useMemo(() => {
@@ -337,7 +337,7 @@ export function DashboardSection() {
         {/* ═══ HEADER ═══ */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📊"} tamanho={22} /></div>
+            <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📊"} tamanho={22} /></div>
             <div>
               <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Dashboard</h1>
               <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
@@ -352,7 +352,7 @@ export function DashboardSection() {
             style={{
               background: atualizando ? "#10b98115" : "#ffffff",
               border: atualizando ? "1px solid #10b98140" : "1px solid #E6ECEA",
-              color: atualizando ? "#10b981" : "#475569",
+              color: atualizando ? "var(--w-500)" : "#475569",
               borderRadius: 12,
               padding: "10px 18px",
               fontSize: 13,
@@ -566,7 +566,7 @@ export function DashboardSection() {
                       <title>{b.rotulo}: {b.total} total ({b.aguardando} aguardando, {b.em_atendimento} em atendimento, {b.resolvidos} resolvidos)</title>
                       {hAguardando > 0 && <rect x={x} y={yCursor} width={barW} height={hAguardando} fill="#C2410C" rx="3" />}
                       {hAtend > 0 && <rect x={x} y={yCursor + hAguardando} width={barW} height={hAtend} fill="#14B8A6" rx={hResolv > 0 ? 0 : 3} />}
-                      {hResolv > 0 && <rect x={x} y={yCursor + hAguardando + hAtend} width={barW} height={hResolv} fill="#059669" rx="3" />}
+                      {hResolv > 0 && <rect x={x} y={yCursor + hAguardando + hAtend} width={barW} height={hResolv} fill="var(--w-600)" rx="3" />}
                       {i % passoRotulo === 0 && <text x={x + barW / 2} y={h - padB + 16} fontSize="10" fill="#94A3B8" textAnchor="middle">{b.rotulo}</text>}
                       {totalH > 18 && <text x={x + barW / 2} y={yCursor - 4} fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">{b.total}</text>}
                     </g>
@@ -619,10 +619,10 @@ export function DashboardSection() {
                 <div key={f.nome + i} style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8 }}>
                     <span style={{ color: "#334155", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{f.nome}</span>
-                    <span style={{ color: "#059669", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{f.count}</span>
+                    <span style={{ color: "var(--w-600)", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{f.count}</span>
                   </div>
                   <div style={{ height: 8, background: "#F1F5F4", borderRadius: 4, overflow: "hidden" }}>
-                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #059669, #10B981)", transition: "width 0.3s", borderRadius: 4 }} />
+                    <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, var(--w-600), var(--w-500))", transition: "width 0.3s", borderRadius: 4 }} />
                   </div>
                 </div>
               );
@@ -665,14 +665,14 @@ export function DashboardSection() {
                   <span style={{ color: "#64748B", fontSize: 12, flexShrink: 0, display: "flex", gap: 6 }}>
                     <span style={{ color: "#C2410C", fontWeight: 700 }}>{a.emAtendimento}</span>
                     <span style={{ opacity: 0.3 }}>·</span>
-                    <span style={{ color: "#059669", fontWeight: 700 }}>{a.resolvidos}</span>
+                    <span style={{ color: "var(--w-600)", fontWeight: 700 }}>{a.resolvidos}</span>
                     <span style={{ opacity: 0.3 }}>·</span>
                     <span style={{ color: "#0F172A", fontWeight: 700 }}>{a.total}</span>
                   </span>
                 </div>
                 <div style={{ height: 8, background: "#F1F5F4", borderRadius: 4, overflow: "hidden", width: `${pctBarra}%`, minWidth: 40, transition: "width 0.3s", display: "flex" }}>
                   <div style={{ width: `${pctAtendendo}%`, height: "100%", background: "#C2410C", borderRadius: "4px 0 0 4px" }} />
-                  <div style={{ flex: 1, height: "100%", background: "#059669", borderRadius: "0 4px 4px 0" }} />
+                  <div style={{ flex: 1, height: "100%", background: "var(--w-600)", borderRadius: "0 4px 4px 0" }} />
                 </div>
               </div>
             );
@@ -691,7 +691,7 @@ export function DashboardSection() {
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "#16a34a15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📱</div>
                 <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700 }}>WhatsApp</p>
               </div>
-              <p style={{ color: "#059669", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.webjs}</p>
+              <p style={{ color: "var(--w-600)", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.webjs}</p>
               <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>tickets {labelPeriodo}</p>
             </div>
             {/* API Oficial */}
@@ -702,7 +702,7 @@ export function DashboardSection() {
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: "#0F766E15", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🔗</div>
                 <p style={{ color: "#64748B", fontSize: 12, margin: 0, fontWeight: 700 }}>API Oficial</p>
               </div>
-              <p style={{ color: "#059669", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.waba}</p>
+              <p style={{ color: "var(--w-600)", fontSize: 36, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{porTipoCanal.waba}</p>
               <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>tickets {labelPeriodo}</p>
             </div>
           </div>
@@ -716,7 +716,7 @@ export function DashboardSection() {
             <div style={{ ...cardStyle, padding: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Distribuição de Status</p>
-                <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
+                <span style={{ background: "#14B8A615", color: "var(--w-600)", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
               </div>
               {(() => {
                 const aguardando = cards[0].value;
@@ -779,7 +779,7 @@ export function DashboardSection() {
             <div style={{ ...cardStyle, padding: 22 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Tickets por Status</p>
-                <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
+                <span style={{ background: "#14B8A615", color: "var(--w-600)", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
               </div>
               {(() => {
                 const dados = [
@@ -826,7 +826,7 @@ export function DashboardSection() {
         <div style={{ ...cardStyle, padding: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <p style={{ color: "#0F172A", fontSize: 14, margin: 0, fontWeight: 700 }}>Evolução dos Tickets</p>
-            <span style={{ background: "#14B8A615", color: "#059669", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
+            <span style={{ background: "#14B8A615", color: "var(--w-600)", fontSize: 12, padding: "4px 12px", borderRadius: 12, fontWeight: 700, border: "1px solid #14B8A630" }}>Total: {atendimentosFiltrados.length}</span>
           </div>
           {(() => {
             const pontos = [
@@ -889,7 +889,7 @@ export function DashboardSection() {
                 {statusAtendentes.map(a => (
                   <div key={a.email} style={{
                     display: "flex", alignItems: "center", gap: 12,
-                    padding: "10px 14px", background: a.online ? "#ECFDF5" : "#F7FAF9", borderRadius: 10,
+                    padding: "10px 14px", background: a.online ? "var(--w-50)" : "#F7FAF9", borderRadius: 10,
                     border: `1px solid ${a.online ? "#A7F3D0" : "#E6ECEA"}`,
                     transition: "all 0.15s",
                   }}>
@@ -898,24 +898,24 @@ export function DashboardSection() {
                         width: 36, height: 36, borderRadius: "50%",
                         background: a.online ? "#16a34a20" : "#F1F5F4",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        color: a.online ? "#059669" : "#64748B", fontWeight: 700, fontSize: 14,
+                        color: a.online ? "var(--w-600)" : "#64748B", fontWeight: 700, fontSize: 14,
                         border: `1px solid ${a.online ? "#16a34a40" : "#E6ECEA"}`,
                       }}>{a.nome.charAt(0).toUpperCase()}</div>
                       <span style={{
                         position: "absolute", bottom: -1, right: -1,
                         width: 12, height: 12, borderRadius: "50%",
-                        background: a.online ? "#059669" : "#CBD5E1",
+                        background: a.online ? "var(--w-600)" : "#CBD5E1",
                         border: "2px solid #ffffff",
                         boxShadow: a.online ? "0 0 0 3px #16a34a25" : "none",
                       }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ color: "#0F172A", fontSize: 13, margin: 0, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.nome}</p>
-                      <p style={{ color: a.online ? "#059669" : "#94A3B8", fontSize: 11, margin: "2px 0 0", fontWeight: 500 }}>{a.online ? "Ativo agora" : "Inativo"}</p>
+                      <p style={{ color: a.online ? "var(--w-600)" : "#94A3B8", fontSize: 11, margin: "2px 0 0", fontWeight: 500 }}>{a.online ? "Ativo agora" : "Inativo"}</p>
                     </div>
                     {a.atendendoAgora > 0 && (
                       <span style={{
-                        background: "#14B8A615", color: "#059669", fontSize: 11, padding: "4px 12px",
+                        background: "#14B8A615", color: "var(--w-600)", fontSize: 11, padding: "4px 12px",
                         borderRadius: 12, fontWeight: 700, whiteSpace: "nowrap", border: "1px solid #14B8A630",
                       }}>
                         {a.atendendoAgora} ativo{a.atendendoAgora > 1 ? "s" : ""}
@@ -945,7 +945,7 @@ export function DashboardSection() {
               return (
                 <>
                   <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 10px", textAlign: "center", fontWeight: 500 }}>
-                    Atendimentos hoje: <b style={{ color: "#059669" }}>{total}</b>
+                    Atendimentos hoje: <b style={{ color: "var(--w-600)" }}>{total}</b>
                   </p>
                   <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: "auto", display: "block" }}>
                     <defs>

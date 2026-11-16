@@ -89,12 +89,12 @@ export default function Clientes({ dados, ir, alvo }: any) {
                   return (
                     <button key={c.chave} onClick={() => setSel(c.chave)}
                       style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, padding: "12px 14px", border: 0, borderTop: "1px solid #F1F5F4", cursor: "pointer", textAlign: "left", background: ativo ? "#FFFBEB" : "#fff" }}>
-                      <span style={{ width: 38, height: 38, borderRadius: 12, background: "#ECFDF5", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{iniciais(c.nome)}</span>
+                      <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--w-50)", color: "var(--w-700)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{iniciais(c.nome)}</span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <b style={{ display: "block", fontSize: 14, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.nome}</b>
                         <span style={{ fontSize: 12.5, color: "#64748B" }}>{c.contratos.length} contrato(s) · {e.label}</span>
                       </span>
-                      <b style={{ fontSize: 13, color: "#047857", whiteSpace: "nowrap" }}>{c.beneficio ? brl(c.beneficio) : ""}</b>
+                      <b style={{ fontSize: 13, color: "var(--w-700)", whiteSpace: "nowrap" }}>{c.beneficio ? brl(c.beneficio) : ""}</b>
                     </button>
                   );
                 })}
@@ -160,7 +160,7 @@ function Ficha({ cliente, wsId, cfg, propostas, ir, fechar }: any) {
   return (
     <div style={{ flex: "999 1 520px", minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
       {/* cabeçalho */}
-      <div style={{ borderRadius: 22, padding: "22px 24px", color: "#fff", background: "linear-gradient(130deg, #10B981 0%, #059669 42%, #065F46 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", position: "relative", overflow: "hidden" }}>
+      <div style={{ borderRadius: 22, padding: "22px 24px", color: "#fff", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 42%, var(--w-800) 100%)", boxShadow: "0 22px 44px -24px rgba(6,95,70,.8)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -60, top: -80, width: 220, height: 220, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
         <div style={{ position: "relative", display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
           <span style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18 }}>{iniciais(cliente.nome)}</span>
@@ -192,7 +192,7 @@ function Ficha({ cliente, wsId, cfg, propostas, ir, fechar }: any) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", background: "#FFFBEB", boxShadow: "inset 0 0 0 1.5px #FDE68A", borderRadius: 16, padding: "12px 16px" }}>
           <span style={{ width: 32, height: 32, borderRadius: 10, background: "#FEF3C7", color: "#B45309", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="alerta" tamanho={16} /></span>
           <span style={{ flex: 1, minWidth: 200, fontSize: 14, color: "#78350F" }}>O cliente aceitou a proposta nº {aceitaSemContrato.numero} e ainda falta o contrato.</span>
-          <a href={`/crm/contratos?revisional=${aceitaSemContrato.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 12, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", fontWeight: 800, fontSize: 13.5, textDecoration: "none" }}><Icone nome="documento" tamanho={15} /> Gerar contrato</a>
+          <a href={`/crm/contratos?revisional=${aceitaSemContrato.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 38, padding: "0 14px", borderRadius: 12, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", fontWeight: 800, fontSize: 13.5, textDecoration: "none" }}><Icone nome="documento" tamanho={15} /> Gerar contrato</a>
         </div>
       )}
 
@@ -214,7 +214,7 @@ function Ficha({ cliente, wsId, cfg, propostas, ir, fechar }: any) {
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 800, color: "#047857" }}>{beneficioDoContrato(c, calc) ? brl(beneficioDoContrato(c, calc)) : "sem cálculo"}</div>{!calc.valido && beneficioDoContrato(c, calc) > 0 && <div style={{ fontSize: 11.5, color: "#94A3B8" }}>da análise da proposta</div>}
+                  <div style={{ fontWeight: 800, color: "var(--w-700)" }}>{beneficioDoContrato(c, calc) ? brl(beneficioDoContrato(c, calc)) : "sem cálculo"}</div>{!calc.valido && beneficioDoContrato(c, calc) > 0 && <div style={{ fontSize: 11.5, color: "#94A3B8" }}>da análise da proposta</div>}
                   <div style={{ fontSize: 12, color: "#94A3B8" }}>honorários {brl(hon.total)}</div>
                 </div>
               </button>
@@ -286,7 +286,7 @@ function Ficha({ cliente, wsId, cfg, propostas, ir, fechar }: any) {
             {eventos.map((ev: any, k: number) => (
               <div key={k} style={{ display: "flex", gap: 12, paddingBottom: 14, position: "relative" }}>
                 {k < eventos.length - 1 && <span style={{ position: "absolute", left: 15, top: 32, bottom: 0, width: 2, background: "#EEF2F1" }} />}
-                <span style={{ width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={ev.icone} tamanho={15} /></span>
+                <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome={ev.icone} tamanho={15} /></span>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, color: "#0F172A", fontWeight: 700 }}>{ev.texto}</div>
                   <div style={{ fontSize: 12.5, color: "#94A3B8" }}>{new Date(ev.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}{ev.sub ? ` · ${ev.sub}` : ""}</div>

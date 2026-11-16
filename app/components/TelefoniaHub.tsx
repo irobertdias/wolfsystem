@@ -30,12 +30,12 @@ export default function TelefoniaHub() {
               const sel = aba === a.key;
               return (
                 <button key={a.key} role="tab" aria-selected={sel} onClick={() => setAba(a.key)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, border: 0, cursor: "pointer", borderRadius: 10, padding: "8px 16px 8px 10px", background: sel ? "#ECFDF5" : "transparent", textAlign: "left", whiteSpace: "nowrap" }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: sel ? "#059669" : "#F3F6F5", color: sel ? "#fff" : "#64748B" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 10, border: 0, cursor: "pointer", borderRadius: 10, padding: "8px 16px 8px 10px", background: sel ? "var(--w-50)" : "transparent", textAlign: "left", whiteSpace: "nowrap" }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", background: sel ? "var(--w-600)" : "#F3F6F5", color: sel ? "#fff" : "#64748B" }}>
                     <Icone nome={a.icone as any} tamanho={16} />
                   </span>
                   <span style={{ display: "flex", flexDirection: "column" }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 800, color: sel ? "#065F46" : "#334155" }}>{a.label}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 800, color: sel ? "var(--w-800)" : "#334155" }}>{a.label}</span>
                     <span style={{ fontSize: 11.5, fontWeight: 600, color: "#94A3B8" }}>{a.sub}</span>
                   </span>
                 </button>

@@ -103,7 +103,7 @@ export function useEquipeFiltro(workspaceId: string) {
     return (
       <div style={{
         display: "flex", alignItems: "center", gap: 8,
-        background: equipeId ? "#ECFDF5" : "#ffffff",
+        background: equipeId ? "var(--w-50)" : "#ffffff",
         border: `1px solid ${equipeId ? "#A7F3D0" : "#E6ECEA"}`,
         borderRadius: 12, padding: "6px 12px 6px 14px",
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
@@ -122,7 +122,7 @@ export function useEquipeFiltro(workspaceId: string) {
           onChange={(e) => setEquipeId(e.target.value)}
           style={{
             background: "transparent", border: "none", outline: "none",
-            color: equipeId ? "#059669" : "#0F172A",
+            color: equipeId ? "var(--w-600)" : "#0F172A",
             fontSize: 13, fontWeight: 700,
             cursor: equipes.length === 0 ? "not-allowed" : "pointer",
             padding: "4px 0", minWidth: 140,

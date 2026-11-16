@@ -73,7 +73,7 @@ export default function ContasBancarias() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Contas bancárias</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Bancos, caixa, cartões e investimentos</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova conta</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova conta</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
@@ -91,10 +91,10 @@ export default function ContasBancarias() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : lista.length === 0 ? (
           <div style={{ ...card, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏦" tamanho={24} /></div>
+            <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🏦" tamanho={24} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "10px 0 4px" }}>Nenhuma conta cadastrada</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 16px" }}>Cadastre suas contas pra controlar saldos e ligar aos lançamentos.</p>
-            <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova conta</button>
+            <button onClick={abrirNovo} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova conta</button>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 18 }}>
@@ -111,7 +111,7 @@ export default function ContasBancarias() {
                   </div>
                   <div style={{ padding: 18 }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 700, }}>Saldo atual</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, color: (c.saldo_atual || 0) >= 0 ? "#059669" : "#dc2626", letterSpacing: -1, margin: "2px 0 10px" }}>{brl(c.saldo_atual)}</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: (c.saldo_atual || 0) >= 0 ? "var(--w-600)" : "#dc2626", letterSpacing: -1, margin: "2px 0 10px" }}>{brl(c.saldo_atual)}</div>
                     {(c.agencia || c.conta) && <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12 }}>Ag <b>{c.agencia || "—"}</b> · CC <b>{c.conta || "—"}</b></div>}
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => abrirEdicao(c)} style={{ flex: 1, background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "8px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Editar</button>
@@ -149,7 +149,7 @@ export default function ContasBancarias() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Conta ativa</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

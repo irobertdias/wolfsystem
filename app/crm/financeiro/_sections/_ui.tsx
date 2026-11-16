@@ -30,7 +30,7 @@ function tom(cor?: string) {
   if (["#dc2626", "#ef4444", "#b91c1c", "#db2777"].includes(c)) return { fg: "#B91C1C", bg: "#FEF2F2", valor: "#DC2626" };
   if (["#c2410c", "#ea580c", "#f59e0b", "#d97706"].includes(c)) return { fg: "#C2410C", bg: "#FFF7ED", valor: "#C2410C" };
   if (["#475569", "#64748b", "#94a3b8"].includes(c)) return { fg: "#475569", bg: "#F3F6F5", valor: "#0F172A" };
-  return { fg: "#059669", bg: "#ECFDF5", valor: "#0F172A" };
+  return { fg: "var(--w-600)", bg: "var(--w-50)", valor: "#0F172A" };
 }
 
 // container largura total
@@ -106,7 +106,7 @@ export function Table({ cols, empty, children }: { cols: { label: string; align?
 export function Vazio({ icone = "📭", titulo, sub, acao }: { icone?: string; titulo: string; sub?: string; acao?: ReactNode }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}><IconeEmoji e={icone} tamanho={24} /></div>
+      <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}><IconeEmoji e={icone} tamanho={24} /></div>
       <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{titulo}</h3>
       {sub && <p style={{ color: "#64748B", fontSize: 13, margin: 0, maxWidth: 380 }}>{sub}</p>}
       {acao && <div style={{ marginTop: 12 }}>{acao}</div>}
@@ -122,7 +122,7 @@ export function Empty({ icone = "📭", titulo, sub, acao }: { icone?: string; t
 // aviso
 export function Banner({ tipo = "info", children }: { tipo?: "info" | "warn" | "ok"; children: ReactNode }) {
   const m = {
-    info: { bg: "#F7FFFB", anel: "#A7F3D0", cor: "#334155", icBg: "#ECFDF5", icCor: "#059669", ic: "info" },
+    info: { bg: "#FBFDFC", anel: "var(--w-200)", cor: "#334155", icBg: "var(--w-50)", icCor: "var(--w-600)", ic: "info" },
     warn: { bg: "#FFFBEB", anel: "#FDE68A", cor: "#78350F", icBg: "#FEF3C7", icCor: "#B45309", ic: "alerta" },
     ok: { bg: "#F7FFFB", anel: "#A7F3D0", cor: "#065F46", icBg: "#ECFDF5", icCor: "#059669", ic: "check" },
   }[tipo];
@@ -142,7 +142,7 @@ export function Btn({ children, onClick, cor = COR, variante = "primary", disabl
   const est: any = {
     primary: vermelho
       ? { ...base, background: "linear-gradient(140deg, #EF4444, #DC2626)", color: "#fff", boxShadow: "0 12px 24px -12px rgba(220,38,38,.7)" }
-      : { ...base, background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" },
+      : { ...base, background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#fff", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" },
     ghost: { ...base, background: "#F3F6F5", color: "#334155", fontWeight: 700 },
     danger: { ...base, background: "#FEF2F2", color: "#B91C1C", fontWeight: 700 },
   };

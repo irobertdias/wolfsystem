@@ -82,7 +82,7 @@ export default function Login() {
       </CampoA2>
 
       <CampoA2 rotulo="Senha" icone="cadeado"
-        extra={<button type="button" onClick={handleEsqueciSenha} className="a2-auth-link" style={{ background: "none", border: 0, padding: 0, color: "#059669", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Esqueceu a senha?</button>}
+        extra={<button type="button" onClick={handleEsqueciSenha} className="a2-auth-link" style={{ background: "none", border: 0, padding: 0, color: "var(--w-600)", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>Esqueceu a senha?</button>}
         direita={<OlhoSenha visivel={showPassword} onClick={() => setShowPassword(!showPassword)} />}>
         <input
           type={showPassword ? "text" : "password"}

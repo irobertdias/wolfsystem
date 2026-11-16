@@ -452,7 +452,7 @@ export default function TemplatesPage() {
           Voltar
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 280 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📨"} tamanho={22} /></div>
+          <div style={{ width: 48, height: 48, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"📨"} tamanho={22} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ color: "#0F172A", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Templates WABA</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0", lineHeight: 1.5 }}>
@@ -461,12 +461,12 @@ export default function TemplatesPage() {
           </div>
         </div>
         <button onClick={sincronizarAgora} disabled={sincronizando}
-          style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: sincronizando ? "wait" : "pointer", fontWeight: 700 }}>
+          style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: sincronizando ? "wait" : "pointer", fontWeight: 700 }}>
           {sincronizando ? "⏳ Sincronizando..." : "Sincronizar agora"}
         </button>
         <button onClick={() => { setForm({ ...formInicial, canalId: canaisSelecionados.length === 1 ? String(canaisSelecionados[0]) : "" }); setShowModal(true); }}
           style={{
-            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -476,8 +476,8 @@ export default function TemplatesPage() {
       </div>
 
       {/* ═══ INFO ═══ */}
-      <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "14px 18px" }}>
-        <p style={{ color: "#065F46", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
+      <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 12, padding: "14px 18px" }}>
+        <p style={{ color: "var(--w-800)", fontSize: 12, margin: 0, lineHeight: 1.6 }}>
           <b>Como funciona:</b> Você cadastra aqui, o sistema envia pra Meta revisar.
           A Meta leva em média 15 a 60 minutos pra aprovar (pode levar até 24h).
           O sistema verifica o status a cada 30 minutos automaticamente.
@@ -500,7 +500,7 @@ export default function TemplatesPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
             <span style={{ color: "#64748B", fontSize: 11, fontWeight: 700 }}>Filtrar por canal</span>
             {canaisSelecionados.length > 0 && (
-              <span style={{ color: "#059669", fontSize: 11, fontWeight: 600 }}>
+              <span style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 600 }}>
                 · mostrando {templatesFiltrados.length} de {templates.length} template(s)
               </span>
             )}
@@ -510,7 +510,7 @@ export default function TemplatesPage() {
             <button onClick={() => setCanaisSelecionados([])}
               style={{
                 background: canaisSelecionados.length === 0 ? "#14B8A615" : "#F7FAF9",
-                color: canaisSelecionados.length === 0 ? "#059669" : "#64748B",
+                color: canaisSelecionados.length === 0 ? "var(--w-600)" : "#64748B",
                 border: `1px solid ${canaisSelecionados.length === 0 ? "#14B8A650" : "#E6ECEA"}`,
                 borderRadius: 10, padding: "8px 16px", fontSize: 12,
                 fontWeight: canaisSelecionados.length === 0 ? 700 : 600, cursor: "pointer",
@@ -528,7 +528,7 @@ export default function TemplatesPage() {
                 <button key={c.id} onClick={() => toggleCanalFiltro(c.id)}
                   style={{
                     background: ativo ? "#16a34a15" : "#F7FAF9",
-                    color: ativo ? "#059669" : "#64748B",
+                    color: ativo ? "var(--w-600)" : "#64748B",
                     border: `1px solid ${ativo ? "#16a34a50" : "#E6ECEA"}`,
                     borderRadius: 10, padding: "8px 16px", fontSize: 12,
                     fontWeight: ativo ? 700 : 600, cursor: "pointer",
@@ -551,19 +551,19 @@ export default function TemplatesPage() {
         </h2>
         {templates.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+            <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
             <p style={{ color: "#94A3B8", fontSize: 13 }}>
               Nenhum template cadastrado ainda. Clique em <b>+ Novo Template</b> pra começar.
             </p>
           </div>
         ) : templatesFiltrados.length === 0 ? (
           <div style={{ textAlign: "center", padding: 32 }}>
-            <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+            <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>
               Nenhum template nos canais selecionados.
             </p>
             <button onClick={() => setCanaisSelecionados([])}
-              style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "8px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+              style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "8px 18px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
               Ver todos os canais
             </button>
           </div>
@@ -631,7 +631,7 @@ export default function TemplatesPage() {
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <button onClick={() => setDetalhe(t)}
-                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                      style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 14px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                       Detalhes
                     </button>
                     <button onClick={() => deletarTemplate(t)}
@@ -725,7 +725,7 @@ export default function TemplatesPage() {
                 <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={5}
                   placeholder="Olá {{1}}, seu pedido {{2}} foi confirmado!"
                   style={{ ...IS, resize: "vertical", minHeight: 120, fontFamily: "monospace" }} />
-                <p style={{ color: varsBody > 0 ? "#059669" : "#94A3B8", fontSize: 12, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
+                <p style={{ color: varsBody > 0 ? "var(--w-600)" : "#94A3B8", fontSize: 12, margin: "4px 0 0", fontWeight: varsBody > 0 ? 700 : 400 }}>
                   {form.body.length}/1024 caracteres · {varsBody} variável(is) detectada(s) — use {"{{1}}"}, {"{{2}}"}, etc
                 </p>
               </div>
@@ -741,7 +741,7 @@ export default function TemplatesPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <p style={{ color: "#64748B", fontSize: 11, fontWeight: 700, margin: 0 }}>BOTÕES (até 3, opcional)</p>
                   <button onClick={adicionarBotao} disabled={form.botoes.length >= 3}
-                    style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: form.botoes.length >= 3 ? "not-allowed" : "pointer", fontWeight: 600, opacity: form.botoes.length >= 3 ? 0.5 : 1 }}>
+                    style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 12px", fontSize: 11, cursor: form.botoes.length >= 3 ? "not-allowed" : "pointer", fontWeight: 600, opacity: form.botoes.length >= 3 ? 0.5 : 1 }}>
                     + Adicionar
                   </button>
                 </div>
@@ -776,7 +776,7 @@ export default function TemplatesPage() {
               </button>
               <button onClick={enviarParaMeta} disabled={enviando}
                 style={{
-                  background: enviando ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: enviando ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 24px", fontSize: 13, cursor: enviando ? "wait" : "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -851,7 +851,7 @@ export default function TemplatesPage() {
                 {detalhe.aprovado_em && (
                   <div>
                     <p style={{ color: "#94A3B8", fontWeight: 700, margin: "0 0 2px" }}>Aprovado em</p>
-                    <p style={{ color: "#059669", margin: 0, fontWeight: 700 }}>{new Date(detalhe.aprovado_em).toLocaleString("pt-BR")}</p>
+                    <p style={{ color: "var(--w-600)", margin: 0, fontWeight: 700 }}>{new Date(detalhe.aprovado_em).toLocaleString("pt-BR")}</p>
                   </div>
                 )}
                 {detalhe.ultima_sincronizacao && (

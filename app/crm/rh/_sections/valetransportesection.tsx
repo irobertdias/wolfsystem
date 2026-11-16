@@ -156,7 +156,7 @@ export function ValeTransporteSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -216,7 +216,7 @@ export function ValeTransporteSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum vale transporte cadastrado.</p>
         </div>
       ) : (
@@ -276,7 +276,7 @@ export function ValeTransporteSection() {
                     <td style={{ padding: "12px 16px", color: "#dc2626", fontSize: 12 }}>
                       {real(descontoFunc(v))}
                     </td>
-                    <td style={{ padding: "12px 16px", color: "#059669", fontSize: 12, fontWeight: 700 }}>
+                    <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 12, fontWeight: 700 }}>
                       {real(mensal(v) - descontoFunc(v))}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
@@ -451,7 +451,7 @@ export function ValeTransporteSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

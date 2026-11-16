@@ -49,7 +49,7 @@ export default function AcessoSuporte() {
       ]}>
       {etapa === "lendo" || etapa === "entrando" ? (
         <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#475569", fontSize: 14.5, fontWeight: 600 }}>
-          <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2.5px solid #A7F3D0", borderTopColor: "#059669", animation: "spin .7s linear infinite" }} />
+          <span style={{ width: 18, height: 18, borderRadius: "50%", border: "2.5px solid var(--w-200)", borderTopColor: "var(--w-600)", animation: "spin .7s linear infinite" }} />
           Entrando como {dados.email || "cliente"}…
         </div>
       ) : etapa === "conflito" ? (

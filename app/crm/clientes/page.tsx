@@ -860,7 +860,7 @@ export default function Clientes() {
         <p style={{ color: "#94A3B8", fontSize: 12, margin: 0 }}>Logado como: <b>{emailUsuario}</b></p>
         <button onClick={() => router.push("/crm")}
           style={{
-            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 8,
             boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -893,7 +893,7 @@ export default function Clientes() {
             </ol>
             <div style={{ background: "#F7FAF9", borderRadius: 12, padding: "10px 12px", fontFamily: "monospace", fontSize: 12, color: "#475569", wordBreak: "break-all", maxHeight: 74, overflow: "hidden" }}>{acessoSuporte.url}</div>
             <button onClick={async () => { try { await navigator.clipboard.writeText(acessoSuporte.url); setAcessoSuporte({ ...acessoSuporte, copiado: true }); } catch { alert("Não consegui copiar. Selecione o link e copie manualmente."); } }}
-              style={{ height: 48, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
+              style={{ height: 48, borderRadius: 14, border: 0, cursor: "pointer", color: "#fff", fontSize: 15, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", boxShadow: "0 14px 26px -14px rgba(5,150,105,.8)" }}>
               <Icone nome={acessoSuporte.copiado ? "check" : "copiar"} tamanho={17} /> {acessoSuporte.copiado ? "Link copiado" : "Copiar link"}
             </button>
             <p style={{ margin: 0, fontSize: 12.5, color: "#94A3B8" }}>O link funciona uma vez só e vale por 1 hora. O acesso fica registrado.</p>
@@ -918,7 +918,7 @@ export default function Clientes() {
 
             {/* Dados pessoais */}
             <div>
-              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Dados Pessoais</p>
+              <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Dados Pessoais</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
                 <div><label style={labelStyle}>Nome *</label><input placeholder="Nome completo" value={formCadastro.nome || ""} onChange={e => setFormCadastro({ ...formCadastro, nome: e.target.value })} style={inputSm} /></div>
                 <div><label style={labelStyle}>Empresa</label><input placeholder="Nome da empresa" value={formCadastro.empresa || ""} onChange={e => setFormCadastro({ ...formCadastro, empresa: e.target.value })} style={inputSm} /></div>
@@ -953,7 +953,7 @@ export default function Clientes() {
 
             {/* Tipo de workspace */}
             <div>
-              <p style={{ color: "#059669", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Tipo de workspace</p>
+              <p style={{ color: "var(--w-600)", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Tipo de workspace</p>
               <p style={{ color: "#94A3B8", fontSize: 12.5, margin: "0 0 12px" }}>Define o perfil do cliente: textos, painel e telas iniciais.</p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: 10 }}>
                 {VERTICAIS.map((v) => {
@@ -964,12 +964,12 @@ export default function Clientes() {
                       style={{
                         textAlign: "left", cursor: "pointer", borderRadius: 14, padding: "12px 12px",
                         border: 0, background: ativo ? "#F7FFFB" : "#F7FAF9",
-                        boxShadow: ativo ? "inset 0 0 0 2px #10B981, 0 8px 18px -12px rgba(5,150,105,.6)" : "inset 0 0 0 1px #E6ECEA",
+                        boxShadow: ativo ? "inset 0 0 0 2px var(--w-500), 0 8px 18px -12px rgba(5,150,105,.6)" : "inset 0 0 0 1px #E6ECEA",
                         display: "flex", flexDirection: "column", gap: 6,
                       }}>
                       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ width: 30, height: 30, borderRadius: 9, background: ativo ? "#059669" : "#ECFDF5", color: ativo ? "#fff" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={v.icone as any} tamanho={16} /></span>
-                        {ativo && <Icone nome="check" tamanho={15} cor="#059669" espessura={2.6} />}
+                        <span style={{ width: 30, height: 30, borderRadius: 9, background: ativo ? "var(--w-600)" : "var(--w-50)", color: ativo ? "#fff" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={v.icone as any} tamanho={16} /></span>
+                        {ativo && <Icone nome="check" tamanho={15} cor="var(--w-600)" espessura={2.6} />}
                       </span>
                       <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0F172A" }}>{v.nome}</span>
                       <span style={{ fontSize: 11.5, color: "#64748B", lineHeight: 1.35 }}>{v.desc}</span>
@@ -981,12 +981,12 @@ export default function Clientes() {
 
             {/* Plano */}
             <div>
-              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Plano</p>
+              <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Plano</p>
               <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
                 {[
-                  { key: "basico", label: "Básico", color: "#059669", usuarios: 5, conexoes: 1, preco: "R$ 444,27" },
-                  { key: "intermediario", label: "Intermediário", color: "#059669", usuarios: 15, conexoes: 3, preco: "R$ 744,27" },
-                  { key: "ultra", label: "Ultra", color: "#059669", usuarios: 50, conexoes: 10, preco: "R$ 1.044,27" },
+                  { key: "basico", label: "Básico", color: "var(--w-600)", usuarios: 5, conexoes: 1, preco: "R$ 444,27" },
+                  { key: "intermediario", label: "Intermediário", color: "var(--w-600)", usuarios: 15, conexoes: 3, preco: "R$ 744,27" },
+                  { key: "ultra", label: "Ultra", color: "var(--w-600)", usuarios: 50, conexoes: 10, preco: "R$ 1.044,27" },
                 ].map(p => {
                   const ativo = formCadastro.plano === p.key;
                   return (
@@ -1063,9 +1063,9 @@ export default function Clientes() {
               const ehSuspenso = cadastroSelecionado.status_pagamento === "suspenso";
               const temConfianca = !!cadastroSelecionado.bloqueio_postergado_ate;
               return (
-                <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: 18 }}>
-                  <p style={{ color: "#065F46", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Controle de Pagamento</p>
-                  <p style={{ color: "#065F46", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
+                <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px var(--w-200)", borderRadius: 12, padding: 18 }}>
+                  <p style={{ color: "var(--w-800)", fontSize: 11, fontWeight: 700, margin: "0 0 4px" }}>Controle de Pagamento</p>
+                  <p style={{ color: "var(--w-800)", fontSize: 11, margin: "0 0 14px", lineHeight: 1.4 }}>
                     Ações rápidas pra cobrar, bloquear ou dar tolerância ao cliente.
                   </p>
 
@@ -1084,7 +1084,7 @@ export default function Clientes() {
                       )}
                     </div>
                     {temConfianca && (
-                      <p style={{ color: "#047857", fontSize: 11, margin: "8px 0 0", fontStyle: "italic" }}>
+                      <p style={{ color: "var(--w-700)", fontSize: 11, margin: "8px 0 0", fontStyle: "italic" }}>
                         Cliente em confiança até <b>{formatarData(cadastroSelecionado.bloqueio_postergado_ate)}</b>. Bloqueio automático suspenso até lá.
                       </p>
                     )}
@@ -1094,7 +1094,7 @@ export default function Clientes() {
                   <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>
                     {/* 💰 MARCAR PAGO */}
                     <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalCliente(false); }}
-                      style={{ background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      style={{ background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <IconeEmoji e="💰" tamanho={16} />
                       <span>Marcar como Pago</span>
                     </button>
@@ -1102,7 +1102,7 @@ export default function Clientes() {
                     {/* 🔒 BLOQUEAR */}
                     {ehSuspenso ? (
                       <button onClick={() => liberarCliente(cadastroSelecionado)}
-                        style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                        style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                         <span style={{ fontSize: 18 }}>▶️</span>
                         <span>Liberar</span>
                       </button>
@@ -1116,7 +1116,7 @@ export default function Clientes() {
 
                     {/* 🤝 CONFIANÇA */}
                     <button onClick={() => setShowModalConfianca(true)}
-                      style={{ background: temConfianca ? "#ECFDF5" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: temConfianca ? "#047857" : "white", border: temConfianca ? "1px solid #A7F3D0" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      style={{ background: temConfianca ? "var(--w-50)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: temConfianca ? "var(--w-700)" : "white", border: temConfianca ? "1px solid var(--w-200)" : "none", borderRadius: 10, padding: "11px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: temConfianca ? "none" : "0 4px 12px rgba(5,150,105,0.3)", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <IconeEmoji e="🤝" tamanho={16} />
                       <span>{temConfianca ? "Alterar confiança" : "Desbloquear por X dias"}</span>
                     </button>
@@ -1155,7 +1155,7 @@ export default function Clientes() {
                       return (
                         <button key={n} onClick={() => setFormCadastro({ ...formCadastro, conexoes_liberadas: n })}
                           style={{
-                            background: ativo ? "#059669" : "#F7FAF9",
+                            background: ativo ? "var(--w-600)" : "#F7FAF9",
                             color: ativo ? "white" : "#64748B",
                             border: `1px solid ${ativo ? "#059669" : "#E6ECEA"}`,
                             borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700,
@@ -1172,7 +1172,7 @@ export default function Clientes() {
             <div>
               <p style={{ color: "#BE185D", fontSize: 11, fontWeight: 700, margin: "0 0 14px" }}>Tipos de Conexão Permitidos</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="#059669" />
+                <Toggle value={!!formCadastro.permite_webjs} onChange={() => setFormCadastro({ ...formCadastro, permite_webjs: !formCadastro.permite_webjs })} label="WhatsApp Web (QR Code)" desc="Conexão via QR Code — gratuita" color="var(--w-600)" />
                 <Toggle value={!!formCadastro.permite_waba} onChange={() => setFormCadastro({ ...formCadastro, permite_waba: !formCadastro.permite_waba })} label="API Meta (WABA)" desc="API oficial do WhatsApp Business" color="#14B8A6" />
                 <Toggle value={!!formCadastro.permite_instagram} onChange={() => setFormCadastro({ ...formCadastro, permite_instagram: !formCadastro.permite_instagram })} label="Instagram Direct" desc="Mensagens do Instagram Direct" color="#BE185D" />
               </div>
@@ -1180,7 +1180,7 @@ export default function Clientes() {
 
             {/* MÓDULOS LIBERADOS */}
             <div>
-              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Módulos Liberados</p>
+              <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 6px" }}>Módulos Liberados</p>
               <p style={{ color: "#94A3B8", fontSize: 11, margin: "0 0 12px", fontStyle: "italic" }}>
                 Controle quais módulos o cliente pode acessar. Módulos não liberados aparecem no menu mas mostram tela de upsell ao clicar.
               </p>
@@ -1188,28 +1188,28 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="Roleta de Distribuição" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="Disparos Web" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_validacao_numeros} onChange={() => setFormCadastro({ ...formCadastro, modulo_validacao_numeros: !formCadastro.modulo_validacao_numeros })} label={"\u2705 Valida\u00e7\u00e3o de n\u00fameros"} desc={"Higieniza\u00e7\u00e3o de listas com canal exclusivo"} color="#0891b2" />
-                <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="Revisional" desc="Simulação de juros e propostas com link" color="#059669" />
-                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="#059669" />
+                <Toggle value={!!formCadastro.modulo_revisional} onChange={() => setFormCadastro({ ...formCadastro, modulo_revisional: !formCadastro.modulo_revisional })} label="Revisional" desc="Simulação de juros e propostas com link" color="var(--w-600)" />
+                <Toggle value={!!formCadastro.modulo_contratos_assinaturas} onChange={() => setFormCadastro({ ...formCadastro, modulo_contratos_assinaturas: !formCadastro.modulo_contratos_assinaturas })} label="Contratos e Assinaturas" desc="Planos Essencial, Profissional e Empresarial" color="var(--w-600)" />
                 {formCadastro.modulo_contratos_assinaturas && (() => {
                   const chave = (formCadastro.modulo_contratos_plano || "essencial") as PlanoContratos;
                   const planoContrato = CONTRATOS_PLANOS[chave];
                   const comCrm = formCadastro.modulo_contratos_com_crm !== false;
                   const preco = comCrm ? planoContrato.comCrm : planoContrato.semCrm;
-                  return <div style={{ gridColumn: "1 / -1", border: "1px solid #A7F3D0", background: "#ECFDF5", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr auto", gap: 12, alignItems: "end" }}>
-                    <label style={{ display: "grid", gap: 6, color: "#065F46", fontSize: 11, fontWeight: 800 }}>PLANO DE CONTRATOS
+                  return <div style={{ gridColumn: "1 / -1", border: "1px solid var(--w-200)", background: "var(--w-50)", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+                    <label style={{ display: "grid", gap: 6, color: "var(--w-800)", fontSize: 11, fontWeight: 800 }}>PLANO DE CONTRATOS
                       <select value={chave} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_plano: e.target.value as PlanoContratos })} style={inputStyle}>
                         {Object.entries(CONTRATOS_PLANOS).map(([id, item]) => <option key={id} value={id}>{item.nome} — {item.limite}</option>)}
                       </select>
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, color: "#065F46", fontSize: 12, fontWeight: 750 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, color: "var(--w-800)", fontSize: 12, fontWeight: 750 }}>
                       <input type="checkbox" checked={comCrm} onChange={e => setFormCadastro({ ...formCadastro, modulo_contratos_com_crm: e.target.checked })}/>
                       Cliente possui CRM Wolf contratado
                     </label>
-                    <div style={{ borderRadius: 10, background: "#059669", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
+                    <div style={{ borderRadius: 10, background: "var(--w-600)", color: "white", padding: "10px 14px", minWidth: 150 }}><small style={{ opacity: .8 }}>mensalidade</small><strong style={{ display: "block", fontSize: 20 }}>R$ {preco.toFixed(2).replace(".", ",")}</strong></div>
                   </div>;
                 })()}
 
-                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="Central Ads" desc="Central de campanhas e resultados de mídia paga" color="#047857" />
+                <Toggle value={!!formCadastro.modulo_meta_ads} onChange={() => setFormCadastro({ ...formCadastro, modulo_meta_ads: !formCadastro.modulo_meta_ads })} label="Central Ads" desc="Central de campanhas e resultados de mídia paga" color="var(--w-700)" />
                 <Toggle value={!!formCadastro.modulo_disparos_api} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_api: !formCadastro.modulo_disparos_api })} label="Disparos API" desc="Apenas Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_voip} onChange={() => setFormCadastro({ ...formCadastro, modulo_voip: !formCadastro.modulo_voip })} label="Ligações VOIP" desc="Apenas Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_api_integracao} onChange={() => setFormCadastro({ ...formCadastro, modulo_api_integracao: !formCadastro.modulo_api_integracao })} label="API de Integração" desc="Intermediário, Ultra" color="#14B8A6" />
@@ -1217,7 +1217,7 @@ export default function Clientes() {
                 <Toggle value={!!formCadastro.modulo_equipes} onChange={() => setFormCadastro({ ...formCadastro, modulo_equipes: !formCadastro.modulo_equipes })} label="Equipes Multi-time" desc="Intermediário, Ultra" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_funil_avancado} onChange={() => setFormCadastro({ ...formCadastro, modulo_funil_avancado: !formCadastro.modulo_funil_avancado })} label="Funil Avançado" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_cobranca} onChange={() => setFormCadastro({ ...formCadastro, modulo_cobranca: !formCadastro.modulo_cobranca })} label="Cobrança Automatizada" desc="Apenas Ultra" color="#dc2626" />
-                <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="#059669" />
+                <Toggle value={!!formCadastro.modulo_rh} onChange={() => setFormCadastro({ ...formCadastro, modulo_rh: !formCadastro.modulo_rh })} label="RH — Recursos Humanos" desc="Gestão de pessoas, folha, férias" color="var(--w-600)" />
                 <Toggle value={!!formCadastro.modulo_bater_ponto} onChange={() => setFormCadastro({ ...formCadastro, modulo_bater_ponto: !formCadastro.modulo_bater_ponto })} label="Bater Ponto" desc="Ponto com selfie e GPS" color="#0891b2" />
                 <Toggle value={!!formCadastro.modulo_financeiro} onChange={toggleFinanceiroMaster} label="Financeiro" desc="Caixa, contas, DRE, notas, conciliação" color="#C2410C" />
                 {formCadastro.modulo_financeiro && (
@@ -1249,7 +1249,7 @@ export default function Clientes() {
               </div>
             </div>
 
-            <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="Autorizado — Permitir acesso ao sistema" color="#059669" />
+            <Toggle value={!!formCadastro.autorizado} onChange={() => setFormCadastro({ ...formCadastro, autorizado: !formCadastro.autorizado })} label="Autorizado — Permitir acesso ao sistema" color="var(--w-600)" />
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setShowModalCliente(false)}
@@ -1258,7 +1258,7 @@ export default function Clientes() {
               </button>
               <button onClick={salvarCadastro} disabled={salvandoCliente || !testeCliente}
                 style={{
-                  background: salvandoCliente ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: salvandoCliente ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1277,18 +1277,18 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#059669", fontSize: 18, fontWeight: 700, margin: 0 }}>Marcar como Pago</h2>
+              <h2 style={{ color: "var(--w-600)", fontSize: 18, fontWeight: 700, margin: 0 }}>Marcar como Pago</h2>
               <button onClick={() => setShowModalPagamento(false)}
                 style={{ background: "#F3F6F5", border: "none", color: "#64748B", fontSize: 16,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center", cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
-            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#047857", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
-              <p style={{ color: "#059669", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+            <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "var(--w-700)", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "var(--w-600)", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
               {cadastroSelecionado.proximo_vencimento && (
-                <p style={{ color: "#047857", fontSize: 11, margin: "6px 0 0" }}>
+                <p style={{ color: "var(--w-700)", fontSize: 11, margin: "6px 0 0" }}>
                   Vencimento atual: <b>{formatarData(cadastroSelecionado.proximo_vencimento)}</b>
                   {" → "}próximo: <b>{formatarData(avancarUmMes(cadastroSelecionado.proximo_vencimento))}</b>
                 </p>
@@ -1334,7 +1334,7 @@ export default function Clientes() {
               </button>
               <button onClick={salvarPagamento} disabled={salvandoPagamento}
                 style={{
-                  background: salvandoPagamento ? "#047857" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: salvandoPagamento ? "var(--w-700)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1351,16 +1351,16 @@ export default function Clientes() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ color: "#047857", fontSize: 18, fontWeight: 700, margin: 0 }}>Desbloqueio em Confiança</h2>
+              <h2 style={{ color: "var(--w-700)", fontSize: 18, fontWeight: 700, margin: 0 }}>Desbloqueio em Confiança</h2>
               <button onClick={() => setShowModalConfianca(false)}
                 style={{ background: "#F3F6F5", border: "none", color: "#64748B", fontSize: 16,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center", cursor: "pointer", width: 32, height: 32, borderRadius: 8 }}><Icone nome="x" tamanho={16} /></button>
             </div>
-            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
-              <p style={{ color: "#047857", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
+            <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "var(--w-800)", fontSize: 12, margin: 0, fontWeight: 700 }}>{cadastroSelecionado.nome}</p>
+              <p style={{ color: "var(--w-700)", fontSize: 11, margin: "2px 0 0" }}>{cadastroSelecionado.email}</p>
             </div>
             <div style={{ background: "#FFF7ED", border: "1px solid #fde68a", borderRadius: 10, padding: 12 }}>
               <p style={{ color: "#92400e", fontSize: 12, margin: 0, lineHeight: 1.5 }}>
@@ -1375,7 +1375,7 @@ export default function Clientes() {
                   <button key={d} onClick={() => setDiasConfianca(d)}
                     style={{
                       flex: 1, minWidth: 60,
-                      background: diasConfianca === d ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)" : "#F7FAF9",
+                      background: diasConfianca === d ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))" : "#F7FAF9",
                       color: diasConfianca === d ? "white" : "#64748B",
                       border: diasConfianca === d ? "none" : "1px solid #E6ECEA",
                       borderRadius: 10, padding: "8px 0", fontSize: 13, cursor: "pointer", fontWeight: 700,
@@ -1388,8 +1388,8 @@ export default function Clientes() {
                 placeholder="Ou digite outro valor (1-90)"
                 style={inputStyle} />
             </div>
-            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#047857", fontSize: 11, margin: 0 }}>
+            <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "var(--w-700)", fontSize: 11, margin: 0 }}>
                 Bloqueio automático volta em: <b>{new Date(Date.now() + diasConfianca * 86400000).toLocaleDateString("pt-BR")}</b>
               </p>
             </div>
@@ -1401,7 +1401,7 @@ export default function Clientes() {
               <button onClick={async () => { await darConfianca(diasConfianca); setShowModalConfianca(false); }}
                 disabled={diasConfianca < 1 || diasConfianca > 90}
                 style={{
-                  background: (diasConfianca < 1 || diasConfianca > 90) ? "#34D399" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: (diasConfianca < 1 || diasConfianca > 90) ? "var(--w-400)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: "pointer", fontWeight: 700,
                   boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1421,13 +1421,13 @@ export default function Clientes() {
           <div style={{ ...cardStyle, padding: 28, width: "100%", maxWidth: 720, display: "flex", flexDirection: "column", gap: 18, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: cadastroSelecionado.autorizado ? "#ECFDF5" : "#FFF7ED", color: cadastroSelecionado.autorizado ? "#059669" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="predio" tamanho={26} /></div>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: cadastroSelecionado.autorizado ? "var(--w-50)" : "#FFF7ED", color: cadastroSelecionado.autorizado ? "var(--w-600)" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="predio" tamanho={26} /></div>
                 <div>
                   <h2 style={{ color: "#0F172A", fontSize: 20, fontWeight: 700, margin: 0 }}>{cadastroSelecionado.nome}</h2>
                   <p style={{ color: "#64748B", fontSize: 13, margin: "4px 0 6px 0" }}>{cadastroSelecionado.empresa || "Sem empresa"}{cadastroSelecionado.username && ` · @${cadastroSelecionado.username}`}</p>
                   <span style={{
-                    background: cadastroSelecionado.autorizado ? "#ECFDF5" : "#FFF7ED",
-                    color: cadastroSelecionado.autorizado ? "#059669" : "#C2410C",
+                    background: cadastroSelecionado.autorizado ? "var(--w-50)" : "#FFF7ED",
+                    color: cadastroSelecionado.autorizado ? "var(--w-600)" : "#C2410C",
                     border: `1px solid ${cadastroSelecionado.autorizado ? "#A7F3D0" : "#fde68a"}`,
                     fontSize: 11, padding: "3px 12px", borderRadius: 20, fontWeight: 700,
                   }}>{cadastroSelecionado.autorizado ? "Ativo" : "⏳ Pendente"}</span>
@@ -1481,12 +1481,12 @@ export default function Clientes() {
 
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={() => { abrirMarcarPago(cadastroSelecionado); setShowModalDetalhe(false); }}
-                  style={{ flex: 1, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>
+                  style={{ flex: 1, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)", whiteSpace: "nowrap" }}>
                   Marcar como Pago
                 </button>
                 {cadastroSelecionado.status_pagamento === "suspenso" ? (
                   <button onClick={() => liberarCliente(cadastroSelecionado)}
-                    style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    style={{ flex: 1, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "10px", fontSize: 12, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap" }}>
                     Liberar
                   </button>
                 ) : (
@@ -1524,9 +1524,9 @@ export default function Clientes() {
                           <td style={{ padding: "8px 10px", color: "#64748B" }}>
                             {new Date(p.mes_referencia + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}
                           </td>
-                          <td style={{ padding: "8px 10px", color: "#059669", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
+                          <td style={{ padding: "8px 10px", color: "var(--w-600)", fontWeight: 700 }}>{formatarReais(Number(p.valor))}</td>
                           <td style={{ padding: "8px 10px" }}>
-                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>{p.forma_pagamento}</span>
+                            <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", padding: "2px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700 }}>{p.forma_pagamento}</span>
                           </td>
                           <td style={{ padding: "8px 10px", color: "#64748B", fontSize: 11 }}>{p.observacao || "—"}</td>
                         </tr>
@@ -1545,14 +1545,14 @@ export default function Clientes() {
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Usuários</p>
                 </div>
                 <div style={{ flex: 1, textAlign: "center", background: "#ffffff", borderRadius: 16, padding: 14, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" }}>
-                  <p style={{ color: "#059669", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
+                  <p style={{ color: "var(--w-600)", fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: -1 }}>{cadastroSelecionado.conexoes_liberadas || 1}</p>
                   <p style={{ color: "#64748B", fontSize: 11, margin: "4px 0 0", fontWeight: 600 }}>Conexões</p>
                 </div>
               </div>
             </div>
 
             <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
-              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Módulos Liberados</p>
+              <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 12px" }}>Módulos Liberados</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_roleta} icone="🎯" label="Roleta" cor="#14B8A6" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_revisional} icone="⚖️" label="Revisional" cor="#059669" />
@@ -1577,7 +1577,7 @@ export default function Clientes() {
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {!cadastroSelecionado.autorizado
                 ? <button onClick={() => { autorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }}
-                    style={{ flex: 1, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "white", border: "none", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>
+                    style={{ flex: 1, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "white", border: "none", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>
                     Autorizar Acesso
                   </button>
                 : <button onClick={() => { desautorizarCadastro(cadastroSelecionado); setShowModalDetalhe(false); }}
@@ -1586,7 +1586,7 @@ export default function Clientes() {
                   </button>
               }
               <button onClick={() => abrirEditar(cadastroSelecionado)}
-                style={{ flex: 1, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
+                style={{ flex: 1, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "11px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>
                 Editar
               </button>
               <button onClick={() => excluirCadastro(cadastroSelecionado)}
@@ -1604,13 +1604,13 @@ export default function Clientes() {
           <div>
             <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Clientes Wolf System</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0 0" }}>
-              <b style={{ color: "#059669" }}>{cadastros.filter(c => c.autorizado).length}</b> ativos · <b style={{ color: "#C2410C" }}>{cadastros.filter(c => !c.autorizado).length}</b> pendentes · <b>{cadastros.length}</b> total
+              <b style={{ color: "var(--w-600)" }}>{cadastros.filter(c => c.autorizado).length}</b> ativos · <b style={{ color: "#C2410C" }}>{cadastros.filter(c => !c.autorizado).length}</b> pendentes · <b>{cadastros.length}</b> total
             </p>
           </div>
         </div>
         <button onClick={abrirNovo}
           style={{
-            background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+            background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
             color: "white", border: "none", borderRadius: 12,
             padding: "12px 22px", fontSize: 13, cursor: "pointer", fontWeight: 700,
             whiteSpace: "nowrap",
@@ -1623,8 +1623,8 @@ export default function Clientes() {
       {/* ═══ STATS (com 2 cards novos de cobrança) ═══ */}
       <div style={{ display: "flex", gap: isMobile ? 10 : 16, flexWrap: "wrap" }}>
         {[
-          { label: "Total", value: cadastros.length, color: "#059669", icon: "📊" },
-          { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "#059669", icon: "✅" },
+          { label: "Total", value: cadastros.length, color: "var(--w-600)", icon: "📊" },
+          { label: "Ativos", value: cadastros.filter(c => c.autorizado).length, color: "var(--w-600)", icon: "✅" },
           { label: "Pendentes", value: cadastros.filter(c => !c.autorizado).length, color: "#C2410C", icon: "⏳" },
           { label: "Em Atraso", value: qtdAtrasados, color: "#dc2626", icon: "🔴" },
           { label: "Bloqueados", value: qtdBloqueados, color: "#7f1d1d", icon: "🔒" },
@@ -1652,8 +1652,8 @@ export default function Clientes() {
           style={{ ...inputStyle, maxWidth: isMobile ? "100%" : 400, padding: "9px 14px", fontSize: 13, borderRadius: 20 }} />
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {[
-            { key: "todos", label: "Todos", color: "#059669" },
-            { key: "ativos", label: "Ativos", color: "#059669" },
+            { key: "todos", label: "Todos", color: "var(--w-600)" },
+            { key: "ativos", label: "Ativos", color: "var(--w-600)" },
             { key: "pendentes", label: "Pendentes", color: "#C2410C" },
             { key: "atrasados", label: "Em Atraso", color: "#dc2626" },
             { key: "bloqueados", label: "Bloqueados", color: "#7f1d1d" },
@@ -1678,11 +1678,11 @@ export default function Clientes() {
       {/* ═══ LISTA / TABELA (com coluna 💰 Cobrança) ═══ */}
       {loadingCadastros ? <p style={{ color: "#64748B" }}>Carregando...</p> : cadastrosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🏢"} tamanho={28} /></div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 16px" }}><IconeEmoji e={"🏢"} tamanho={28} /></div>
           <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 8px 0" }}>Nenhum cliente encontrado</h3>
           <button onClick={abrirNovo}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "12px 24px", fontSize: 13, cursor: "pointer", fontWeight: 700, marginTop: 12,
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -1714,12 +1714,12 @@ export default function Clientes() {
                     <tr key={c.id}
                       style={{
                         borderTop: "1px solid #F1F5F4",
-                        background: expandida ? "#ECFDF5" : ("#ffffff"),
+                        background: expandida ? "var(--w-50)" : ("#ffffff"),
                         transition: "background 0.1s",
                       }}>
                       <td style={{ padding: "14px 10px 14px 16px", width: 30 }}>
                         <button onClick={() => toggleExpandir(username)} disabled={!username}
-                          style={{ background: "none", border: "none", color: expandida ? "#059669" : "#94A3B8", cursor: username ? "pointer" : "not-allowed", fontSize: 14, opacity: username ? 1 : 0.3, fontWeight: 700 }}
+                          style={{ background: "none", border: "none", color: expandida ? "var(--w-600)" : "#94A3B8", cursor: username ? "pointer" : "not-allowed", fontSize: 14, opacity: username ? 1 : 0.3, fontWeight: 700 }}
                           title={username ? (expandida ? "Ocultar sub-usuários" : "Ver sub-usuários") : "Cliente sem workspace"}>
                           <span style={{ display: "inline-flex", transform: expandida ? "none" : "rotate(-90deg)", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
                         </button>
@@ -1733,8 +1733,8 @@ export default function Clientes() {
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
-                          background: c.plano === "ultra" ? "#ECFDF5" : c.plano === "intermediario" ? "#ECFDF5" : "#ECFDF5",
-                          color: c.plano === "ultra" ? "#059669" : c.plano === "intermediario" ? "#059669" : "#059669",
+                          background: c.plano === "ultra" ? "var(--w-50)" : c.plano === "intermediario" ? "var(--w-50)" : "var(--w-50)",
+                          color: c.plano === "ultra" ? "var(--w-600)" : c.plano === "intermediario" ? "var(--w-600)" : "var(--w-600)",
                           border: `1px solid ${c.plano === "ultra" ? "#A7F3D0" : c.plano === "intermediario" ? "#A7F3D0" : "#A7F3D0"}`,
                           fontSize: 11, padding: "3px 12px", borderRadius: 10, fontWeight: 700,
                         }}>
@@ -1745,34 +1745,34 @@ export default function Clientes() {
                         <span style={{ background: "#FFF7ED", color: "#C2410C", border: "1px solid #fde68a", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.usuarios_liberados || 1}</span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                        <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.conexoes_liberadas || 1}</span>
+                        <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 12px", borderRadius: 10, fontWeight: 700 }}>{c.conexoes_liberadas || 1}</span>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 4 }}>
-                          {c.permite_webjs && <span title="WhatsApp Web" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📱"} tamanho={14} /></span>}
-                          {c.permite_waba && <span title="API Meta" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🔗"} tamanho={14} /></span>}
-                          {c.permite_instagram && <span title="Instagram" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📸"} tamanho={14} /></span>}
+                          {c.permite_webjs && <span title="WhatsApp Web" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📱"} tamanho={14} /></span>}
+                          {c.permite_waba && <span title="API Meta" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🔗"} tamanho={14} /></span>}
+                          {c.permite_instagram && <span title="Instagram" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📸"} tamanho={14} /></span>}
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                          {c.modulo_revisional && <span title="Revisional" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"⚖️"} tamanho={14} /></span>}
+                          {c.modulo_revisional && <span title="Revisional" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"⚖️"} tamanho={14} /></span>}
                           {c.modulo_contratos_assinaturas && <span title={`Contratos — ${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].nome} (${CONTRATOS_PLANOS[c.modulo_contratos_plano || "essencial"].limite})`} style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📄"} tamanho={14} /></span>}
 
-                          {c.modulo_meta_ads && <span title="Central Ads" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📊"} tamanho={14} /></span>}
-                          {c.modulo_roleta && <span title="Roleta" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🎯"} tamanho={14} /></span>}
-                          {c.modulo_disparos_web && <span title="Disparos Web" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📤"} tamanho={14} /></span>}
-                          {c.modulo_validacao_numeros && <span title={"Valida\u00e7\u00e3o de n\u00fameros"} style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"\u2705"} tamanho={14} /></span>}
-                          {c.modulo_disparos_api && <span title="Disparos API" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📨"} tamanho={14} /></span>}
-                          {c.modulo_voip && <span title="Ligações VOIP" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📞"} tamanho={14} /></span>}
-                          {c.modulo_api_integracao && <span title="API Integração" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🔌"} tamanho={14} /></span>}
-                          {c.modulo_instagram && <span title="Instagram" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📸"} tamanho={14} /></span>}
-                          {c.modulo_equipes && <span title="Equipes Multi-time" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"👥"} tamanho={14} /></span>}
-                          {c.modulo_funil_avancado && <span title="Funil Avançado" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📊"} tamanho={14} /></span>}
-                          {c.modulo_cobranca && <span title="Cobrança" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💰"} tamanho={14} /></span>}
-                          {c.modulo_rh && <span title="RH" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🧑‍💼"} tamanho={14} /></span>}
-                          {c.modulo_bater_ponto && <span title="Bater Ponto" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🕐"} tamanho={14} /></span>}
-                          {c.modulo_financeiro && <span title="Financeiro" style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💰"} tamanho={14} /></span>}
+                          {c.modulo_meta_ads && <span title="Central Ads" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📊"} tamanho={14} /></span>}
+                          {c.modulo_roleta && <span title="Roleta" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🎯"} tamanho={14} /></span>}
+                          {c.modulo_disparos_web && <span title="Disparos Web" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📤"} tamanho={14} /></span>}
+                          {c.modulo_validacao_numeros && <span title={"Valida\u00e7\u00e3o de n\u00fameros"} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"\u2705"} tamanho={14} /></span>}
+                          {c.modulo_disparos_api && <span title="Disparos API" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📨"} tamanho={14} /></span>}
+                          {c.modulo_voip && <span title="Ligações VOIP" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📞"} tamanho={14} /></span>}
+                          {c.modulo_api_integracao && <span title="API Integração" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🔌"} tamanho={14} /></span>}
+                          {c.modulo_instagram && <span title="Instagram" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📸"} tamanho={14} /></span>}
+                          {c.modulo_equipes && <span title="Equipes Multi-time" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"👥"} tamanho={14} /></span>}
+                          {c.modulo_funil_avancado && <span title="Funil Avançado" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"📊"} tamanho={14} /></span>}
+                          {c.modulo_cobranca && <span title="Cobrança" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💰"} tamanho={14} /></span>}
+                          {c.modulo_rh && <span title="RH" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🧑‍💼"} tamanho={14} /></span>}
+                          {c.modulo_bater_ponto && <span title="Bater Ponto" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"🕐"} tamanho={14} /></span>}
+                          {c.modulo_financeiro && <span title="Financeiro" style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e={"💰"} tamanho={14} /></span>}
                           {!c.modulo_roleta && !c.modulo_disparos_web && !c.modulo_validacao_numeros && !c.modulo_disparos_api && !c.modulo_voip && !c.modulo_api_integracao && !c.modulo_instagram && !c.modulo_equipes && !c.modulo_funil_avancado && !c.modulo_cobranca && !c.modulo_rh && !c.modulo_bater_ponto && !c.modulo_financeiro && !c.modulo_meta_ads && !c.modulo_contratos_assinaturas && !c.modulo_revisional && <span style={{ color: "#CBD5E1", fontSize: 11, fontStyle: "italic" }}>nenhum</span>}
                         </div>
                       </td>
@@ -1789,8 +1789,8 @@ export default function Clientes() {
 
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
-                          background: c.autorizado ? "#ECFDF5" : "#FFF7ED",
-                          color: c.autorizado ? "#059669" : "#C2410C",
+                          background: c.autorizado ? "var(--w-50)" : "#FFF7ED",
+                          color: c.autorizado ? "var(--w-600)" : "#C2410C",
                           border: `1px solid ${c.autorizado ? "#A7F3D0" : "#fde68a"}`,
                           fontSize: 11, padding: "3px 12px", borderRadius: 12, fontWeight: 700,
                         }}>
@@ -1802,17 +1802,17 @@ export default function Clientes() {
                           <button onClick={() => abrirDetalhe(c)}
                             style={{ background: "#F3F6F5", color: "#475569", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }} title="Ver detalhes"><Icone nome="olho" tamanho={15} /></button>
                           <button onClick={() => abrirMarcarPago(c)} title="Marcar como pago"
-                            style={{ background: "#ECFDF5", color: "#059669", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 700 }}><Icone nome="dinheiro" tamanho={15} /></button>
+                            style={{ background: "var(--w-50)", color: "var(--w-600)", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 700 }}><Icone nome="dinheiro" tamanho={15} /></button>
                           {!c.autorizado
                             ? <button onClick={() => autorizarCadastro(c)}
-                                style={{ background: "#ECFDF5", color: "#059669", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 700 }} title="Autorizar"><Icone nome="check" tamanho={15} /></button>
+                                style={{ background: "var(--w-50)", color: "var(--w-600)", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 700 }} title="Autorizar"><Icone nome="check" tamanho={15} /></button>
                             : <button onClick={() => desautorizarCadastro(c)}
                                 style={{ background: "#FFF7ED", color: "#C2410C", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }} title="Suspender acesso"><Icone nome="cadeado" tamanho={15} /></button>
                           }
                           <button onClick={() => acessarComoCliente(c)} title="Acessar como cliente" disabled={!c.autorizado || gerandoAcesso === c.id}
                             style={{ background: "#0F172A", color: "#fff", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: c.autorizado ? "pointer" : "not-allowed", opacity: c.autorizado ? 1 : 0.35 }}><Icone nome="seta" tamanho={15} espessura={2.3} /></button>
                           <button onClick={() => abrirEditar(c)}
-                            style={{ background: "#ECFDF5", color: "#059669", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
+                            style={{ background: "var(--w-50)", color: "var(--w-600)", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                           <button onClick={() => excluirCadastro(c)}
                             style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 10, width: 32, height: 32, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
                         </div>
@@ -1823,8 +1823,8 @@ export default function Clientes() {
                     {expandida && (
                       <tr key={`${c.id}-expandido`} style={{ background: "#ECFDF5" }}>
                         <td colSpan={10} style={{ padding: "0 24px 18px 50px" }}>
-                          <div style={{ borderLeft: "3px solid #059669", paddingLeft: 18, paddingTop: 10 }}>
-                            <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>
+                          <div style={{ borderLeft: "3px solid var(--w-600)", paddingLeft: 18, paddingTop: 10 }}>
+                            <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "0 0 10px" }}>
                               Sub-usuários do workspace <span style={{ fontFamily: "monospace" }}>@{username}</span>
                             </p>
 
@@ -1851,8 +1851,8 @@ export default function Clientes() {
                                         <td style={{ padding: "9px 12px", color: "#64748B", fontSize: 12 }}>{s.email}</td>
                                         <td style={{ padding: "9px 12px" }}>
                                           <span style={{
-                                            background: s.perfil === "Administrador" ? "#FFF7ED" : s.perfil === "Supervisor" ? "#ECFDF5" : "#ECFDF5",
-                                            color: s.perfil === "Administrador" ? "#C2410C" : s.perfil === "Supervisor" ? "#059669" : "#059669",
+                                            background: s.perfil === "Administrador" ? "#FFF7ED" : s.perfil === "Supervisor" ? "var(--w-50)" : "var(--w-50)",
+                                            color: s.perfil === "Administrador" ? "#C2410C" : s.perfil === "Supervisor" ? "var(--w-600)" : "var(--w-600)",
                                             border: `1px solid ${s.perfil === "Administrador" ? "#fde68a" : s.perfil === "Supervisor" ? "#A7F3D0" : "#A7F3D0"}`,
                                             padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700,
                                           }}>{s.perfil}</span>
@@ -1860,15 +1860,15 @@ export default function Clientes() {
                                         <td style={{ padding: "9px 12px", color: "#64748B", fontSize: 12 }}>{s.fila || <span style={{ color: "#CBD5E1" }}>—</span>}</td>
                                         <td style={{ padding: "9px 12px" }}>
                                           {s.grupo_id ? (
-                                            <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
+                                            <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700 }}>
                                               {grupos.find(g => g.id === s.grupo_id)?.nome || "—"}
                                             </span>
                                           ) : <span style={{ color: "#CBD5E1", fontSize: 11 }}>—</span>}
                                         </td>
                                         <td style={{ padding: "9px 12px" }}>
                                           <span style={{
-                                            background: s.status === "online" ? "#ECFDF5" : "#F1F5F4",
-                                            color: s.status === "online" ? "#059669" : "#64748B",
+                                            background: s.status === "online" ? "var(--w-50)" : "#F1F5F4",
+                                            color: s.status === "online" ? "var(--w-600)" : "#64748B",
                                             border: `1px solid ${s.status === "online" ? "#A7F3D0" : "#E6ECEA"}`,
                                             padding: "2px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700,
                                           }}>

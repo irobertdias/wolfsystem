@@ -396,7 +396,7 @@ export function FolhaSection() {
                 style={{
                   background: "#ffffff",
                   color: COR_TEXTO,
-                  border: "1px solid #A7F3D0",
+                  border: "1px solid var(--w-200)",
                   borderRadius: 12,
                   padding: "11px 18px",
                   fontSize: 13,
@@ -411,9 +411,9 @@ export function FolhaSection() {
                 onClick={marcarPagas}
                 disabled={processando || todosPagos}
                 style={{
-                  background: todosPagos ? "#ECFDF5" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
-                  color: todosPagos ? "#059669" : "white",
-                  border: todosPagos ? "1px solid #A7F3D0" : "none",
+                  background: todosPagos ? "var(--w-50)" : `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
+                  color: todosPagos ? "var(--w-600)" : "white",
+                  border: todosPagos ? "1px solid var(--w-200)" : "none",
                   borderRadius: 12,
                   padding: "11px 18px",
                   fontSize: 13,
@@ -482,7 +482,7 @@ export function FolhaSection() {
       ) : itens.length === 0 ? (
         // SEM FOLHA NA COMPETÊNCIA → gerar
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 6px" }}>
             {competencias.length === 0 ? "Nenhuma folha gerada ainda" : "Gerar uma nova folha"}
           </p>
@@ -517,7 +517,7 @@ export function FolhaSection() {
               onClick={gerarFolha}
               disabled={gerando}
               style={{
-                background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                 color: "white",
                 border: "none",
                 borderRadius: 12,
@@ -605,8 +605,8 @@ export function FolhaSection() {
                               onChange={(e) => editar(it.id, "comissao", Number(e.target.value))}
                               style={{
                                 ...numStyle,
-                                border: "1px solid #A7F3D0",
-                                background: "#ECFDF5",
+                                border: "1px solid var(--w-200)",
+                                background: "var(--w-50)",
                                 fontWeight: 700,
                                 color: COR_TEXTO,
                               }}
@@ -677,7 +677,7 @@ export function FolhaSection() {
                           ) : (
                             <span
                               style={{
-                                color: saldoHoras[it.nome] >= 0 ? "#059669" : "#dc2626",
+                                color: saldoHoras[it.nome] >= 0 ? "var(--w-600)" : "#dc2626",
                                 fontSize: 13,
                                 fontWeight: 700,
                               }}
@@ -694,8 +694,8 @@ export function FolhaSection() {
                         <td style={{ padding: "12px 16px", textAlign: "right" }}>
                           <span
                             style={{
-                              background: it.status === "pago" ? "#ECFDF5" : "#FFF7ED",
-                              color: it.status === "pago" ? "#059669" : "#C2410C",
+                              background: it.status === "pago" ? "var(--w-50)" : "#FFF7ED",
+                              color: it.status === "pago" ? "var(--w-600)" : "#C2410C",
                               border: `1px solid ${it.status === "pago" ? "#A7F3D0" : "#fde68a"}`,
                               fontSize: 11,
                               padding: "3px 10px",

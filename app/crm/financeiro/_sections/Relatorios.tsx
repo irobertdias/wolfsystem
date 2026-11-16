@@ -110,7 +110,7 @@ export default function Relatorios() {
             {carregando ? <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : filtrados.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum lançamento no filtro</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Ajuste o período ou os filtros acima.</p>
                 </td></tr>
@@ -122,7 +122,7 @@ export default function Relatorios() {
                     <td style={{ ...td, fontWeight: 600 }}>{l.descricao}</td>
                     <td style={{ ...td, color: "#64748B" }}>{nomeCat(l.categoria_id)}</td>
                     <td style={td}><span style={{ color: st.c, fontWeight: 700, fontSize: 12 }}>● {st.l}</span></td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: l.tipo === "receita" ? "#059669" : "#dc2626", whiteSpace: "nowrap" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: l.tipo === "receita" ? "var(--w-600)" : "#dc2626", whiteSpace: "nowrap" }}>{l.tipo === "receita" ? "+" : "-"}{brl(l.valor)}</td>
                   </tr>
                 );
               })}

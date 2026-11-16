@@ -666,20 +666,20 @@ export default function VisaoGeralPage() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 22 }}>
               <Section title="Planos e módulos" subtitle="O que está vendido e liberado por cliente.">
-                <Metric label="Básico" value={num(adminStats.basico)} color="#10B981" note="clientes no plano" />
-                <Metric label="Intermediário" value={num(adminStats.intermediario)} color="#059669" note="clientes no plano" />
-                <Metric label="Ultra" value={num(adminStats.ultra)} color="#065F46" note="clientes no plano" />
-                <Metric label="Cobrança" value={num(adminStats.clientesComCobranca)} color="#059669" note="módulo liberado" />
-                <Metric label="RH" value={num(adminStats.clientesComRH)} color="#059669" note="módulo liberado" />
+                <Metric label="Básico" value={num(adminStats.basico)} color="var(--w-500)" note="clientes no plano" />
+                <Metric label="Intermediário" value={num(adminStats.intermediario)} color="var(--w-600)" note="clientes no plano" />
+                <Metric label="Ultra" value={num(adminStats.ultra)} color="var(--w-800)" note="clientes no plano" />
+                <Metric label="Cobrança" value={num(adminStats.clientesComCobranca)} color="var(--w-600)" note="módulo liberado" />
+                <Metric label="RH" value={num(adminStats.clientesComRH)} color="var(--w-600)" note="módulo liberado" />
                 <Metric label="Financeiro" value={num(adminStats.clientesComFinanceiro)} color="#d97706" note="módulo liberado" />
-                <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="#059669" note="módulo liberado" />
-                <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="#059669" note="disparos via API" />
+                <Metric label="Telefonia" value={num(adminStats.clientesComVoip)} color="var(--w-600)" note="módulo liberado" />
+                <Metric label="API oficial" value={num(adminStats.clientesComApi)} color="var(--w-600)" note="disparos via API" />
               </Section>
               <Section title="Uso da plataforma" subtitle="Ambientes, pessoas e conexões dos seus clientes.">
                 <Metric label="Workspaces ativos" value={num(adminStats.wsAtivos)} color="#059669" note={`${num(workspaces.length)} no total`} />
-                <Metric label="Usuários vinculados" value={num(usuarios)} color="#059669" note="logins dos clientes" />
+                <Metric label="Usuários vinculados" value={num(usuarios)} color="var(--w-600)" note="logins dos clientes" />
                 <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#059669" note="WhatsApp e API" />
-                <Metric label="API oficial" value={num(canaisResumo.waba)} color="#059669" note="canais na API da Meta" />
+                <Metric label="API oficial" value={num(canaisResumo.waba)} color="var(--w-600)" note="canais na API da Meta" />
               </Section>
               <TabelaClientes linhas={cadastros} />
             </div>
@@ -762,7 +762,7 @@ export default function VisaoGeralPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 22, marginTop: 22 }}>
             {temCobranca && (
               <Section title="Cobrança" subtitle="Situação dos vencimentos dos seus clientes.">
-                <Metric label="Em dia" value={num(cobranca.emDia)} color="#059669" note="sem risco imediato" />
+                <Metric label="Em dia" value={num(cobranca.emDia)} color="var(--w-600)" note="sem risco imediato" />
                 <Metric label="Vencendo" value={num(cobranca.vencendo)} color="#f59e0b" note="próximos 2 dias" />
                 <Metric label="Atrasado" value={num(cobranca.atrasado)} color="#dc2626" note="vencimento passou" />
                 <Metric label="Bloqueado" value={num(cobranca.bloqueado)} color="#7f1d1d" note="2+ dias vencido" />
@@ -770,33 +770,33 @@ export default function VisaoGeralPage() {
             )}
             {(temRH || temPonto) && (
               <Section title="Pessoas e ponto" subtitle="Equipe, folha e batidas de hoje.">
-                {temRH && <Metric label="Funcionários ativos" value={num(rh.ativos)} color="#059669" note="na base de RH" />}
+                {temRH && <Metric label="Funcionários ativos" value={num(rh.ativos)} color="var(--w-600)" note="na base de RH" />}
                 {temRH && <Metric label="Custo da folha" value={real(rh.custoFolha)} color="#d97706" note="competência atual" />}
-                {temPonto && <Metric label="Batidas hoje" value={num(pontoHoje)} color="#059669" note={hojeISO().split("-").reverse().join("/")} />}
+                {temPonto && <Metric label="Batidas hoje" value={num(pontoHoje)} color="var(--w-600)" note={hojeISO().split("-").reverse().join("/")} />}
               </Section>
             )}
             {temFinanceiro && (
               <Section title="Financeiro" subtitle="Receitas e despesas do mês.">
-                <Metric label="Receitas do mês" value={real(financeiro.receitas)} color="#059669" note="lançamentos do período" />
+                <Metric label="Receitas do mês" value={real(financeiro.receitas)} color="var(--w-600)" note="lançamentos do período" />
                 <Metric label="Despesas do mês" value={real(financeiro.despesas)} color="#dc2626" note="lançamentos do período" />
-                <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "#059669" : "#dc2626"} note="receitas menos despesas" />
+                <Metric label="Saldo projetado" value={real(financeiro.saldo)} color={financeiro.saldo >= 0 ? "var(--w-600)" : "#dc2626"} note="receitas menos despesas" />
                 <Metric label="Pendências" value={num(financeiro.pendentes)} color="#f59e0b" note="não pagos" />
               </Section>
             )}
             {(temTelefonia || temDisparos || temIntegracoes) && (
               <Section title="Canais e automação" subtitle="Conexões e recursos liberados no plano.">
                 {temTelefonia && <Metric label="Canais conectados" value={`${canaisResumo.conectados}/${canaisResumo.total}`} color="#059669" note="conexões ativas" />}
-                {temTelefonia && <Metric label="WhatsApp Web" value={num(canaisResumo.webjs)} color="#059669" note="canais por QR code" />}
-                {temDisparos && <Metric label="API oficial" value={num(canaisResumo.waba)} color="#059669" note="WhatsApp Business API" />}
-                {modulos.roleta && <Metric label="Roleta" value="Ativa" color="#059669" note="distribuição de leads" />}
-                {modulos.instagram && <Metric label="Instagram" value="Liberado" color="#059669" note="atendimento no Direct" />}
-                {modulos.api_integracao && <Metric label="API" value="Liberada" color="#059669" note="integrações externas" />}
+                {temTelefonia && <Metric label="WhatsApp Web" value={num(canaisResumo.webjs)} color="var(--w-600)" note="canais por QR code" />}
+                {temDisparos && <Metric label="API oficial" value={num(canaisResumo.waba)} color="var(--w-600)" note="WhatsApp Business API" />}
+                {modulos.roleta && <Metric label="Roleta" value="Ativa" color="var(--w-600)" note="distribuição de leads" />}
+                {modulos.instagram && <Metric label="Instagram" value="Liberado" color="var(--w-600)" note="atendimento no Direct" />}
+                {modulos.api_integracao && <Metric label="API" value="Liberada" color="var(--w-600)" note="integrações externas" />}
               </Section>
             )}
             {temEquipe && (
               <Section title="Equipe" subtitle="Quem usa o sistema neste workspace.">
-                <Metric label="Usuários no workspace" value={num(usuarios)} color="#059669" note="logins vinculados" />
-                <Metric label="Vendedores ativos" value={num(vendedoresAtivos)} color="#059669" note="com propostas vinculadas" />
+                <Metric label="Usuários no workspace" value={num(usuarios)} color="var(--w-600)" note="logins vinculados" />
+                <Metric label="Vendedores ativos" value={num(vendedoresAtivos)} color="var(--w-600)" note="com propostas vinculadas" />
               </Section>
             )}
             {!temVendas && !temCobranca && !temRH && !temPonto && !temFinanceiro && !temTelefonia && !temDisparos && !temIntegracoes && !temEquipe && !podeVerChat && (
@@ -847,7 +847,7 @@ function TabelaClientes({ linhas }: { linhas: Cadastro[] }) {
                 <tr key={c.id ?? i} style={{ borderTop: "1px solid #EEF2F1" }}>
                   <td style={{ padding: "13px 24px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <span style={{ width: 36, height: 36, borderRadius: 11, background: "#ECFDF5", color: "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{iniciais(c.empresa || c.nome || "?")}</span>
+                      <span style={{ width: 36, height: 36, borderRadius: 11, background: "var(--w-50)", color: "var(--w-700)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{iniciais(c.empresa || c.nome || "?")}</span>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{c.empresa || c.nome || "—"}</div>
                         <div style={{ color: "#94A3B8", fontSize: 12 }}>{c.email || ""}</div>
@@ -855,7 +855,7 @@ function TabelaClientes({ linhas }: { linhas: Cadastro[] }) {
                     </div>
                   </td>
                   <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14, fontWeight: 600 }}>{plano(c.plano)}</td>
-                  <td style={{ padding: "13px 24px", color: "#047857", fontSize: 14, fontWeight: 700 }}>{Number(c.valor_mensalidade) > 0 ? real(Number(c.valor_mensalidade)) : "—"}</td>
+                  <td style={{ padding: "13px 24px", color: "var(--w-700)", fontSize: 14, fontWeight: 700 }}>{Number(c.valor_mensalidade) > 0 ? real(Number(c.valor_mensalidade)) : "—"}</td>
                   <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(Number(c.usuarios_liberados) || 0)}</td>
                   <td style={{ padding: "13px 24px" }}><span style={{ background: s.bg, color: s.fg, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 700 }}>{s.label}</span></td>
                 </tr>
@@ -943,7 +943,7 @@ function HeroA2({ status, titulo, resumo, acoes }: { status: string; titulo: str
       <div style={{ position: "relative", display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 18 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
           <span style={{ display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: 8, background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.22)", borderRadius: 999, padding: "5px 12px", fontSize: 12.5, fontWeight: 600 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#6EE7B7", boxShadow: "0 0 0 3px rgba(110,231,183,.25)" }} />{status}
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--w-300)", boxShadow: "0 0 0 3px rgba(110,231,183,.25)" }} />{status}
           </span>
           <h1 style={{ margin: "6px 0 0", fontSize: 34, fontWeight: 800, letterSpacing: "-.02em", color: "#fff" }}>{titulo}</h1>
           <span style={{ color: "rgba(255,255,255,.82)", fontSize: 15 }}>{resumo}</span>
@@ -952,7 +952,7 @@ function HeroA2({ status, titulo, resumo, acoes }: { status: string; titulo: str
           <div style={{ marginLeft: "auto", display: "flex", gap: 10, flexWrap: "wrap" }}>
             {acoes.map((a) => (
               <button key={a.label} onClick={a.onClick} style={a.principal
-                ? { height: 44, borderRadius: 12, border: 0, background: "#FFFFFF", color: "#065F46", fontSize: 14, fontWeight: 800, padding: "0 18px", cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(2,44,34,.6)" }
+                ? { height: 44, borderRadius: 12, border: 0, background: "#FFFFFF", color: "var(--w-800)", fontSize: 14, fontWeight: 800, padding: "0 18px", cursor: "pointer", boxShadow: "0 10px 24px -10px rgba(2,44,34,.6)" }
                 : { height: 44, borderRadius: 12, border: "1px solid rgba(255,255,255,.3)", background: "rgba(255,255,255,.12)", color: "#FFFFFF", fontSize: 14, fontWeight: 700, padding: "0 16px", cursor: "pointer" }}>
                 {a.label}
               </button>
@@ -974,7 +974,7 @@ function FaixaKpis({ itens }: { itens: Kpi[] }) {
         return (
           <div key={k.label} className="a2-visao-kpi">
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ width: 34, height: 34, borderRadius: 10, background: k.alerta && laranja ? "#FFF7ED" : "#ECFDF5", color: k.alerta && laranja ? "#EA580C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: k.alerta && laranja ? "#FFF7ED" : "var(--w-50)", color: k.alerta && laranja ? "#EA580C" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icone nome={k.icone} tamanho={17} espessura={2} />
               </span>
               <span style={{ color: "#64748B", fontSize: 13, fontWeight: 600 }}>{k.label}</span>
@@ -983,12 +983,12 @@ function FaixaKpis({ itens }: { itens: Kpi[] }) {
             {typeof k.barra === "number" ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1, height: 8, borderRadius: 99, background: "#EEF2F1" }}>
-                  <div style={{ width: `${Math.max(0, Math.min(100, k.barra))}%`, height: 8, borderRadius: 99, background: "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)" }} />
+                  <div style={{ width: `${Math.max(0, Math.min(100, k.barra))}%`, height: 8, borderRadius: 99, background: "linear-gradient(90deg, var(--w-400), var(--w-600))", boxShadow: "0 2px 6px rgba(5,150,105,.4)" }} />
                 </div>
                 <span style={{ color: "#64748B", fontSize: 12, fontWeight: 700 }} title="Conversão">{k.barraLabel}</span>
               </div>
             ) : k.pill ? (
-              <span style={{ alignSelf: "flex-start", background: laranja ? "#FFF7ED" : "#ECFDF5", color: laranja ? "#C2410C" : "#047857", borderRadius: 999, padding: "3px 9px", fontSize: 12, fontWeight: 700 }}>{k.pill}</span>
+              <span style={{ alignSelf: "flex-start", background: laranja ? "#FFF7ED" : "var(--w-50)", color: laranja ? "#C2410C" : "var(--w-700)", borderRadius: 999, padding: "3px 9px", fontSize: 12, fontWeight: 700 }}>{k.pill}</span>
             ) : null}
           </div>
         );
@@ -1021,7 +1021,7 @@ function GraficoVendas({ grafico, periodo, setPeriodo, titulo, unidade = ["venda
           const destaque = grafico.total > 0 && i === grafico.melhor;
           const h = grafico.total > 0 ? Math.max(6, Math.round((b.valor / max) * 100)) : 6;
           return (
-            <div key={i} title={`${b.label}: ${b.valor}`} style={{ position: "relative", flex: 1, height: `${h}%`, borderRadius: 12, background: destaque ? "linear-gradient(180deg, #34D399 0%, #059669 55%, #047857 100%)" : "#E3F5EC", boxShadow: destaque ? "0 14px 28px -10px rgba(5,150,105,.6)" : "none", transition: "height .35s ease" }}>
+            <div key={i} title={`${b.label}: ${b.valor}`} style={{ position: "relative", flex: 1, height: `${h}%`, borderRadius: 12, background: destaque ? "linear-gradient(180deg, var(--w-400) 0%, var(--w-600) 55%, var(--w-700) 100%)" : "#E3F5EC", boxShadow: destaque ? "0 14px 28px -10px rgba(5,150,105,.6)" : "none", transition: "height .35s ease" }}>
               {destaque && (
                 <span style={{ position: "absolute", top: -34, left: "50%", transform: "translateX(-50%)", background: "#0F172A", color: "#FFFFFF", borderRadius: 8, padding: "4px 9px", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", boxShadow: "0 6px 14px -6px rgba(15,23,42,.6)" }}>{b.valor} {b.valor === 1 ? unidade[0] : unidade[1]}</span>
               )}
@@ -1031,7 +1031,7 @@ function GraficoVendas({ grafico, periodo, setPeriodo, titulo, unidade = ["venda
       </div>
       <div style={{ display: "flex", gap: grafico.barras.length > 8 ? 8 : 16, color: "#94A3B8", fontSize: grafico.barras.length > 8 ? 11 : 12.5, fontWeight: 600 }}>
         {grafico.barras.map((b, i) => (
-          <span key={i} style={{ flex: 1, textAlign: "center", color: grafico.total > 0 && i === grafico.melhor ? "#047857" : undefined, fontWeight: grafico.total > 0 && i === grafico.melhor ? 800 : 600 }}>{b.label}</span>
+          <span key={i} style={{ flex: 1, textAlign: "center", color: grafico.total > 0 && i === grafico.melhor ? "var(--w-700)" : undefined, fontWeight: grafico.total > 0 && i === grafico.melhor ? 800 : 600 }}>{b.label}</span>
         ))}
       </div>
     </div>
@@ -1045,16 +1045,16 @@ function CartaoLista({ titulo, link, itens, vazio }: { titulo: string; link?: { 
     <div style={{ ...card, padding: "24px 22px", display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 8, gap: 8 }}>
         <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#0F172A" }}>{titulo}</h2>
-        {link && <button onClick={link.onClick} style={{ marginLeft: "auto", border: 0, background: "transparent", color: "#047857", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0 }}>{link.label}</button>}
+        {link && <button onClick={link.onClick} style={{ marginLeft: "auto", border: 0, background: "transparent", color: "var(--w-700)", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: 0 }}>{link.label}</button>}
       </div>
       {itens.length === 0 ? (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "28px 0", color: "#64748B", fontSize: 13.5, textAlign: "center" }}>
-          <span style={{ width: 44, height: 44, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} espessura={2.2} /></span>
+          <span style={{ width: 44, height: 44, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="check" tamanho={20} espessura={2.2} /></span>
           {vazio}
         </div>
       ) : itens.map((it) => (
         <div key={it.chave} onClick={it.onClick} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, borderRadius: 14, background: it.destaque ? "#FFF7ED" : "transparent", cursor: it.onClick ? "pointer" : "default" }}>
-          <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 12, background: it.destaque ? "#FFFFFF" : "#ECFDF5", color: it.destaque ? "#C2410C" : "#047857", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, boxShadow: it.destaque ? "0 2px 6px rgba(194,65,12,.15)" : "none" }}>{it.iniciais}</div>
+          <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 12, background: it.destaque ? "#FFFFFF" : "var(--w-50)", color: it.destaque ? "#C2410C" : "var(--w-700)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, boxShadow: it.destaque ? "0 2px 6px rgba(194,65,12,.15)" : "none" }}>{it.iniciais}</div>
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.titulo}</span>
             <span style={{ color: "#64748B", fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.sub}</span>
@@ -1076,7 +1076,7 @@ function FaixaFunil({ itens, final }: { itens: Array<{ label: string; valor: num
           <div style={{ height: 6, borderRadius: 99, background: "#EEF2F1" }}><div style={{ width: `${it.base ? Math.round((it.valor / it.base) * 100) : 0}%`, height: 6, borderRadius: 99, background: it.cor }} /></div>
         </div>
       ))}
-      <div style={{ background: "linear-gradient(140deg, #059669, #065F46)", color: "#FFFFFF", borderRadius: 18, padding: "20px 22px", boxShadow: "0 16px 32px -14px rgba(6,95,70,.6)", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ background: "linear-gradient(140deg, var(--w-600), var(--w-800))", color: "#FFFFFF", borderRadius: 18, padding: "20px 22px", boxShadow: "0 16px 32px -14px rgba(6,95,70,.6)", display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 9, height: 9, borderRadius: "50%", background: "#FFFFFF" }} /><span style={{ color: "rgba(255,255,255,.85)", fontSize: 13, fontWeight: 600 }}>{final.label}</span></div>
         <span style={{ fontSize: 26, fontWeight: 800 }}>{num(final.valor)}</span>
         <span style={{ color: "rgba(255,255,255,.85)", fontSize: 12.5, fontWeight: 600 }}>{final.nota}</span>
@@ -1088,7 +1088,7 @@ function FaixaFunil({ itens, final }: { itens: Array<{ label: string; valor: num
 function LoadingBox({ text }: { text: string }) {
   return (
     <div style={{ ...card, padding: 44, textAlign: "center" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(140deg, #10B981, #059669)", boxShadow: "0 12px 24px -8px rgba(5,150,105,0.5)" }} />
+      <div style={{ width: 40, height: 40, borderRadius: 12, margin: "0 auto 12px", background: "linear-gradient(140deg, var(--w-500), var(--w-600))", boxShadow: "0 12px 24px -8px rgba(5,150,105,0.5)" }} />
       <p style={{ color: "#64748B", fontSize: 13, margin: 0, fontWeight: 600 }}>{text}</p>
     </div>
   );
@@ -1144,7 +1144,7 @@ function TenantTable({ rows }: { rows: Array<{ workspace: string; vendas: number
               <tr key={r.workspace} style={{ borderTop: "1px solid #EEF2F1" }}>
                 <td style={{ padding: "13px 24px", color: "#0F172A", fontSize: 14, fontWeight: 700 }}>{r.workspace}</td>
                 <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(r.vendas)}</td>
-                <td style={{ padding: "13px 24px", color: "#047857", fontSize: 14, fontWeight: 700 }}>{real(r.receita)}</td>
+                <td style={{ padding: "13px 24px", color: "var(--w-700)", fontSize: 14, fontWeight: 700 }}>{real(r.receita)}</td>
                 <td style={{ padding: "13px 24px", color: "#334155", fontSize: 14 }}>{num(r.canais)}</td>
               </tr>
             ))}

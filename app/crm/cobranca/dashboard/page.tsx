@@ -164,14 +164,14 @@ function GraficoLinha({ data, mobile, series, height, pct }: { data: Serie[]; mo
 // ─── Componente: Variação % vs período anterior ───────────────────────────
 function Variacao({ atual, anterior, invertido }: { atual: number; anterior: number; invertido?: boolean }) {
   if (anterior === 0 && atual === 0) return <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>—</span>;
-  if (anterior === 0) return <span style={{ color: "#059669", fontSize: 11, fontWeight: 700 }}>NOVO</span>;
+  if (anterior === 0) return <span style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700 }}>NOVO</span>;
   const variacao = Math.round(((atual - anterior) / anterior) * 100);
   const subiu = variacao > 0;
   // Se "invertido", inadimplência subir é ruim (vermelho); caso normal, subir é bom (verde)
   const bom = invertido ? !subiu : subiu;
   if (variacao === 0) return <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600 }}>= 0%</span>;
   return (
-    <span style={{ color: bom ? "#059669" : "#dc2626", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
+    <span style={{ color: bom ? "var(--w-600)" : "#dc2626", fontSize: 11, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 3 }}>
       {subiu ? "↗" : "↘"} {Math.abs(variacao)}%
     </span>
   );
@@ -464,26 +464,26 @@ export default function CobrancaDashboard() {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => router.push("/crm/cobranca/negociacoes")} style={btnSec}>Negociações</button>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", border: "none" }}>Atualizar planilha</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", border: "none" }}>Atualizar planilha</button>
         </div>
       </div>
 
       {/* ════════ BANNER: ÚLTIMA ATUALIZAÇÃO ════════ */}
       {ultimaAtualizacao.quando && (
-        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px var(--w-200)", borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🔄" tamanho={26} /></div>
             <div>
-              <p style={{ color: "#047857", fontSize: 13, margin: 0, fontWeight: 700 }}>
+              <p style={{ color: "var(--w-700)", fontSize: 13, margin: 0, fontWeight: 700 }}>
                 Última atualização da planilha: {formatTempo(ultimaAtualizacao.quando)}
                 {ultimaAtualizacao.porQuem && <> por <b>{ultimaAtualizacao.porQuem}</b></>}
               </p>
-              <p style={{ color: "#059669", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>
+              <p style={{ color: "var(--w-600)", fontSize: 11.5, margin: "2px 0 0", fontWeight: 600 }}>
                 {formatNum(ultimaAtualizacao.totalNoDia)} fatura(s) foram atualizadas nessa carga
               </p>
             </div>
           </div>
-          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, padding: "8px 14px", fontSize: 12, background: "#fff", color: "#059669", borderColor: "#6EE7B7" }}>Atualizar agora</button>
+          <button onClick={() => router.push("/crm/cobranca/atualizacao")} style={{ ...btnSec, padding: "8px 14px", fontSize: 12, background: "#fff", color: "var(--w-600)", borderColor: "var(--w-300)" }}>Atualizar agora</button>
         </div>
       )}
 
@@ -508,9 +508,9 @@ export default function CobrancaDashboard() {
       </div>
 
       {vazio && (
-        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 12, padding: "16px 20px" }}>
-          <p style={{ color: "#065F46", fontSize: 14, margin: 0, fontWeight: 700 }}>Ainda não há faturas no período selecionado</p>
-          <p style={{ color: "#059669", fontSize: 12.5, margin: "4px 0 0" }}>
+        <div style={{ background: "#F7FFFB", border: "none", boxShadow: "inset 0 0 0 1.5px var(--w-200)", borderRadius: 12, padding: "16px 20px" }}>
+          <p style={{ color: "var(--w-800)", fontSize: 14, margin: 0, fontWeight: 700 }}>Ainda não há faturas no período selecionado</p>
+          <p style={{ color: "var(--w-600)", fontSize: 12.5, margin: "4px 0 0" }}>
             Suba a planilha de pagamento em <b>Atualizar planilha</b> ou amplie o período pra "Tudo".
           </p>
         </div>
@@ -523,12 +523,12 @@ export default function CobrancaDashboard() {
           <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", border: "1px solid var(--w-200)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✅</div>
                 <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Recebidas</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.recebidas} anterior={kpisAnt.recebidas} />}
             </div>
-            <p style={{ color: "#059669", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.recebidas)}</p>
+            <p style={{ color: "var(--w-600)", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.recebidas)}</p>
             <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               {kpis.pctRecebida}% do total · faturas pagas
             </p>
@@ -538,12 +538,12 @@ export default function CobrancaDashboard() {
           <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
+                <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", border: "1px solid var(--w-200)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>🤝</div>
                 <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Em negociação</p>
               </div>
               {periodo !== "tudo" && <Variacao atual={kpis.negociacao} anterior={kpisAnt.negociacao} />}
             </div>
-            <p style={{ color: "#047857", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.negociacao)}</p>
+            <p style={{ color: "var(--w-700)", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{formatNum(kpis.negociacao)}</p>
             <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               promessa, acordo ou em conversa
             </p>
@@ -567,10 +567,10 @@ export default function CobrancaDashboard() {
           {/* Taxa de Inadimplência */}
           <div style={{ ...card, padding: isMobile ? 14 : 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", border: "1px solid #A7F3D0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", border: "1px solid var(--w-200)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>📉</div>
               <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Tx. Inadimplência</p>
             </div>
-            <p style={{ color: kpis.pctInad < 10 ? "#059669" : kpis.pctInad < 25 ? "#C2410C" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
+            <p style={{ color: kpis.pctInad < 10 ? "var(--w-600)" : kpis.pctInad < 25 ? "#C2410C" : "#dc2626", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: -0.5 }}>{kpis.pctInad}%</p>
             <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "3px 0 0", fontWeight: 500 }}>
               {kpis.pctInad < 10 ? "✓ saudável" : kpis.pctInad < 25 ? "atenção" : "crítico"} · inad/total
             </p>
@@ -582,13 +582,13 @@ export default function CobrancaDashboard() {
       {!vazio && insights.length > 0 && (
         <div style={{ ...card, padding: isMobile ? 16 : 20, background: "#ffffff" }}>
           <h3 style={{ ...sectionTitle, margin: "0 0 12px" }}>
-            <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💡</span>
+            <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>💡</span>
             O que esses números te dizem
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {insights.map((ins, i) => (
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px", borderRadius: 8, background: ins.tipo === "ok" ? "#ECFDF5" : ins.tipo === "alerta" ? "#fef2f2" : "#ECFDF5", borderLeft: `3px solid ${ins.tipo === "ok" ? "#059669" : ins.tipo === "alerta" ? "#dc2626" : "#047857"}` }}>
-                <p style={{ color: ins.tipo === "ok" ? "#047857" : ins.tipo === "alerta" ? "#991b1b" : "#065F46", fontSize: 13, margin: 0, fontWeight: 600, lineHeight: 1.5 }}>{ins.texto}</p>
+                <p style={{ color: ins.tipo === "ok" ? "var(--w-700)" : ins.tipo === "alerta" ? "#991b1b" : "var(--w-800)", fontSize: 13, margin: 0, fontWeight: 600, lineHeight: 1.5 }}>{ins.texto}</p>
               </div>
             ))}
           </div>
@@ -611,8 +611,8 @@ export default function CobrancaDashboard() {
             <div style={{ ...card, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🤝" tamanho={26} /></div>
               <div>
-                <p style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
-                <p style={{ color: "#065F46", fontSize: 12, margin: 0, fontWeight: 600 }}>promessa(s) de pagamento pra hoje</p>
+                <p style={{ color: "var(--w-700)", fontSize: 18, fontWeight: 800, margin: 0 }}>{formatNum(alertas.promessasHoje)}</p>
+                <p style={{ color: "var(--w-800)", fontSize: 12, margin: 0, fontWeight: 600 }}>promessa(s) de pagamento pra hoje</p>
               </div>
             </div>
           )}
@@ -664,7 +664,7 @@ export default function CobrancaDashboard() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
             <div>
               <h3 style={{ ...sectionTitle, margin: 0 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
+                <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
                 Evolução mês a mês
               </h3>
               <p style={{ color: "#94A3B8", fontSize: 11.5, margin: "4px 0 0 40px" }}>Como a cobrança evoluiu ao longo do tempo</p>
@@ -693,7 +693,7 @@ export default function CobrancaDashboard() {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 14 }}>
           <div style={{ ...card, padding: isMobile ? 16 : 24 }}>
             <h3 style={{ ...sectionTitle, fontSize: 14 }}>
-              <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✅</span>
+              <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>✅</span>
               % de faturas pagas por mês
             </h3>
             <GraficoLinha data={serieMensal} mobile={isMobile} height={200} pct series={[["pctPago", "#059669"]]} />
@@ -706,7 +706,7 @@ export default function CobrancaDashboard() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="👥" tamanho={24} /></div>
                 <div>
-                  <p style={{ color: "#047857", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalClientes)}</p>
+                  <p style={{ color: "var(--w-700)", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalClientes)}</p>
                   <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>clientes c/ faturas no período</p>
                 </div>
               </div>
@@ -715,7 +715,7 @@ export default function CobrancaDashboard() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={24} /></div>
                 <div>
-                  <p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalFaturas)}</p>
+                  <p style={{ color: "var(--w-600)", fontSize: 20, fontWeight: 800, margin: 0 }}>{formatNum(kpis.totalFaturas)}</p>
                   <p style={{ color: "#64748B", fontSize: 11.5, margin: 0, fontWeight: 600 }}>faturas analisadas no período</p>
                 </div>
               </div>
@@ -769,7 +769,7 @@ export default function CobrancaDashboard() {
                     <td style={{ padding: "12px 14px", color: "#dc2626", fontSize: 14, fontWeight: 800 }}>{c.total} fat.</td>
                     <td style={{ padding: "12px 14px" }}>
                       <button onClick={() => c.proposta && router.push(`/crm/cobranca/negociacoes?proposta=${c.proposta.id}`)}
-                        style={{ background: "#ECFDF5", color: "#047857", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                        style={{ background: "var(--w-50)", color: "var(--w-700)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 12px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                         Negociar
                       </button>
                     </td>

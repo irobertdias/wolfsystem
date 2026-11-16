@@ -39,6 +39,15 @@ export function registrarVertical(workspaceId: string | null | undefined, v: unk
 let VERTICAL_ATUAL: Vertical = "telecom";
 export function definirVerticalAtual(workspaceId?: string | number | null) {
   VERTICAL_ATUAL = verticalDoWorkspace(workspaceId);
+  aplicarCorDoNicho(VERTICAL_ATUAL);
+}
+
+// Cor do sistema pelo nicho (globals.css: html[data-nicho]). Telecom e Financeiro ficam no verde.
+export function aplicarCorDoNicho(v: Vertical) {
+  if (typeof document === "undefined") return;
+  const nicho = v === "consignado" || v === "vendas" || v === "roupas" ? v : "";
+  if (nicho) document.documentElement.dataset.nicho = nicho; else delete document.documentElement.dataset.nicho;
+  try { if (nicho) localStorage.setItem("wolf_nicho", nicho); else localStorage.removeItem("wolf_nicho"); } catch {}
 }
 export function verticalAtual(): Vertical {
   return VERTICAL_ATUAL;

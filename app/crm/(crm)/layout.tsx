@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useWorkspace } from "../../hooks/useWorkspace";
-import { ehRevisional, vocabularioDoWorkspace } from "../../lib/vertical-workspace";
+import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import Icone from "../../components/a2/Icone";
 
 const COR = "#059669";
@@ -48,7 +48,8 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
     };
   }, []);
 
-  const revisional = ehRevisional(wsId);
+  // Nichos com CRM próprio (Financeiro, Consignado): aqui fica só a lista de contatos.
+  const revisional = ehRevisional(wsId) || verticalDoWorkspace(wsId) === "consignado";
   const voc = vocabularioDoWorkspace(wsId); // nomes do ramo (Vendas, Contratos, Pedidos...)
 
   const itensTodos: Item[] = [
@@ -166,7 +167,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: "linear-gradient(140deg, #059669 0%, #065F46 100%)",
+                background: "linear-gradient(140deg, var(--w-600) 0%, var(--w-800) 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -234,7 +235,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
                     fontSize: 13.5,
                     fontWeight: selecionado ? 700 : 600,
                     textAlign: "left",
-                    boxShadow: selecionado ? "inset 0 0 0 1px #A7F3D0" : "none",
+                    boxShadow: selecionado ? "inset 0 0 0 1px var(--w-200)" : "none",
                     transition: "background .12s",
                   }}
                 >

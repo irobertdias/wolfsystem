@@ -114,7 +114,7 @@ export default function FormasPagamento() {
       {carregando ? <p style={{ color: "#94A3B8", fontSize: 14 }}>Carregando…</p>
         : lista.length === 0 ? (
           <div style={{ ...card, padding: "48px 24px", textAlign: "center" }}>
-            <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="💳" tamanho={24} /></div>
+            <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="💳" tamanho={24} /></div>
             <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "10px 0 4px" }}>Nenhuma forma cadastrada</h3>
             <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 16px" }}>Comece com as formas mais comuns ou crie as suas.</p>
             <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>

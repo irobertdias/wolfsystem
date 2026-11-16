@@ -24,7 +24,7 @@ export default function PrivacidadePage() {
         {/* Título */}
         <div style={{ marginBottom: 48 }}>
           <div style={{ display: "inline-block", background: "#16a34a22", border: "1px solid #16a34a44", borderRadius: 20, padding: "6px 16px", marginBottom: 16 }}>
-            <span style={{ color: "#059669", fontSize: 13, fontWeight: "bold" }}>LGPD</span>
+            <span style={{ color: "var(--w-600)", fontSize: 13, fontWeight: "bold" }}>LGPD</span>
           </div>
           <h1 style={{ fontSize: 42, fontWeight: "bold", margin: "0 0 12px 0", lineHeight: 1.2 }}>Política de Privacidade</h1>
           <p style={{ color: "#64748B", fontSize: 14, margin: 0 }}>Última atualização: 11 de maio de 2026</p>
@@ -266,7 +266,7 @@ export default function PrivacidadePage() {
         {/* CTA final */}
         <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid #0F172A", textAlign: "center" }}>
           <p style={{ color: "#94A3B8", fontSize: 14, marginBottom: 16 }}>Dúvidas? Entre em contato com nosso time.</p>
-          <Link href="/" style={{ color: "#059669", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a página inicial</Link>
+          <Link href="/" style={{ color: "var(--w-600)", fontSize: 14, textDecoration: "none", fontWeight: "bold" }}>Voltar para a página inicial</Link>
         </div>
 
       </article>
@@ -280,7 +280,7 @@ export default function PrivacidadePage() {
 }
 
 // ─── Helpers de estilo ────────────────────────────────────────────────
-const linkVerde: React.CSSProperties = { color: "#059669", textDecoration: "none" };
+const linkVerde: React.CSSProperties = { color: "var(--w-600)", textDecoration: "none" };
 const listaStyle: React.CSSProperties = { color: "#CBD5E1", fontSize: 15, paddingLeft: 24, margin: "12px 0" };
 const thStyle: React.CSSProperties = { color: "white", fontSize: 13, textAlign: "left", padding: "10px 12px", background: "#111", borderBottom: "2px solid #0F172A" };
 const avisoImportante: React.CSSProperties = { background: "#f59e0b11", border: "1px solid #f59e0b44", borderRadius: 8, padding: "14px 16px", color: "#fbbf24", fontSize: 14 };
@@ -292,7 +292,7 @@ function H2({ children, id }: { children: React.ReactNode; id?: string }) {
   return <h2 id={id} style={{ color: "white", fontSize: 24, fontWeight: "bold", margin: "40px 0 16px 0", paddingBottom: 8, borderBottom: "1px solid #0F172A", scrollMarginTop: 80 }}>{children}</h2>;
 }
 function H3({ children }: { children: React.ReactNode }) {
-  return <h3 style={{ color: "#059669", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
+  return <h3 style={{ color: "var(--w-600)", fontSize: 17, fontWeight: "bold", margin: "24px 0 10px 0" }}>{children}</h3>;
 }
 function Table({ children }: { children: React.ReactNode }) {
   return <table style={{ width: "100%", borderCollapse: "collapse", margin: "16px 0", background: "#0a0a0a", borderRadius: 8, overflow: "hidden", border: "1px solid #0F172A" }}>{children}</table>;

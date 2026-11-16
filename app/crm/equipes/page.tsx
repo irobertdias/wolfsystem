@@ -204,7 +204,7 @@ export default function EquipesPage() {
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -229,7 +229,7 @@ export default function EquipesPage() {
             }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#ECFDF5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>👥</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--w-50)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>👥</div>
                 <h2 style={{ color: "#0F172A", fontSize: 17, fontWeight: 700, margin: 0 }}>
                   {equipeEditando ? "Editar Equipe" : "Nova Equipe"}
                 </h2>
@@ -268,7 +268,7 @@ export default function EquipesPage() {
               </button>
               <button onClick={salvar} disabled={salvando}
                 style={{
-                  background: salvando ? "#7e22ce" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: salvando ? "#7e22ce" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "10px 28px", fontSize: 13, cursor: salvando ? "not-allowed" : "pointer", fontWeight: 700,
                   boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -299,7 +299,7 @@ export default function EquipesPage() {
           </button>
           <button onClick={abrirNova}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 10,
               padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 4px 12px rgba(168,85,247,0.3)",
@@ -320,7 +320,7 @@ export default function EquipesPage() {
           </div>
         ) : equipes.length === 0 ? (
           <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-            <div style={{ width: 72, height: 72, borderRadius: 16, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"👥"} tamanho={28} /></div>
+            <div style={{ width: 72, height: 72, borderRadius: 16, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, margin: "0 auto 14px" }}><IconeEmoji e={"👥"} tamanho={28} /></div>
             <p style={{ color: "#0F172A", fontSize: 14, fontWeight: 600, margin: "0 0 6px" }}>
               Nenhuma equipe criada ainda
             </p>
@@ -329,7 +329,7 @@ export default function EquipesPage() {
             </p>
             <button onClick={abrirNova}
               style={{
-                background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "10px 22px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               }}>Criar primeira equipe</button>
@@ -353,7 +353,7 @@ export default function EquipesPage() {
                   </div>
                   <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                     <button onClick={() => abrirEditar(eq)} title="Editar"
-                      style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
+                      style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="editar" tamanho={15} /></button>
                     <button onClick={() => desativar(eq)} title="Desativar equipe"
                       style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}><Icone nome="lixeira" tamanho={15} /></button>
                   </div>
@@ -363,9 +363,9 @@ export default function EquipesPage() {
                     <p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 700 }}>Vendedores</p>
                     <p style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdUsuarios}</p>
                   </div>
-                  <div style={{ flex: 1, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                    <p style={{ color: "#047857", fontSize: 11, margin: 0, fontWeight: 700 }}>Propostas</p>
-                    <p style={{ color: "#059669", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdPropostas}</p>
+                  <div style={{ flex: 1, background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
+                    <p style={{ color: "var(--w-700)", fontSize: 11, margin: 0, fontWeight: 700 }}>Propostas</p>
+                    <p style={{ color: "var(--w-600)", fontSize: 18, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>{eq.qtdPropostas}</p>
                   </div>
                 </div>
               </div>
@@ -404,7 +404,7 @@ export default function EquipesPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {u.equipe_id ? (
                       <span style={{
-                        background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0",
+                        background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)",
                         padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
                       }}>{mapaEquipes.get(u.equipe_id) || "—"}</span>
                     ) : (

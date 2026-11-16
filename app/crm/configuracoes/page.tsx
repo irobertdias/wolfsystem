@@ -20,7 +20,7 @@ const ADMIN_EMAIL = "robert.dias@live.com";
 
 // A2: cor do avatar a partir do e-mail/nome.
 const CORES_AVATAR_USUARIO = [
-  { bg: "linear-gradient(140deg, #D1FAE5, #A7F3D0)", fg: "#065F46" },
+  { bg: "linear-gradient(140deg, var(--w-100), var(--w-200))", fg: "#065F46" },
   { bg: "#FFF7ED", fg: "#C2410C" },
   { bg: "#F1F5F9", fg: "#334155" },
   { bg: "#FEF3C7", fg: "#92400E" },
@@ -36,7 +36,7 @@ function corAvatarUsuario(t: string) {
 const SOMBRA_A2 = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)";
 const btnPrimarioA2: React.CSSProperties = {
   height: 46, display: "inline-flex", alignItems: "center", gap: 7,
-  background: "linear-gradient(140deg, #10B981, #059669)", color: "#fff", border: 0, borderRadius: 14,
+  background: "linear-gradient(140deg, var(--w-500), var(--w-600))", color: "#fff", border: 0, borderRadius: 14,
   padding: "0 20px", fontSize: 14, fontWeight: 800, cursor: "pointer",
   boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)", whiteSpace: "nowrap",
 };
@@ -52,10 +52,10 @@ const semEmoji = (t: string) => String(t || "").replace(/^[^\p{L}\p{N}]+/u, "").
 
 function DicaA2({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#F7FFFB", boxShadow: "inset 0 0 0 1.5px #A7F3D0", borderRadius: 16, padding: "14px 18px" }}>
-      <span style={{ width: 30, height: 30, borderRadius: 9, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="info" tamanho={16} /></span>
+    <div style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#F7FFFB", boxShadow: "inset 0 0 0 1.5px var(--w-200)", borderRadius: 16, padding: "14px 18px" }}>
+      <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="info" tamanho={16} /></span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ color: "#065F46", fontSize: 13.5, margin: 0, fontWeight: 800 }}>{titulo}</p>
+        <p style={{ color: "var(--w-800)", fontSize: 13.5, margin: 0, fontWeight: 800 }}>{titulo}</p>
         <p style={{ color: "#475569", fontSize: 13, margin: "3px 0 0", lineHeight: 1.55 }}>{children}</p>
       </div>
     </div>
@@ -80,9 +80,9 @@ function BarraA2({ busca, setBusca, placeholder, rotuloNovo, onNovo }: { busca: 
 
 function FormA2({ titulo, icone, children, onCancelar, onSalvar, salvando, rotuloSalvar = "Salvar" }: { titulo: string; icone: string; children: React.ReactNode; onCancelar: () => void; onSalvar: () => void; salvando: boolean; rotuloSalvar?: string }) {
   return (
-    <section style={{ background: "#fff", borderRadius: 20, boxShadow: `inset 0 0 0 1.5px #A7F3D0, ${SOMBRA_A2}`, padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
+    <section style={{ background: "#fff", borderRadius: 20, boxShadow: `inset 0 0 0 1.5px var(--w-200), ${SOMBRA_A2}`, padding: 22, display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={17} /></span>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={17} /></span>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0F172A" }}>{titulo}</h2>
       </div>
       {children}
@@ -99,7 +99,7 @@ function FormA2({ titulo, icone, children, onCancelar, onSalvar, salvando, rotul
 function VazioA2({ icone, titulo, texto }: { icone: string; titulo: string; texto?: string }) {
   return (
     <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA_A2, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={22} /></span>
+      <span style={{ width: 48, height: 48, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={icone as any} tamanho={22} /></span>
       <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{titulo}</span>
       {texto && <span style={{ fontSize: 13, color: "#64748B" }}>{texto}</span>}
     </div>
@@ -527,7 +527,7 @@ export default function Configuracoes() {
           </p>
           <button onClick={() => router.back()}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 12,
               padding: "11px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer",
               boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)",
@@ -546,15 +546,15 @@ export default function Configuracoes() {
         style={{
           display: "flex", alignItems: "center", gap: 10, width: isMobile ? "auto" : "100%",
           border: 0, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
-          background: ativo ? "#ECFDF5" : "transparent",
-          color: ativo ? "#065F46" : "#475569",
+          background: ativo ? "var(--w-50)" : "transparent",
+          color: ativo ? "var(--w-800)" : "#475569",
           fontSize: 14, fontWeight: ativo ? 800 : 600,
           padding: "10px 12px", borderRadius: 11, transition: "background .15s",
         }}>
-        <Icone nome={aba.icone as any} tamanho={17} cor={ativo ? "#059669" : "#94A3B8"} />
+        <Icone nome={aba.icone as any} tamanho={17} cor={ativo ? "var(--w-600)" : "#94A3B8"} />
         <span style={{ flex: 1 }}>{aba.nome}</span>
         {aba.count > 0 && (
-          <span style={{ background: ativo ? "#059669" : "#F3F6F5", color: ativo ? "#fff" : "#64748B", fontSize: 11, fontWeight: 800, padding: "1px 8px", borderRadius: 999 }}>{aba.count}</span>
+          <span style={{ background: ativo ? "var(--w-600)" : "#F3F6F5", color: ativo ? "#fff" : "#64748B", fontSize: 11, fontWeight: 800, padding: "1px 8px", borderRadius: 999 }}>{aba.count}</span>
         )}
       </button>
     );
@@ -928,7 +928,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               <span style={{ fontSize: 26, fontWeight: 800 }}>{usuarios.length}{temLimite && <span style={{ color: "#94A3B8", fontSize: 16, fontWeight: 700 }}> de {limites.usuarios_liberados}</span>}</span>
               {temLimite ? (
                 <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1" }}>
-                  <div style={{ width: `${pct}%`, height: 8, borderRadius: 99, background: limiteAtingido ? "linear-gradient(90deg, #F87171, #DC2626)" : pct >= 80 ? "linear-gradient(90deg, #FB923C, #EA580C)" : "linear-gradient(90deg, #34D399, #059669)", boxShadow: "0 2px 6px rgba(5,150,105,.4)", transition: "width .3s" }} />
+                  <div style={{ width: `${pct}%`, height: 8, borderRadius: 99, background: limiteAtingido ? "linear-gradient(90deg, #F87171, #DC2626)" : pct >= 80 ? "linear-gradient(90deg, #FB923C, #EA580C)" : "linear-gradient(90deg, var(--w-400), var(--w-600))", boxShadow: "0 2px 6px rgba(5,150,105,.4)", transition: "width .3s" }} />
                 </div>
               ) : <span style={{ color: "#64748B", fontSize: 12.5 }}>sem limite no plano</span>}
             </div>
@@ -942,7 +942,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
               <span style={{ fontSize: 26, fontWeight: 800 }}>{conectadas}{conexoes.length > 0 && <span style={{ color: "#94A3B8", fontSize: 16, fontWeight: 700 }}> de {conexoes.length}</span>}</span>
               {conexoes.length - conectadas > 0
                 ? <span style={{ alignSelf: "flex-start", background: "#FFF7ED", color: "#C2410C", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{conexoes.length - conectadas} desconectada{conexoes.length - conectadas > 1 ? "s" : ""}</span>
-                : <span style={{ alignSelf: "flex-start", background: "#ECFDF5", color: "#047857", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{conexoes.length ? "todas conectadas" : "nenhuma cadastrada"}</span>}
+                : <span style={{ alignSelf: "flex-start", background: "var(--w-50)", color: "var(--w-700)", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{conexoes.length ? "todas conectadas" : "nenhuma cadastrada"}</span>}
             </div>
           </section>
         );
@@ -972,7 +972,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
         <button onClick={abrirNovo} disabled={limiteAtingido}
           style={{
             height: 46, display: "inline-flex", alignItems: "center", gap: 7,
-            background: limiteAtingido ? "#F1F5F4" : "linear-gradient(140deg, #10B981, #059669)",
+            background: limiteAtingido ? "#F1F5F4" : "linear-gradient(140deg, var(--w-500), var(--w-600))",
             color: limiteAtingido ? "#94A3B8" : "white",
             border: "none", borderRadius: 14,
             padding: "0 20px", fontSize: 14, fontWeight: 800,
@@ -987,9 +987,9 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
 
       {/* Form */}
       {showForm && (
-        <div style={{ ...cardStyle, padding: 22, boxShadow: `inset 0 0 0 1.5px #A7F3D0, ${SOMBRA_A2}` }}>
+        <div style={{ ...cardStyle, padding: 22, boxShadow: `inset 0 0 0 1.5px var(--w-200), ${SOMBRA_A2}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={editandoUsuario ? "editar" : "usuario"} tamanho={17} /></span>
+            <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={editandoUsuario ? "editar" : "usuario"} tamanho={17} /></span>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#0F172A" }}>{editandoUsuario ? `Editar ${editandoUsuario.nome}` : "Novo usuário"}</h2>
           </div>
 
@@ -1010,9 +1010,9 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
 
           {/* ─── LINHA 2: Grupo de Permissão (largura total) ─── */}
           <div style={{ marginBottom: 14 }}>
-            <label style={{ ...labelStyle, color: "#059669" }}>Cargo / Grupo de Permissão *</label>
+            <label style={{ ...labelStyle, color: "var(--w-600)" }}>Cargo / Grupo de Permissão *</label>
             <select value={formUsuario.grupo_id} onChange={e => setFormUsuario({ ...formUsuario, grupo_id: e.target.value })}
-              style={{ ...IS, borderColor: formUsuario.grupo_id ? "#059669" : "#E6ECEA" }}>
+              style={{ ...IS, borderColor: formUsuario.grupo_id ? "var(--w-600)" : "#E6ECEA" }}>
               <option value="">— Sem grupo (usa padrão do perfil) —</option>
               {gruposPermissao.map((g: GrupoPermissao) => (
                 <option key={g.id} value={g.id.toString()}>{g.nome}</option>
@@ -1059,8 +1059,8 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                 return (
                   <button key={eq.id} type="button" onClick={toggleEq}
                     style={{
-                      background: ativa ? "#ECFDF5" : "#ffffff",
-                      color: ativa ? "#047857" : "#64748B",
+                      background: ativa ? "var(--w-50)" : "#ffffff",
+                      color: ativa ? "var(--w-700)" : "#64748B",
                       border: "1.5px solid " + (ativa ? "#059669" : "#E6ECEA"),
                       borderRadius: 10, padding: "9px 16px",
                       fontSize: 12.5, fontWeight: 700,
@@ -1122,8 +1122,8 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                     return (
                       <button key={f.id} type="button" onClick={toggleF}
                         style={{
-                          background: ativa ? "#ECFDF5" : "#ffffff",
-                          color: ativa ? "#047857" : "#64748B",
+                          background: ativa ? "var(--w-50)" : "#ffffff",
+                          color: ativa ? "var(--w-700)" : "#64748B",
                           border: "1.5px solid " + (ativa ? "#10B981" : "#E6ECEA"),
                           borderRadius: 10, padding: "9px 14px",
                           fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -1136,7 +1136,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   })}
                 </div>
                 {formUsuario.filas_acesso.length > 0 && (
-                  <p style={{ color: "#10b981", fontSize: 12, margin: "5px 0 0", fontWeight: 600 }}>
+                  <p style={{ color: "var(--w-500)", fontSize: 12, margin: "5px 0 0", fontWeight: 600 }}>
                     Usuário verá {formUsuario.filas_acesso.length} fila(s) selecionada(s)
                   </p>
                 )}
@@ -1182,8 +1182,8 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   return (
                     <button key={c.id} type="button" onClick={toggleC}
                       style={{
-                        background: ativo ? "#ECFDF5" : "#ffffff",
-                        color: ativo ? "#059669" : "#64748B",
+                        background: ativo ? "var(--w-50)" : "#ffffff",
+                        color: ativo ? "var(--w-600)" : "#64748B",
                         border: "1.5px solid " + (ativo ? "#10B981" : "#E6ECEA"),
                         borderRadius: 10, padding: "8px 12px",
                         fontSize: 11.5, fontWeight: 700, cursor: "pointer",
@@ -1220,8 +1220,8 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                       return (
                         <button key={conexao.id} type="button" onClick={toggle}
                           style={{
-                            background: ativa ? "#ecfdf5" : "#ffffff",
-                            color: ativa ? "#047857" : "#64748B",
+                            background: ativa ? "var(--w-50)" : "#ffffff",
+                            color: ativa ? "var(--w-700)" : "#64748B",
                             border: "1.5px solid " + (ativa ? "#10b981" : "#E6ECEA"),
                             borderRadius: 10, padding: "8px 12px",
                             fontSize: 11.5, fontWeight: 700, cursor: "pointer",
@@ -1249,13 +1249,13 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                   style={{
                     display: "flex", alignItems: "center", gap: 12,
                     padding: "11px 14px",
-                    background: formUsuario.exige_selfie ? "#ECFDF5" : "#F7FAF9",
+                    background: formUsuario.exige_selfie ? "var(--w-50)" : "#F7FAF9",
                     border: "1px solid " + (formUsuario.exige_selfie ? "#A7F3D0" : "#E6ECEA"),
                     borderRadius: 10, cursor: "pointer", transition: "all 0.15s",
                   }}>
                   <div style={{
                     width: 40, height: 22, borderRadius: 999,
-                    background: formUsuario.exige_selfie ? "#047857" : "#cbd5e1",
+                    background: formUsuario.exige_selfie ? "var(--w-700)" : "#cbd5e1",
                     position: "relative", flexShrink: 0, transition: "background 0.15s",
                   }}>
                     <div style={{
@@ -1267,7 +1267,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                     }} />
                   </div>
                   <span style={{
-                    color: formUsuario.exige_selfie ? "#065F46" : "#64748B",
+                    color: formUsuario.exige_selfie ? "var(--w-800)" : "#64748B",
                     fontSize: 12.5, fontWeight: 700,
                   }}>
                     {formUsuario.exige_selfie ? "Sim — exige selfie + GPS" : "Não — só localização (GPS)"}
@@ -1369,7 +1369,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                 onChange={e => setFormUsuario({ ...formUsuario, senha: e.target.value })}
                 style={{ ...IS, paddingRight: 40 }} />
               <button onClick={() => setShowSenha(!showSenha)} type="button" title={showSenha ? "Esconder senha" : "Mostrar senha"}
-                style={{ position: "absolute", right: 8, top: 31, background: "#fff", border: "none", cursor: "pointer", color: showSenha ? "#059669" : "#64748B", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                style={{ position: "absolute", right: 8, top: 31, background: "#fff", border: "none", cursor: "pointer", color: showSenha ? "var(--w-600)" : "#64748B", width: 30, height: 30, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Icone nome="olho" tamanho={16} />
               </button>
             </div>
@@ -1391,7 +1391,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
       {/* Lista */}
       {usuariosFiltrados.length === 0 ? (
         <div style={{ ...cardStyle, padding: "40px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 48, height: 48, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ width: 48, height: 48, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Icone nome={busca || filtroPerfil !== "todos" || filtroEquipe !== "todas" ? "busca" : "usuarios"} tamanho={22} />
           </span>
           <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
@@ -1438,7 +1438,7 @@ function AbaUsuarios({ usuarios, equipes, filas, conexoes, voipConexoes, gruposP
                       </td>
                       <td style={{ padding: "14px 18px", color: grupo ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }}>{grupo ? grupo.nome : "—"}</td>
                       <td style={{ padding: "14px 18px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: online ? "#047857" : "#64748B", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: online ? "var(--w-700)" : "#64748B", fontWeight: 700, whiteSpace: "nowrap" }}>
                           <span style={{ width: 8, height: 8, borderRadius: "50%", background: online ? "#22C55E" : "#CBD5E1", boxShadow: online ? "0 0 0 3px rgba(34,197,94,.2)" : "none" }} />
                           {online ? "Online" : "Offline"}
                         </span>
@@ -1794,7 +1794,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
                     <tr key={f.id} className="a2-linha-contato" style={{ borderTop: i ? "1px solid #F1F5F4" : "none", fontSize: 13.5 }}>
                       <td style={{ padding: "14px 18px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 38, height: 38, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <Icone nome="chat" tamanho={18} />
                           </div>
                           <span style={{ color: "#0F172A", fontWeight: 800 }}>{f.nome}</span>
@@ -1803,7 +1803,7 @@ function AbaFilas({ filas, equipes, usuarios, equipeById, workspaceId, podeGeren
                       <td style={{ padding: "14px 18px", color: equipe ? "#334155" : "#CBD5E1", whiteSpace: "nowrap" }}>{equipe ? equipe.nome : "Global"}</td>
                       <td style={{ padding: "14px 18px", color: f.conexao ? "#334155" : "#CBD5E1" }}>{f.conexao || "—"}</td>
                       <td style={{ padding: "14px 18px" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: qtd ? "#ECFDF5" : "#F3F6F5", color: qtd ? "#047857" : "#94A3B8", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800 }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: qtd ? "var(--w-50)" : "#F3F6F5", color: qtd ? "var(--w-700)" : "#94A3B8", padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800 }}>
                           <Icone nome="usuarios" tamanho={12} />{qtd}
                         </span>
                       </td>
@@ -1928,12 +1928,12 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ display: "inline-flex", color: "#64748B", transform: aberta ? "none" : "rotate(-90deg)", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
                       <span style={{ color: "#0F172A", fontSize: 14, fontWeight: 800 }}>{semEmoji(cat.nome)}</span>
-                      <span style={{ background: algumaMarcada ? "#ECFDF5" : "#EEF2F1", color: algumaMarcada ? "#047857" : "#64748B", fontSize: 11.5, padding: "2px 9px", borderRadius: 999, fontWeight: 800 }}>
+                      <span style={{ background: algumaMarcada ? "var(--w-50)" : "#EEF2F1", color: algumaMarcada ? "var(--w-700)" : "#64748B", fontSize: 11.5, padding: "2px 9px", borderRadius: 999, fontWeight: 800 }}>
                         {cat.permissoes.filter(p => formGrupo.permissoes[p.key]).length}/{cat.permissoes.length}
                       </span>
                     </div>
                     <button onClick={e => { e.stopPropagation(); toggleCategoriaToda(cat.nome, !todasMarcadas); }}
-                      style={{ ...btnClaroA2, height: 30, background: todasMarcadas ? "#059669" : "#fff", color: todasMarcadas ? "#fff" : "#334155", boxShadow: todasMarcadas ? "none" : "inset 0 0 0 1px #E6ECEA" }}>
+                      style={{ ...btnClaroA2, height: 30, background: todasMarcadas ? "var(--w-600)" : "#fff", color: todasMarcadas ? "#fff" : "#334155", boxShadow: todasMarcadas ? "none" : "inset 0 0 0 1px #E6ECEA" }}>
                       <Icone nome={todasMarcadas ? "check" : "mais"} tamanho={13} espessura={2.4} />{todasMarcadas ? "Todas marcadas" : "Marcar todas"}
                     </button>
                   </div>
@@ -1946,7 +1946,7 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
                             style={{
                               display: "flex", alignItems: "center", gap: 10,
                               background: on ? "#F7FFFB" : "#F7FAF9",
-                              boxShadow: on ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1",
+                              boxShadow: on ? "inset 0 0 0 1.5px var(--w-200)" : "inset 0 0 0 1px #EEF2F1",
                               borderRadius: 12, padding: "10px 12px", cursor: "pointer", transition: "all 0.15s",
                             }}>
                             <input type="checkbox" checked={on}
@@ -1976,7 +1976,7 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
             return (
               <div key={g.id} style={{ ...cardStyle, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <span style={{ width: 42, height: 42, borderRadius: 12, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="escudo" tamanho={20} /></span>
+                  <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="escudo" tamanho={20} /></span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 800, margin: 0 }}>{g.nome}</p>
                     <p style={{ color: "#64748B", fontSize: 12.5, margin: "2px 0 0" }}>{g.descricao || "Sem descrição"}</p>
@@ -1986,17 +1986,17 @@ function AbaPermissoes({ gruposPermissao, workspaceId, podeGerenciar, isMobile, 
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <div style={{ display: "flex", fontSize: 12.5 }}>
                     <span style={{ color: "#64748B", fontWeight: 600 }}>Permissões liberadas</span>
-                    <b style={{ marginLeft: "auto", color: "#047857" }}>{qtdMarcadas} de {total}</b>
+                    <b style={{ marginLeft: "auto", color: "var(--w-700)" }}>{qtdMarcadas} de {total}</b>
                   </div>
                   <div style={{ height: 8, borderRadius: 99, background: "#EEF2F1" }}>
-                    <div style={{ height: 8, borderRadius: 99, background: "linear-gradient(90deg, #34D399, #059669)", width: `${pct}%`, transition: "width .3s" }} />
+                    <div style={{ height: 8, borderRadius: 99, background: "linear-gradient(90deg, var(--w-400), var(--w-600))", width: `${pct}%`, transition: "width .3s" }} />
                   </div>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {Object.entries(g.permissoes || {}).filter(([, v]) => v).slice(0, 8).map(([k]) => (
                     <span key={k} style={{ background: "#F3F6F5", color: "#334155", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 600 }}>{LABELS_MAP[k] || k}</span>
                   ))}
-                  {qtdMarcadas > 8 && <span style={{ background: "#ECFDF5", color: "#047857", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 800 }}>+{qtdMarcadas - 8}</span>}
+                  {qtdMarcadas > 8 && <span style={{ background: "var(--w-50)", color: "var(--w-700)", fontSize: 12, padding: "3px 10px", borderRadius: 999, fontWeight: 800 }}>+{qtdMarcadas - 8}</span>}
                 </div>
               </div>
             );
@@ -2045,7 +2045,7 @@ function InfoCard({ titulo, valor, detalhe, icone, destaque }: { titulo: string;
   const alerta = destaque === "alerta";
   return (
     <div style={{ background: "#fff", borderRadius: 18, boxShadow: SOMBRA_A2, padding: "18px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-      <span style={{ width: 44, height: 44, borderRadius: 13, background: alerta ? "#FEF2F2" : "#ECFDF5", color: alerta ? "#B91C1C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ width: 44, height: 44, borderRadius: 13, background: alerta ? "#FEF2F2" : "var(--w-50)", color: alerta ? "#B91C1C" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <Icone nome={icone as any} tamanho={20} />
       </span>
       <div style={{ minWidth: 0 }}>
@@ -2132,7 +2132,7 @@ function BloqueioPosFinalizacao({ workspaceId, podeGerenciar, IS, cardStyle, lab
           return (
             <button key={h} disabled={!podeGerenciar || carregandoConfiguracao || salvando} onClick={() => { setHorasBloqueio(h); setEditado(true); }}
               style={{
-                background: ativo ? "#059669" : "transparent", color: ativo ? "#fff" : "#475569",
+                background: ativo ? "var(--w-600)" : "transparent", color: ativo ? "#fff" : "#475569",
                 border: 0, borderRadius: 9, padding: "8px 14px", fontSize: 13, fontWeight: ativo ? 800 : 600,
                 cursor: podeGerenciar ? "pointer" : "not-allowed", opacity: podeGerenciar ? 1 : 0.5,
                 boxShadow: ativo ? "0 8px 18px -8px rgba(5,150,105,.7)" : "none",
@@ -2207,11 +2207,11 @@ function ConfigPontoSelfie({ podeGerenciar, IS, cardStyle }: any) {
               style={{
                 flex: "1 1 220px", display: "flex", alignItems: "center", gap: 12, textAlign: "left",
                 background: ativo ? "#fff" : "#F7FAF9", border: 0, borderRadius: 16, padding: "14px 16px",
-                outline: ativo ? "2px solid #059669" : "none",
+                outline: ativo ? "2px solid var(--w-600)" : "none",
                 boxShadow: ativo ? "0 10px 24px -14px rgba(5,150,105,.5)" : "inset 0 0 0 1px #E6ECEA",
                 cursor: podeGerenciar ? "pointer" : "not-allowed", opacity: podeGerenciar ? 1 : 0.6,
               }}>
-              <span style={{ width: 40, height: 40, borderRadius: 12, background: ativo ? "#ECFDF5" : "#fff", color: ativo ? "#059669" : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 12, background: ativo ? "var(--w-50)" : "#fff", color: ativo ? "var(--w-600)" : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <Icone nome={op.ic as any} tamanho={19} />
               </span>
               <span style={{ display: "flex", flexDirection: "column" }}>

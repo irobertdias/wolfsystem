@@ -18,8 +18,8 @@ export function LogoA2({ claro = false }: { claro?: boolean }) {
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{
         width: 40, height: 40, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-        fontWeight: 800, fontSize: 18, color: claro ? "#065F46" : "#fff",
-        background: claro ? "#fff" : "linear-gradient(140deg, #059669 0%, #065F46 100%)",
+        fontWeight: 800, fontSize: 18, color: claro ? "var(--w-800)" : "#fff",
+        background: claro ? "#fff" : "linear-gradient(140deg, var(--w-600) 0%, var(--w-800) 100%)",
         boxShadow: claro ? "0 8px 20px -8px rgba(0,0,0,.35)" : "0 6px 14px -4px rgba(5,150,105,.55)",
       }}>W</div>
       <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-.01em", color: claro ? "#fff" : "#0F172A" }}>Wolf System</span>
@@ -46,14 +46,14 @@ export function MolduraAuth({ titulo, sub, children, larguraCartao = 440, destaq
         @keyframes a2Sobe { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         .a2-auth-cartao { animation: a2Sobe .45s ease-out both; }
         .a2-auth-botao:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-1px); }
-        .a2-auth-link:hover { color: #065F46 !important; text-decoration: underline; }
+        .a2-auth-link:hover { color: var(--w-800) !important; text-decoration: underline; }
       `}</style>
 
       {/* Painel esmeralda */}
       <aside className="a2-auth-hero" style={{
         flex: "1 1 44%", position: "sticky", top: 16, alignSelf: "flex-start", height: "calc(100vh - 32px)", boxSizing: "border-box",
         overflow: "hidden", margin: 16, borderRadius: 28,
-        background: "linear-gradient(130deg, #10B981 0%, #059669 38%, #065F46 78%, #064E3B 100%)",
+        background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 38%, var(--w-800) 78%, var(--w-900) 100%)",
         boxShadow: "0 30px 60px -28px rgba(6,95,70,.75)", color: "#fff",
         display: "flex", flexDirection: "column", padding: "40px 48px",
       }}>
@@ -64,7 +64,7 @@ export function MolduraAuth({ titulo, sub, children, larguraCartao = 440, destaq
 
         <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 520, gap: 22 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, alignSelf: "flex-start", background: "rgba(255,255,255,.14)", borderRadius: 999, padding: "6px 14px", fontSize: 12.5, fontWeight: 700 }}>
-            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#A7F3D0", boxShadow: "0 0 0 4px rgba(167,243,208,.25)" }} />
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--w-200)", boxShadow: "0 0 0 4px rgba(167,243,208,.25)" }} />
             Sistema online, atendendo agora
           </span>
           <h1 style={{ margin: 0, fontSize: 44, fontWeight: 800, lineHeight: 1.08, letterSpacing: "-.025em" }}>
@@ -134,7 +134,7 @@ export function CampoA2({ rotulo, icone, direita, extra, children, dica, erro }:
 export function OlhoSenha({ visivel, onClick }: { visivel: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} title={visivel ? "Esconder senha" : "Mostrar senha"}
-      style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: visivel ? "#ECFDF5" : "transparent", color: visivel ? "#059669" : "#94A3B8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      style={{ width: 34, height: 34, borderRadius: 10, border: 0, background: visivel ? "var(--w-50)" : "transparent", color: visivel ? "var(--w-600)" : "#94A3B8", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <Icone nome="olho" tamanho={17} />
     </button>
   );
@@ -150,7 +150,7 @@ export function BotaoA2({ children, onClick, disabled, carregando, variante = "p
         width: "100%", height: 52, borderRadius: 15, border: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
         fontSize: 15, fontWeight: 800, transition: "all .15s",
         cursor: disabled || carregando ? "not-allowed" : "pointer", opacity: disabled && !carregando ? 0.5 : 1,
-        background: primario ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)" : "#F3F6F5",
+        background: primario ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))" : "#F3F6F5",
         color: primario ? "#fff" : "#334155",
         boxShadow: primario ? "0 16px 30px -14px rgba(5,150,105,.8)" : "none",
       }}>
@@ -164,10 +164,10 @@ export function AvisoA2({ tipo = "erro", children }: { tipo?: "erro" | "ok"; chi
   const erro = tipo === "erro";
   return (
     <div role={erro ? "alert" : "status"} style={{ display: "flex", alignItems: "center", gap: 10, background: erro ? "#FEF2F2" : "#F7FFFB", boxShadow: `inset 0 0 0 1.5px ${erro ? "#FECACA" : "#A7F3D0"}`, borderRadius: 14, padding: "11px 14px" }}>
-      <span style={{ width: 28, height: 28, borderRadius: 8, background: erro ? "#FEE2E2" : "#ECFDF5", color: erro ? "#B91C1C" : "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <span style={{ width: 28, height: 28, borderRadius: 8, background: erro ? "#FEE2E2" : "var(--w-50)", color: erro ? "#B91C1C" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <Icone nome={erro ? "alerta" : "check"} tamanho={15} />
       </span>
-      <span style={{ color: erro ? "#991B1B" : "#065F46", fontSize: 13.5, fontWeight: 600 }}>{children}</span>
+      <span style={{ color: erro ? "#991B1B" : "var(--w-800)", fontSize: 13.5, fontWeight: 600 }}>{children}</span>
     </div>
   );
 }

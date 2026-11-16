@@ -152,7 +152,7 @@ export function BeneficiosSection() {
             setModal(true);
           }}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -212,7 +212,7 @@ export function BeneficiosSection() {
         </div>
       ) : lista.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhum benefício cadastrado.</p>
         </div>
       ) : (
@@ -284,9 +284,9 @@ export function BeneficiosSection() {
                         setModal(true);
                       }}
                       style={{
-                        background: "#ECFDF5",
+                        background: "var(--w-50)",
                         color: COR_TEXTO,
-                        border: "1px solid #A7F3D0",
+                        border: "1px solid var(--w-200)",
                         borderRadius: 8,
                         padding: "4px 9px",
                         fontSize: 11,
@@ -472,7 +472,7 @@ export function BeneficiosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

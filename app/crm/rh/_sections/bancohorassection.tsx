@@ -292,7 +292,7 @@ export function BancoHorasSection() {
               setModal(true);
             }}
             style={{
-              background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+              background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
               color: "white",
               border: "none",
               borderRadius: 12,
@@ -356,7 +356,7 @@ export function BancoHorasSection() {
         </div>
       ) : saldos.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="relogio" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="relogio" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 4px" }}>
             Nenhuma batida de ponto neste mês ainda.
           </p>
@@ -386,7 +386,7 @@ export function BancoHorasSection() {
                         width: 38,
                         height: 38,
                         borderRadius: "50%",
-                        background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                        background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -410,7 +410,7 @@ export function BancoHorasSection() {
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                     <span
                       style={{
-                        color: s.saldoFinal >= 0 ? "#059669" : "#dc2626",
+                        color: s.saldoFinal >= 0 ? "var(--w-600)" : "#dc2626",
                         fontSize: 18,
                         fontWeight: 800,
                       }}
@@ -474,7 +474,7 @@ export function BancoHorasSection() {
                             </span>
                             <span
                               style={{
-                                color: d.saldo >= 0 ? "#059669" : "#dc2626",
+                                color: d.saldo >= 0 ? "var(--w-600)" : "#dc2626",
                                 fontSize: 12,
                                 fontWeight: 700,
                               }}
@@ -517,7 +517,7 @@ export function BancoHorasSection() {
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span
                                 style={{
-                                  color: l.horas >= 0 ? "#059669" : "#dc2626",
+                                  color: l.horas >= 0 ? "var(--w-600)" : "#dc2626",
                                   fontSize: 12,
                                   fontWeight: 700,
                                 }}
@@ -668,7 +668,7 @@ export function BancoHorasSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

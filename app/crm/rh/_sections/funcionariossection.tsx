@@ -289,7 +289,7 @@ export function FuncionariosSection() {
         <button
           onClick={abrirNovo}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -402,7 +402,7 @@ export function FuncionariosSection() {
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0
               ? "Nenhum funcionário cadastrado ainda. Clique em “+ Novo Funcionário”."
@@ -524,7 +524,7 @@ export function FuncionariosSection() {
                       <td style={{ padding: "12px 16px", color: "#475569", fontSize: 12 }}>
                         {f.departamento || "—"}
                         {f.equipe_id && equipeNome(f.equipe_id) ? (
-                          <span style={{ display: "block", color: "#059669", fontSize: 11, fontWeight: 600 }}>{equipeNome(f.equipe_id)}</span>
+                          <span style={{ display: "block", color: "var(--w-600)", fontSize: 11, fontWeight: 600 }}>{equipeNome(f.equipe_id)}</span>
                         ) : null}
                       </td>
                       <td
@@ -809,7 +809,7 @@ export function FuncionariosSection() {
                 onClick={salvar}
                 disabled={salvando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,
@@ -838,7 +838,7 @@ function Avatar({ nome }: { nome: string }) {
         width: 36,
         height: 36,
         borderRadius: "50%",
-        background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+        background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

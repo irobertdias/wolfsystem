@@ -121,11 +121,11 @@ export default function NotasRecebidas() {
         onDrop={(e) => { e.preventDefault(); setDrag(false); processar(e.dataTransfer.files); }}
         style={{ display: "block", border: `2px dashed ${drag ? COR : COR + "88"}`, borderRadius: 16, padding: 30, textAlign: "center", cursor: "pointer", background: drag ? `${COR}10` : `${COR}06`, transition: "all 0.15s" }}>
         <input type="file" accept=".xml,text/xml" multiple style={{ display: "none" }} onChange={(e) => processar(e.target.files)} />
-        <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📥" tamanho={24} /></div>
+        <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📥" tamanho={24} /></div>
         <div style={{ fontSize: 15, fontWeight: 800, color: COR, marginTop: 8 }}>{importando ? "Lendo XML(s)…" : "Arraste os XML aqui ou clique para selecionar"}</div>
         <div style={{ fontSize: 12.5, color: "#64748B", marginTop: 4 }}>Aceita vários arquivos · evita duplicar pela chave da nota</div>
       </label>
-      {msg && <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "11px 16px", color: "#047857", fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+      {msg && <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 12, padding: "11px 16px", color: "var(--w-700)", fontSize: 13, fontWeight: 600 }}>{msg}</div>}
 
       <div style={{ ...card, overflow: "hidden" }}>
         <div style={{ padding: "16px 18px", borderBottom: "1px solid #F1F5F4" }}><h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Notas importadas</h3></div>
@@ -138,7 +138,7 @@ export default function NotasRecebidas() {
             {carregando ? <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : lista.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📨" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📨" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhuma nota importada</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Suba o XML de uma NF-e acima — o sistema preenche tudo sozinho.</p>
                 </td></tr>
@@ -148,7 +148,7 @@ export default function NotasRecebidas() {
                   <td style={{ ...td, color: "#64748B" }}>{n.numero || "—"}</td>
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(n.emissao)}</td>
                   <td style={td}>{n.lancamento_id
-                    ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Lançada</span>
+                    ? <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Lançada</span>
                     : <button onClick={() => lancar(n)} style={{ background: `${COR}12`, color: COR, border: `1px solid ${COR}55`, borderRadius: 9, padding: "6px 11px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Lançar a pagar</button>}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#dc2626", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>

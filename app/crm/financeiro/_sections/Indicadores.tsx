@@ -66,7 +66,7 @@ export default function Indicadores() {
         <h3 style={{ margin: "0 0 18px", fontSize: 14, fontWeight: 800, color: "#0F172A" }}>{<IconeEmoji e={emoji} />} {titulo}</h3>
         {carregando ? <p style={{ color: "#94A3B8", fontSize: 13, margin: 0 }}>Carregando…</p>
           : dados.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}><div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div><p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Sem dados pagos ainda.</p></div>
+            <div style={{ textAlign: "center", padding: "20px 0", color: "#94A3B8" }}><div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="📊" tamanho={24} /></div><p style={{ fontSize: 13, margin: "6px 0 0", fontStyle: "italic" }}>Sem dados pagos ainda.</p></div>
           ) : dados.map((d: any, i: number) => (
             <div key={i} style={{ marginBottom: i === dados.length - 1 ? 0 : 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>

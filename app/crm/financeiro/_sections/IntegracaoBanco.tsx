@@ -43,10 +43,10 @@ export default function IntegracaoBanco() {
 
       {/* STATUS */}
       <div style={{ ...card, padding: 24, borderLeft: `5px solid ${conectado ? "#059669" : "#94A3B8"}`, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-        <div style={{ width: 60, height: 60, borderRadius: 16, background: conectado ? "#ECFDF5" : "#F3F6F5", color: conectado ? "#059669" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center" }}>{conectado ? <Icone nome="check" tamanho={28} espessura={2.4} /> : <Icone nome="link" tamanho={26} />}</div>
+        <div style={{ width: 60, height: 60, borderRadius: 16, background: conectado ? "var(--w-50)" : "#F3F6F5", color: conectado ? "var(--w-600)" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center" }}>{conectado ? <Icone nome="check" tamanho={28} espessura={2.4} /> : <Icone nome="link" tamanho={26} />}</div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: conectado ? "#059669" : "#94A3B8" }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: conectado ? "var(--w-600)" : "#94A3B8" }} />
             <strong style={{ fontSize: 17, color: "#0F172A" }}>{carregando ? "Verificando…" : conectado ? "Conectado" : "Não conectado"}</strong>
           </div>
           <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "#64748B", lineHeight: 1.5 }}>
@@ -78,11 +78,11 @@ export default function IntegracaoBanco() {
       {/* COMPARATIVO */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
         <div style={{ ...card, padding: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "#059669" }}>Importar OFX <span style={{ fontSize: 11, background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Disponível agora</span></h3></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="📑" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: "var(--w-600)" }}>Importar OFX <span style={{ fontSize: 11, background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", padding: "2px 9px", borderRadius: 20 }}>Disponível agora</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Baixe o extrato em <b>.ofx</b> no app do banco e suba em <b>Importar extrato</b>. A conciliação funciona igual, <b>sem custo</b> de provedor.</p>
         </div>
         <div style={{ ...card, padding: 22 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="🔌" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: COR }}>Open Finance ao-vivo <span style={{ fontSize: 11, background: "#ECFDF5", color: COR, border: "1px solid #A7F3D0", padding: "2px 9px", borderRadius: 20 }}>Em breve</span></h3></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center" }}><IconeEmoji e="🔌" tamanho={17} /></span><h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: COR }}>Open Finance ao-vivo <span style={{ fontSize: 11, background: "var(--w-50)", color: COR, border: "1px solid var(--w-200)", padding: "2px 9px", borderRadius: 20 }}>Em breve</span></h3></div>
           <p style={{ fontSize: 13.5, color: "#64748B", lineHeight: 1.6, margin: 0 }}>Conexão direta com o banco via agregador (Pluggy/Belvo). O extrato chega <b>sozinho</b>, sem baixar arquivo. É um serviço contratado à parte.</p>
         </div>
       </div>

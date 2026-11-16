@@ -33,6 +33,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   // Workspace de revisão de contratos: sem telas de vendas; o módulo
   // Revisional ocupa o lugar da Visão e do CRM comercial.
   const revisional = ehRevisional(wsAberto);
+  // Nichos com CRM próprio: o módulo do nicho substitui a Visão e o CRM de vendas.
+  const consignado = verticalDoWorkspace(wsAberto) === "consignado";
+  const crmNicho = revisional ? "/crm/revisional" : consignado ? "/crm/consignado" : "";
   const voc = vocabularioDoWorkspace(wsAberto);
   // IA vendedora de planos (consulta de cobertura de operadora): só faz sentido em telecom
   const telecom = verticalDoWorkspace(wsAberto) === "telecom";
@@ -248,9 +251,9 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
 
   const launchers = [
     ...(isSuperAdmin ? [{ path: "/crm/clientes", label: "Clientes", icon: "👥", visivel: true }, { path: "/crm/orcamentos", label: "Orçamentos", icon: "💼", visivel: true }] : []),
-    ...(revisional
+    ...(crmNicho
       ? [
-          { path: "/crm/revisional", label: "CRM", icon: "🎯", visivel: true },
+          { path: crmNicho, label: "CRM", icon: "🎯", visivel: true },
           { path: "/crm/contatos", label: "Contatos", icon: "👥", visivel: crmItems.some((i) => i.path === "/crm/contatos") },
         ]
       : [
@@ -271,18 +274,18 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
     { path: "/crm/configuracoes", label: "Ajustes", icon: "⚙️", visivel: podeVerConfig },
   ].filter((item) => item.visivel);
 
-  const inicio = revisional ? "/crm/revisional" : "/crm/visao";
+  const inicio = crmNicho || "/crm/visao";
 
-  // Telas de vendas não existem no workspace revisional: manda para o módulo.
+  // Telas de vendas de internet não existem nos nichos com CRM próprio: manda para o módulo.
   useEffect(() => {
-    if (!revisional) return;
+    if (!crmNicho) return;
     if (["/crm/visao", "/crm/dashboard", "/crm/funil", "/crm/vendas", "/crm/proposta", "/crm/editor-proposta"].includes(pathname)) {
-      router.replace("/crm/revisional");
+      router.replace(crmNicho);
     }
-  }, [revisional, pathname, router]);
+  }, [crmNicho, pathname, router]);
 
   const launcherAtivo = (path: string) => {
-    if (revisional && path === "/crm/contatos") return pathname.startsWith("/crm/contatos");
+    if (crmNicho && path === "/crm/contatos") return pathname.startsWith("/crm/contatos");
     if (path === "/crm/visao" || path === "/chatbot" || path === "/crm/clientes") {
       return pathname === path || (path === "/chatbot" && pathname.startsWith("/chatbot/"));
     }

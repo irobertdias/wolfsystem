@@ -23,7 +23,7 @@ type PropostaLista = {
 const STATUS: Record<string, { rotulo: string; cls: string; ponto: string }> = {
   enviada: { rotulo: "Enviada", cls: "bg-[#F1F5F9] text-[#334155]", ponto: "#64748B" },
   visualizada: { rotulo: "Visualizada", cls: "bg-[#FFF7ED] text-[#C2410C]", ponto: "#F97316" },
-  aceita: { rotulo: "Aceita", cls: "bg-[#ECFDF5] text-[#047857]", ponto: "#10B981" },
+  aceita: { rotulo: "Aceita", cls: "bg-[var(--w-50)] text-[var(--w-700)]", ponto: "#10B981" },
   recusada: { rotulo: "Recusada", cls: "bg-[#FEF2F2] text-[#B91C1C]", ponto: "#EF4444" },
   expirada: { rotulo: "Expirada", cls: "bg-[#F3F6F5] text-[#64748B]", ponto: "#94A3B8" },
   cancelada: { rotulo: "Cancelada", cls: "bg-[#F3F6F5] text-[#94A3B8]", ponto: "#CBD5E1" },
@@ -141,7 +141,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
           <div className="flex justify-center"><LogoW /></div>
           <div className="mt-3 text-xl font-extrabold text-[#0F172A]">Análise contratual</div>
           <p className="mt-2 text-sm text-[#64748B]">Entre com seu usuário do Wolf System para simular e enviar propostas.</p>
-          <a href="/login" className="mt-5 inline-block rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-7 py-3 text-sm font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]">Entrar</a>
+          <a href="/login" className="mt-5 inline-block rounded-xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-700)] px-7 py-3 text-sm font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]">Entrar</a>
         </div>
       </main>
     );
@@ -153,9 +153,9 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
     <nav className="ml-auto flex gap-1 rounded-[13px] bg-white p-1 shadow-[0_1px_2px_rgba(16,24,40,.05),0_6px_16px_-10px_rgba(16,24,40,.2)]">
       {([["nova", "Nova simulação"], ["lista", "Propostas"], ...(podeConfigurar ? [["config", "Configurações"]] : [])] as [typeof aba, string][]).map(([k, t]) => (
         <button key={k} onClick={() => { if (k === "nova") setEditando(null); setAba(k); }}
-          className={`flex items-center gap-1.5 rounded-[9px] px-[15px] py-[9px] text-[13px] transition ${aba === k ? "bg-[#059669] font-extrabold text-white shadow-[0_8px_18px_-8px_rgba(5,150,105,.7)]" : "font-semibold text-[#475569] hover:bg-[#F3F6F5]"}`}>
+          className={`flex items-center gap-1.5 rounded-[9px] px-[15px] py-[9px] text-[13px] transition ${aba === k ? "bg-[var(--w-600)] font-extrabold text-white shadow-[0_8px_18px_-8px_rgba(5,150,105,.7)]" : "font-semibold text-[#475569] hover:bg-[#F3F6F5]"}`}>
           {t}
-          {k === "lista" && <span className={`rounded-full px-1.5 text-[11px] font-extrabold ${aba === k ? "bg-white/20 text-white" : "bg-[#ECFDF5] text-[#047857]"}`}>{propostas.length}</span>}
+          {k === "lista" && <span className={`rounded-full px-1.5 text-[11px] font-extrabold ${aba === k ? "bg-white/20 text-white" : "bg-[var(--w-50)] text-[var(--w-700)]"}`}>{propostas.length}</span>}
         </button>
       ))}
     </nav>
@@ -165,7 +165,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
     return (
       <div className={`flex items-center justify-center p-6 ${embutido ? "min-h-[60vh]" : "min-h-screen bg-[#F3F6F5]"}`}>
         <div className={`${cartaoCls} max-w-md p-7 text-center`}>
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#ECFDF5] text-[#059669]"><Icone nome="balanca" tamanho={22} /></span>
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--w-50)] text-[var(--w-600)]"><Icone nome="balanca" tamanho={22} /></span>
           <div className="mt-3 text-lg font-extrabold text-[#0F172A]">Análise contratual</div>
           <p className="mt-2 text-sm text-[#64748B]">{erroAcesso}</p>
           <p className="mt-1 text-xs text-[#94A3B8]">Fale com o administrador do Wolf System para liberar o acesso.</p>
@@ -183,7 +183,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
             <span className="text-[16px] font-extrabold tracking-tight">Wolf System</span>
             {usuarioNome && (
               <div className="ml-auto flex items-center gap-2.5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] text-[13px] font-extrabold text-[#065F46]">{iniciais(usuarioNome)}</div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--w-100)] to-[var(--w-200)] text-[13px] font-extrabold text-[var(--w-800)]">{iniciais(usuarioNome)}</div>
                 <span className="hidden text-[13px] font-bold sm:block">{usuarioNome}</span>
               </div>
             )}
@@ -235,7 +235,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
 type TaxaBacen = { taxa_mensal: number; referencia: string; do_mes_do_contrato: boolean } | null;
 
 function LogoW() {
-  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-gradient-to-br from-[#059669] to-[#065F46] text-[16px] font-extrabold text-white shadow-[0_6px_14px_-4px_rgba(5,150,105,.55)]">W</div>;
+  return <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-gradient-to-br from-[var(--w-600)] to-[var(--w-800)] text-[16px] font-extrabold text-white shadow-[0_6px_14px_-4px_rgba(5,150,105,.55)]">W</div>;
 }
 function iniciais(t: string) {
   const p = t.trim().split(/\s+/).filter(Boolean);
@@ -246,7 +246,7 @@ function Secao({ n, titulo, sub, extra, children }: { n: number; titulo: string;
   return (
     <section className={`${cartaoCls} flex flex-col gap-4 p-[22px]`}>
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-[#059669] text-[12px] font-extrabold text-white">{n}</span>
+        <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-[var(--w-600)] text-[12px] font-extrabold text-white">{n}</span>
         <h2 className="m-0 text-[16px] font-extrabold">{titulo}</h2>
         {extra && <span className="ml-auto">{extra}</span>}
         {sub && <p className="m-0 basis-full text-[12.5px] text-[#64748B]">{sub}</p>}
@@ -260,10 +260,10 @@ function DinheiroAuto({ valor, auto, onChange }: { valor: number; auto?: number;
   const calculado = !valor && !!auto;
   return (
     <div className="relative">
-      <input inputMode="numeric" className={`${inputCls} ${calculado ? "!border-[#A7F3D0] !bg-[#ECFDF5] pr-9 placeholder:font-bold placeholder:text-[#065F46]" : ""}`}
+      <input inputMode="numeric" className={`${inputCls} ${calculado ? "!border-[var(--w-200)] !bg-[var(--w-50)] pr-9 placeholder:font-bold placeholder:text-[var(--w-800)]" : ""}`}
         value={valor ? brl(valor) : ""} placeholder={calculado ? brl(auto!) : "R$ 0,00"}
         onChange={(e) => onChange(Number(e.target.value.replace(/\D/g, "") || 0) / 100)} />
-      {calculado && <span title="Calculado automaticamente" className="pointer-events-none absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md bg-[#10B981] text-white"><Icone nome="raio" tamanho={12} /></span>}
+      {calculado && <span title="Calculado automaticamente" className="pointer-events-none absolute right-2.5 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-md bg-[var(--w-500)] text-white"><Icone nome="raio" tamanho={12} /></span>}
     </div>
   );
 }
@@ -276,9 +276,9 @@ function ComparaTaxas({ cobrada, media, ref, vezes }: { cobrada: number | null; 
     <div className={`${cartaoCls} flex flex-col gap-3.5 px-[22px] py-5`}>
       <div className="flex items-center">
         <span className="text-[14px] font-extrabold">Juros × mercado</span>
-        {vezes != null && <span className={`ml-auto rounded-full px-2.5 py-[3px] text-[12px] font-extrabold ${acima ? "bg-[#FEF2F2] text-[#B91C1C]" : "bg-[#ECFDF5] text-[#047857]"}`}>{vezes.toLocaleString("pt-BR")}× a média</span>}
+        {vezes != null && <span className={`ml-auto rounded-full px-2.5 py-[3px] text-[12px] font-extrabold ${acima ? "bg-[#FEF2F2] text-[#B91C1C]" : "bg-[var(--w-50)] text-[var(--w-700)]"}`}>{vezes.toLocaleString("pt-BR")}× a média</span>}
       </div>
-      {([["Cobrada no contrato", cobrada, "from-[#F87171] to-[#DC2626]", "text-[#DC2626]"], [`Média do Banco Central${ref ? ` (${ref})` : ""}`, media, "from-[#34D399] to-[#059669]", "text-[#047857]"]] as const).map(([k, v, cor, txt]) => (
+      {([["Cobrada no contrato", cobrada, "from-[#F87171] to-[#DC2626]", "text-[#DC2626]"], [`Média do Banco Central${ref ? ` (${ref})` : ""}`, media, "from-[var(--w-400)] to-[var(--w-600)]", "text-[var(--w-700)]"]] as const).map(([k, v, cor, txt]) => (
         <div key={k} className="flex flex-col gap-1.5">
           <div className="flex text-[13px]"><span className="text-[#475569]">{k}</span><b className={`ml-auto ${txt}`}>{pctBR(v)} a.m.</b></div>
           <div className="h-2.5 rounded-full bg-[#F1F5F4]"><div className={`h-2.5 rounded-full bg-gradient-to-r ${cor}`} style={{ width: `${(v / max) * 100}%` }} /></div>
@@ -390,7 +390,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
     const msg = mensagemCliente(cliente.nome, gerada.link, validade);
     return (
       <div className={`${cartaoCls} mx-auto w-full max-w-xl overflow-hidden`}>
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#10B981] via-[#059669] to-[#065F46] px-[26px] py-6 text-white">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-800)] px-[26px] py-6 text-white">
           <div aria-hidden className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 rounded-full bg-white/10" />
           <span className="relative inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-bold"><Icone nome="check" tamanho={13} /> Proposta nº {gerada.numero} {editar ? "corrigida · mesmo link" : "gerada"}</span>
           <div className="relative mt-3 text-[24px] font-extrabold tracking-tight">{cliente.nome}</div>
@@ -403,10 +403,10 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
           </div>
           <textarea readOnly value={msg} rows={6} className={`${inputCls} !h-auto py-3 !text-[13px] !font-medium leading-relaxed`} />
           <div className="grid grid-cols-2 gap-2">
-            <a href={linkWhats(cliente.telefone, msg)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-[14px] bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] py-3.5 text-[14px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]"><Icone nome="whatsapp" tamanho={16} />Enviar no WhatsApp</a>
+            <a href={linkWhats(cliente.telefone, msg)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-[14px] bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-700)] py-3.5 text-[14px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]"><Icone nome="whatsapp" tamanho={16} />Enviar no WhatsApp</a>
             <a href={gerada.link} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 rounded-[14px] bg-[#F3F6F5] py-3.5 text-[14px] font-bold text-[#334155]"><Icone nome="olho" tamanho={16} />Ver como o cliente</a>
           </div>
-          <button onClick={novaSimulacao} className="mt-1 text-[13px] font-bold text-[#047857] hover:underline">Fazer nova simulação</button>
+          <button onClick={novaSimulacao} className="mt-1 text-[13px] font-bold text-[var(--w-700)] hover:underline">Fazer nova simulação</button>
         </div>
       </div>
     );
@@ -417,7 +417,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
   const reducaoPct = parcelaAtual > 0 ? Math.round((1 - resultado.parcela_corrigida / parcelaAtual) * 100) : 0;
   const taxaInfo = bacen[tipo];
   const pilulaBacen = taxaInfo
-    ? <span className="rounded-full bg-[#ECFDF5] px-2.5 py-1 text-[12px] font-bold text-[#047857]">Taxa média BACEN {taxaInfo.referencia}: {pctBR(taxaInfo.taxa_mensal)} a.m.</span>
+    ? <span className="rounded-full bg-[var(--w-50)] px-2.5 py-1 text-[12px] font-bold text-[var(--w-700)]">Taxa média BACEN {taxaInfo.referencia}: {pctBR(taxaInfo.taxa_mensal)} a.m.</span>
     : bacenErro ? <span className="rounded-full bg-[#FFF7ED] px-2.5 py-1 text-[12px] font-bold text-[#C2410C]">{bacenErro}</span> : null;
 
   return (
@@ -428,8 +428,8 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
             const sel = tipo === t;
             return (
               <button key={t} onClick={() => setTipo(t)}
-                className={`flex items-center gap-3 rounded-2xl bg-white px-[18px] py-4 text-left transition ${sel ? "shadow-[0_10px_24px_-14px_rgba(5,150,105,.5)] outline outline-2 outline-[#059669]" : "shadow-[0_1px_2px_rgba(16,24,40,.05),0_8px_20px_-14px_rgba(16,24,40,.2)] hover:shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_24px_-14px_rgba(16,24,40,.3)]"}`}>
-                <span className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl ${sel ? "bg-[#ECFDF5] text-[#059669]" : "bg-[#F3F6F5] text-[#475569]"}`}>
+                className={`flex items-center gap-3 rounded-2xl bg-white px-[18px] py-4 text-left transition ${sel ? "shadow-[0_10px_24px_-14px_rgba(5,150,105,.5)] outline outline-2 outline-[var(--w-600)]" : "shadow-[0_1px_2px_rgba(16,24,40,.05),0_8px_20px_-14px_rgba(16,24,40,.2)] hover:shadow-[0_1px_2px_rgba(16,24,40,.05),0_12px_24px_-14px_rgba(16,24,40,.3)]"}`}>
+                <span className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl ${sel ? "bg-[var(--w-50)] text-[var(--w-600)]" : "bg-[#F3F6F5] text-[#475569]"}`}>
                   <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                     {t === "imovel"
                       ? <><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>
@@ -546,7 +546,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
                 {veiculo.metodo === "percentual" && <Campo rotulo="% de redução da parcela"><Texto valor={veiculo.percentual_correcao} onChange={setV("percentual_correcao")} inputMode="decimal" /></Campo>}
                 {veiculo.metodo === "bacen" && (
                   <div className="flex items-end sm:col-span-2">
-                    <div className="flex min-h-11 w-full items-center rounded-xl bg-[#ECFDF5] px-3.5 py-2 text-[13px] text-[#065F46] shadow-[inset_0_0_0_1px_#A7F3D0]">
+                    <div className="flex min-h-11 w-full items-center rounded-xl bg-[var(--w-50)] px-3.5 py-2 text-[13px] text-[var(--w-800)] shadow-[inset_0_0_0_1px_#A7F3D0]">
                       {taxaInfo ? <>Usando <b>{pctBR(taxaInfo.taxa_mensal)} a.m.</b> — média de {taxaInfo.referencia}{!taxaInfo.do_mes_do_contrato && mesContrato ? " (mês do contrato ainda não divulgado)" : ""}</> : bacenErro || "Buscando a taxa média…"}
                     </div>
                   </div>
@@ -559,14 +559,14 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
 
       {/* prévia */}
       <aside aria-label="Prévia do resultado" className="flex h-fit flex-col gap-4">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#064E3B] p-[26px] text-white shadow-[0_24px_48px_-22px_rgba(6,95,70,.75)]">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-900)] p-[26px] text-white shadow-[0_24px_48px_-22px_rgba(6,95,70,.75)]">
           <div aria-hidden className="pointer-events-none absolute -right-[60px] -top-[60px] h-[220px] w-[220px] rounded-full bg-white/10" />
           <span className="relative text-[13px] font-bold text-white/80">{tipo === "imovel" ? "Diferença total identificada" : "Economia total identificada"}</span>
           <div className="relative mt-1 text-[38px] font-extrabold leading-tight tracking-[-.02em] sm:text-[42px]">{brl(total)}</div>
           <div className="relative mt-4 flex flex-wrap items-center gap-2.5">
             <span className="rounded-[10px] bg-white/15 px-[11px] py-[7px] text-[14px] font-bold line-through decoration-white/60">{brl(parcelaAtual)}</span>
             <span aria-hidden>→</span>
-            <span className="rounded-[10px] bg-white px-[11px] py-[7px] text-[14px] font-extrabold text-[#065F46] shadow-[0_6px_16px_-8px_rgba(0,0,0,.4)]">{brl(resultado.parcela_corrigida)} por mês</span>
+            <span className="rounded-[10px] bg-white px-[11px] py-[7px] text-[14px] font-extrabold text-[var(--w-800)] shadow-[0_6px_16px_-8px_rgba(0,0,0,.4)]">{brl(resultado.parcela_corrigida)} por mês</span>
             {reducaoPct > 0 && <span className="ml-auto rounded-full bg-white/20 px-2.5 py-1 text-[12px] font-extrabold">−{reducaoPct}%</span>}
           </div>
         </div>
@@ -580,12 +580,12 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
 
         <div className={`${cartaoCls} px-[22px] py-2 text-[13.5px]`}>
           {(tipo === "imovel"
-            ? [["Amortizado", resultado.amortizado, ""], ["Amortização corrigida", resultado.amortizacao_corrigida, ""], ["Diferença na amortização", resultado.diferenca_amortizacao, "text-[#DC2626]"], ["Tarifas e seguros questionáveis", resultado.tarifas_questionaveis, "text-[#C2410C]"], ["Saldo devedor correto", resultado.saldo_correto, ""], ["Economia até o fim do contrato", resultado.economia_total, "text-[#047857]"]]
+            ? [["Amortizado", resultado.amortizado, ""], ["Amortização corrigida", resultado.amortizacao_corrigida, ""], ["Diferença na amortização", resultado.diferenca_amortizacao, "text-[#DC2626]"], ["Tarifas e seguros questionáveis", resultado.tarifas_questionaveis, "text-[#C2410C]"], ["Saldo devedor correto", resultado.saldo_correto, ""], ["Economia até o fim do contrato", resultado.economia_total, "text-[var(--w-700)]"]]
             : [["Redução por parcela", resultado.reducao_parcela, ""],
-               ...(resultado.balao ? [["Parcela balão", resultado.balao, ""], ["Balão corrigido", resultado.balao_corrigido, "text-[#047857]"]] : []),
-               [`Redução nas ${resultado.restantes} restantes${resultado.balao ? " + balão" : ""}`, resultado.reducao_total, "text-[#047857]"],
+               ...(resultado.balao ? [["Parcela balão", resultado.balao, ""], ["Balão corrigido", resultado.balao_corrigido, "text-[var(--w-700)]"]] : []),
+               [`Redução nas ${resultado.restantes} restantes${resultado.balao ? " + balão" : ""}`, resultado.reducao_total, "text-[var(--w-700)]"],
                ["Estorno das pagas", resultado.estorno, "text-[#C2410C]"],
-               ...(resultado.saldo_quitacao != null ? [["Quitação hoje (contrato)", resultado.saldo_quitacao, ""], ["Quitação com a revisão", resultado.saldo_quitacao_revisado, "text-[#047857]"], ["Desconto na quitação", resultado.desconto_quitacao, "text-[#047857]"]] : [])]
+               ...(resultado.saldo_quitacao != null ? [["Quitação hoje (contrato)", resultado.saldo_quitacao, ""], ["Quitação com a revisão", resultado.saldo_quitacao_revisado, "text-[var(--w-700)]"], ["Desconto na quitação", resultado.desconto_quitacao, "text-[var(--w-700)]"]] : [])]
           ).map(([k, v, cor]) => (
             <div key={k} className="flex border-b border-[#F1F5F4] py-3 last:border-0"><span className="text-[#64748B]">{k}</span><b className={`ml-auto tabular-nums ${cor}`}>{brl(v)}</b></div>
           ))}
@@ -603,7 +603,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
         </div>
 
         <button disabled={gerando || pendencias.length > 0 || !cliente.nome.trim() || validade < 1} onClick={gerar}
-          className="h-[54px] rounded-2xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-[15px] font-extrabold text-white shadow-[0_16px_30px_-14px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none">
+          className="h-[54px] rounded-2xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-700)] text-[15px] font-extrabold text-white shadow-[0_16px_30px_-14px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none">
           {gerando ? (editar ? "Salvando…" : "Gerando…") : editar ? "Salvar correção (mesmo link)" : "Gerar proposta e enviar link"}
         </button>
         {editar && <button onClick={() => onSairEdicao?.()} className="text-[13px] font-bold text-[#64748B] hover:underline">Cancelar edição</button>}
@@ -647,7 +647,7 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
       </div>
       {lista.length === 0 && (
         <div className="flex flex-col items-center gap-2 px-6 pb-12 pt-6 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#ECFDF5] text-[#059669]"><Icone nome="documento" tamanho={22} /></span>
+          <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--w-50)] text-[var(--w-600)]"><Icone nome="documento" tamanho={22} /></span>
           <span className="text-[15px] font-extrabold">{filtro ? "Nada encontrado" : "Nenhuma proposta ainda"}</span>
           <span className="text-[13px] text-[#64748B]">{filtro ? "Tente outro nome, CPF ou número." : "As propostas geradas na simulação aparecem aqui."}</span>
         </div>
@@ -659,7 +659,7 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
           const aberta = p.status === "enviada" || p.status === "visualizada";
           return (
             <div key={p.id} className={`flex flex-wrap items-center gap-3.5 border-t border-[#F1F5F4] px-[18px] py-4 transition hover:bg-[#F7FAF9] ${p.status === "aceita" && !p.dados?.contrato_gerado ? "bg-[#FFFBEB]" : ""}`}>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#D1FAE5] to-[#A7F3D0] text-[13px] font-extrabold text-[#065F46]">{iniciais(p.cliente_nome)}</div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--w-100)] to-[var(--w-200)] text-[13px] font-extrabold text-[var(--w-800)]">{iniciais(p.cliente_nome)}</div>
               <div className="min-w-[200px] flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[14.5px] font-extrabold">{p.cliente_nome}</span>
@@ -676,19 +676,19 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[16px] font-extrabold tracking-tight text-[#047857]">{brl(total)}</div>
+                <div className="text-[16px] font-extrabold tracking-tight text-[var(--w-700)]">{brl(total)}</div>
                 <div className="text-[12px] text-[#94A3B8]">parcela {brl(p.dados?.parcela_atual)} → {brl(p.resultado.parcela_corrigida)}</div>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {p.status === "aceita" && (p.dados?.contrato_gerado
-                  ? <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF5] px-3 py-1.5 text-[12.5px] font-bold text-[#047857]"><Icone nome="check" tamanho={13} />Contrato gerado</span>
-                  : <a href={`/crm/contratos?revisional=${p.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-3.5 py-2 text-[13px] font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(5,150,105,.8)]"><Icone nome="documento" tamanho={14} />Gerar contrato</a>)}
+                  ? <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--w-50)] px-3 py-1.5 text-[12.5px] font-bold text-[var(--w-700)]"><Icone nome="check" tamanho={13} />Contrato gerado</span>
+                  : <a href={`/crm/contratos?revisional=${p.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-700)] px-3.5 py-2 text-[13px] font-extrabold text-white shadow-[0_10px_20px_-10px_rgba(5,150,105,.8)]"><Icone nome="documento" tamanho={14} />Gerar contrato</a>)}
                 {p.status !== "aceita" && p.status !== "recusada" && (
                   <button onClick={() => onEditar(p)} className={`${botaoSec} !bg-[#FFFBEB] !text-[#92400E] hover:!bg-[#FEF3C7]`} title="Corrigir os dados e recalcular (mantém o mesmo link)"><Icone nome="editar" tamanho={13} />Editar</button>
                 )}
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className={botaoSec}><Icone nome="copiar" tamanho={13} />Copiar link</button>
                 <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: { ...(p.empresa || {}), ...(config?.empresa_nome ? { nome: config.empresa_nome } : {}) }, marca: (config as any)?.marca, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
-                <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[#ECFDF5] !text-[#047857] hover:!bg-[#D1FAE5]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
+                <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[var(--w-50)] !text-[var(--w-700)] hover:!bg-[var(--w-100)]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
                 <a href={p.link} target="_blank" rel="noreferrer" className={botaoSec}><Icone nome="olho" tamanho={13} />Abrir</a>
                 {(p.status === "expirada" || p.status === "cancelada" || aberta) && (
                   <button disabled={ocupado === p.id} onClick={() => acao(p, "renovar")} className={botaoSec} title={`Mais ${config?.validade_horas || 24}h a partir de agora`}><Icone nome="atualizar" tamanho={13} />Renovar</button>
@@ -736,7 +736,7 @@ function Configuracoes({ config, onSalvo }: { config: Config; onSalvo: (c: Confi
   return (
     <div className={`${cartaoCls} flex max-w-3xl flex-col gap-4 p-[22px]`}>
       <div className="flex items-center gap-2.5">
-        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-[#059669] text-white"><Icone nome="config" tamanho={14} /></span>
+        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-lg bg-[var(--w-600)] text-white"><Icone nome="config" tamanho={14} /></span>
         <h2 className="m-0 text-[16px] font-extrabold">Padrões da proposta</h2>
       </div>
       <div className="grid gap-3.5 sm:grid-cols-2">
@@ -788,7 +788,7 @@ function Configuracoes({ config, onSalvo }: { config: Config; onSalvo: (c: Confi
       </div>
 
       <div className="flex items-center gap-3">
-        <button onClick={salvar} className="rounded-xl bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] px-6 py-3 text-[14px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]">Salvar</button>
+        <button onClick={salvar} className="rounded-xl bg-gradient-to-br from-[var(--w-500)] via-[var(--w-600)] to-[var(--w-700)] px-6 py-3 text-[14px] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)]">Salvar</button>
         {msg && <span className="text-[13px] font-semibold text-[#64748B]">{msg}</span>}
       </div>
     </div>

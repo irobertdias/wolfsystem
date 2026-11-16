@@ -94,7 +94,7 @@ export default function Contatos() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Clientes / Fornecedores</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Cadastro usado nas contas a pagar e a receber</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #059669 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(13,148,136,0.4)" }}>+ Novo contato</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, var(--w-600) 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 12px rgba(13,148,136,0.4)" }}>+ Novo contato</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(185px, 1fr))", gap: 16 }}>
@@ -129,7 +129,7 @@ export default function Contatos() {
                   <div style={{ display: "flex", justifyContent: "center" }}><IconeEmoji e="🧑‍🤝‍🧑" tamanho={26} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum contato</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Cadastre clientes e fornecedores pra usar nos lançamentos.</p>
-                  <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #059669 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo contato</button>
+                  <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, var(--w-600) 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo contato</button>
                 </td></tr>
               ) : filtrada.map((c, i) => {
                 const t = tipoMeta(c.tipo); const rec = aReceberDe(c.id); const pag = aPagarA(c.id);
@@ -144,7 +144,7 @@ export default function Contatos() {
                     <td style={td}><span style={{ background: t.bg, color: t.cor, border: `1px solid ${t.bd}`, fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>{t.l}</span></td>
                     <td style={{ ...td, color: "#64748B", fontFamily: "monospace" }}>{c.documento || "—"}</td>
                     <td style={{ ...td, color: "#64748B" }}>{c.telefone ? <div>{c.telefone}</div> : null}{c.email ? <div style={{ fontSize: 12 }}>{c.email}</div> : null}{!c.telefone && !c.email ? "—" : null}</td>
-                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: rec > 0 ? "#059669" : "#CBD5E1" }}>{rec > 0 ? brl(rec) : "—"}</td>
+                    <td style={{ ...td, textAlign: "right", fontWeight: 800, color: rec > 0 ? "var(--w-600)" : "#CBD5E1" }}>{rec > 0 ? brl(rec) : "—"}</td>
                     <td style={{ ...td, textAlign: "right", fontWeight: 800, color: pag > 0 ? "#dc2626" : "#CBD5E1" }}>{pag > 0 ? brl(pag) : "—"}</td>
                     <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                       <button onClick={() => abrirEdicao(c)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 10, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="editar" tamanho={15} /></button>
@@ -161,7 +161,7 @@ export default function Contatos() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 480, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: "#059669", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar contato" : "Novo contato"}</h2>
+              <h2 style={{ color: "var(--w-600)", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar contato" : "Novo contato"}</h2>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ marginBottom: 14 }}>
@@ -180,7 +180,7 @@ export default function Contatos() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Ativo</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(135deg, #059669 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 4px 12px rgba(13,148,136,0.4)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(135deg, var(--w-600) 0%, #2dd4bf 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1, boxShadow: "0 4px 12px rgba(13,148,136,0.4)" }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

@@ -155,7 +155,7 @@ export default function ConfiguracoesContratosPage() {
           <div style={{ width: 220, height: 110, borderRadius: 12, border: "1px dashed #cbd5e1", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
             {empresa.carimbo_assinatura ? <img src={empresa.carimbo_assinatura} alt="Carimbo" style={{ maxWidth: "100%", maxHeight: "100%" }} /> : <small style={{ color: "#94a3b8" }}>Sem carimbo</small>}
           </div>
-          <label style={{ cursor: "pointer", fontWeight: 700, color: "#047857" }}>
+          <label style={{ cursor: "pointer", fontWeight: 700, color: "var(--w-700)" }}>
             {empresa.carimbo_assinatura ? "Trocar carimbo" : "Enviar carimbo / assinatura (imagem)"}
             <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: "none" }} onChange={async e => {
               const arq = e.target.files?.[0]; if (!arq) return;

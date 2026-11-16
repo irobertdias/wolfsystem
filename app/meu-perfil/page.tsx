@@ -285,7 +285,7 @@ export default function MeuPerfilPage() {
       }}>
         {/* Header roxo */}
         <div style={{
-          background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+          background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
           padding: "28px 32px 60px",
           position: "relative",
         }}>
@@ -327,7 +327,7 @@ export default function MeuPerfilPage() {
               style={{
                 position: "absolute", bottom: 4, right: 4,
                 width: 34, height: 34, borderRadius: "50%",
-                background: "#fff", border: "2px solid #059669",
+                background: "#fff", border: "2px solid var(--w-600)",
                 cursor: uploadando ? "wait" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 14, boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
@@ -382,7 +382,7 @@ export default function MeuPerfilPage() {
               </span>
             )}
             <span style={{
-              background: "#D1FAE5", color: "#047857",
+              background: "var(--w-100)", color: "var(--w-700)",
               padding: "5px 12px", borderRadius: 999,
               fontSize: 11, fontWeight: 700,
             }}>
@@ -490,7 +490,7 @@ export default function MeuPerfilPage() {
               onClick={salvar}
               disabled={salvando}
               style={{
-                background: salvando ? "#6EE7B7" : "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                background: salvando ? "var(--w-300)" : "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                 color: "#fff", border: "none", borderRadius: 10,
                 padding: "11px 26px", fontSize: 13, fontWeight: 800,
                 cursor: salvando ? "wait" : "pointer",

@@ -135,9 +135,9 @@ export function ConfigSection() {
           onClick={salvar}
           disabled={salvando || carregando}
           style={{
-            background: ok ? "#ECFDF5" : `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
-            color: ok ? "#059669" : "white",
-            border: ok ? "1px solid #A7F3D0" : "none",
+            background: ok ? "var(--w-50)" : `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
+            color: ok ? "var(--w-600)" : "white",
+            border: ok ? "1px solid var(--w-200)" : "none",
             borderRadius: 12,
             padding: "11px 20px",
             fontSize: 13,
@@ -165,7 +165,7 @@ export function ConfigSection() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    background: "#ECFDF5",
+                    background: "var(--w-50)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",

@@ -79,7 +79,7 @@ export default function FluxoCaixa() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 8 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#0F172A" }}>Entradas × Saídas <span style={{ color: "#94A3B8", fontWeight: 600, fontSize: 12 }}>· {ano}</span></h3>
           <div style={{ display: "flex", gap: 14, fontSize: 12, color: "#64748B", fontWeight: 600 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#059669" }} /> Entradas</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "var(--w-600)" }} /> Entradas</span>
             <span style={{ display: "flex", alignItems: "center", gap: 5 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: "#dc2626" }} /> Saídas</span>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function FluxoCaixa() {
           {linhas.map((m, i) => (
             <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
               <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 3, width: "100%", justifyContent: "center" }}>
-                <div title={`Entradas: ${brl(m.entrada)}`} style={{ width: "44%", maxWidth: 18, height: `${Math.max((m.entrada / maxBar) * 100, m.entrada > 0 ? 3 : 0)}%`, minHeight: m.entrada > 0 ? 3 : 0, background: "linear-gradient(180deg, #10B981 0%, #059669 100%)", borderRadius: "5px 5px 0 0" }} />
+                <div title={`Entradas: ${brl(m.entrada)}`} style={{ width: "44%", maxWidth: 18, height: `${Math.max((m.entrada / maxBar) * 100, m.entrada > 0 ? 3 : 0)}%`, minHeight: m.entrada > 0 ? 3 : 0, background: "linear-gradient(180deg, var(--w-500) 0%, var(--w-600) 100%)", borderRadius: "5px 5px 0 0" }} />
                 <div title={`Saídas: ${brl(m.saida)}`} style={{ width: "44%", maxWidth: 18, height: `${Math.max((m.saida / maxBar) * 100, m.saida > 0 ? 3 : 0)}%`, minHeight: m.saida > 0 ? 3 : 0, background: "linear-gradient(180deg, #f87171 0%, #dc2626 100%)", borderRadius: "5px 5px 0 0" }} />
               </div>
               <span style={{ fontSize: 11, color: "#64748B", fontWeight: 700 }}>{m.nome}</span>
@@ -107,17 +107,17 @@ export default function FluxoCaixa() {
                 : comAcc.map((l, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#F7FAF9" }}>
                     <td style={{ ...tdc, textAlign: "left", fontWeight: 700, color: "#0F172A" }}>{l.nome}</td>
-                    <td style={{ ...tdc, color: l.entrada ? "#059669" : "#CBD5E1" }}>{l.entrada ? brl(l.entrada) : "—"}</td>
+                    <td style={{ ...tdc, color: l.entrada ? "var(--w-600)" : "#CBD5E1" }}>{l.entrada ? brl(l.entrada) : "—"}</td>
                     <td style={{ ...tdc, color: l.saida ? "#dc2626" : "#CBD5E1" }}>{l.saida ? brl(l.saida) : "—"}</td>
-                    <td style={{ ...tdc, fontWeight: 700, color: l.saldo >= 0 ? "#059669" : "#dc2626" }}>{brl(l.saldo)}</td>
-                    <td style={{ ...tdc, fontWeight: 800, color: l.acumulado >= 0 ? "#059669" : "#dc2626" }}>{brl(l.acumulado)}</td>
+                    <td style={{ ...tdc, fontWeight: 700, color: l.saldo >= 0 ? "var(--w-600)" : "#dc2626" }}>{brl(l.saldo)}</td>
+                    <td style={{ ...tdc, fontWeight: 800, color: l.acumulado >= 0 ? "var(--w-600)" : "#dc2626" }}>{brl(l.acumulado)}</td>
                   </tr>
                 ))}
               <tr style={{ background: "#f1f5f9" }}>
                 <td style={{ ...tdc, textAlign: "left", fontWeight: 800 }}>Total</td>
-                <td style={{ ...tdc, fontWeight: 800, color: "#059669" }}>{brl(totE)}</td>
+                <td style={{ ...tdc, fontWeight: 800, color: "var(--w-600)" }}>{brl(totE)}</td>
                 <td style={{ ...tdc, fontWeight: 800, color: "#dc2626" }}>{brl(totS)}</td>
-                <td style={{ ...tdc, fontWeight: 800, color: (totE - totS) >= 0 ? "#059669" : "#dc2626" }}>{brl(totE - totS)}</td>
+                <td style={{ ...tdc, fontWeight: 800, color: (totE - totS) >= 0 ? "var(--w-600)" : "#dc2626" }}>{brl(totE - totS)}</td>
                 <td style={tdc}></td>
               </tr>
             </tbody>

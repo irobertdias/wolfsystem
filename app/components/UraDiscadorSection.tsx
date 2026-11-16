@@ -482,8 +482,8 @@ export default function UraDiscadorSection() {
       {ok && (
         <div
           style={{
-            background: "#ecfdf5",
-            color: "#047857",
+            background: "var(--w-50)",
+            color: "var(--w-700)",
             padding: 12,
             borderRadius: 8,
             marginBottom: 12,
@@ -1011,7 +1011,7 @@ export default function UraDiscadorSection() {
                       <td>
                         {c.total_processados}/{c.total_contatos}
                       </td>
-                      <td style={{ color: "#059669" }}>{c.total_atendidos}</td>
+                      <td style={{ color: "var(--w-600)" }}>{c.total_atendidos}</td>
                       <td style={{ color: "#dc2626" }}>{c.total_falhas}</td>
                       <td style={{ display: "flex", gap: 5, padding: 8 }}>
                         {!["executando", "concluida", "cancelada"].includes(

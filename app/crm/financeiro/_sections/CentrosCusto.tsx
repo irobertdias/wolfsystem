@@ -64,7 +64,7 @@ export default function CentrosCusto() {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div><h1 style={{ color: "#0F172A", fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Centros de Custo</h1><p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Agrupe receitas e despesas por setor, projeto ou unidade</p></div>
         </div>
-        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo centro</button>
+        <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Novo centro</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
@@ -88,10 +88,10 @@ export default function CentrosCusto() {
             {carregando ? <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : filtrada.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🎯" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🎯" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhum centro de custo</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Ex.: Marketing, Operacional, Loja Centro, Projeto X.</p>
-                  <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo centro</button>
+                  <button onClick={abrirNovo} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Novo centro</button>
                 </td></tr>
               ) : filtrada.map((c, i) => (
                 <tr key={c.id} style={{ background: i % 2 === 0 ? "#fff" : "#F7FAF9", opacity: c.ativo ? 1 : 0.55 }}>
@@ -113,7 +113,7 @@ export default function CentrosCusto() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 440 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar centro" : "Novo centro de custo"}</h2>
+              <h2 style={{ color: "var(--w-700)", fontSize: 18, fontWeight: 800, margin: 0 }}>{editando ? "Editar centro" : "Novo centro de custo"}</h2>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: 12, marginBottom: 14 }}>
@@ -124,7 +124,7 @@ export default function CentrosCusto() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155" }}><input type="checkbox" checked={form.ativo} onChange={(e) => setForm({ ...form, ativo: e.target.checked })} /> Ativo</label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1 }}>{salvando ? "Salvando…" : "Salvar"}</button>
+              <button onClick={salvar} disabled={salvando || !form.nome.trim()} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando || !form.nome.trim() ? 0.6 : 1 }}>{salvando ? "Salvando…" : "Salvar"}</button>
             </div>
           </div>
         </div>

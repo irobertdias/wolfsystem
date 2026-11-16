@@ -161,7 +161,7 @@ export function IndicadoresSection() {
         </div>
       ) : headcount === 0 ? (
         <div style={{ ...card, padding: 50, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="grafico" tamanho={24} /></span>
           <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>
             Sem dados ainda
           </p>
@@ -245,7 +245,7 @@ export function IndicadoresSection() {
                     style={{
                       width: "55%",
                       height: `${(h.qtd / maxAdm) * 100}%`,
-                      background: `linear-gradient(180deg, ${COR} 0%, #059669 100%)`,
+                      background: `linear-gradient(180deg, ${COR} 0%, var(--w-600) 100%)`,
                       borderRadius: "6px 6px 0 0",
                       minHeight: 4,
                     }}

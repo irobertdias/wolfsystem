@@ -162,7 +162,7 @@ export default function PopupCobranca() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <button onClick={copiarPix}
                 style={{
-                  background: pixCopiado ? "#059669" : "#ffffff",
+                  background: pixCopiado ? "var(--w-600)" : "#ffffff",
                   color: pixCopiado ? "white" : "#0F172A",
                   border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
                   borderRadius: 10, padding: "10px 14px", cursor: "pointer",
@@ -179,7 +179,7 @@ export default function PopupCobranca() {
 
               <button onClick={abrirWhatsApp}
                 style={{
-                  background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                  background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                   color: "white", border: "none", borderRadius: 10,
                   padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                   display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
@@ -190,9 +190,9 @@ export default function PopupCobranca() {
 
               <button onClick={copiarEmail}
                 style={{
-                  background: emailCopiado ? "#059669" : "#ffffff",
-                  color: emailCopiado ? "white" : "#059669",
-                  border: "1px solid #A7F3D0",
+                  background: emailCopiado ? "var(--w-600)" : "#ffffff",
+                  color: emailCopiado ? "white" : "var(--w-600)",
+                  border: "1px solid var(--w-200)",
                   borderRadius: 10, padding: "9px 14px", cursor: "pointer",
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   fontSize: 12, fontWeight: 600,
@@ -268,7 +268,7 @@ export default function PopupCobranca() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
             <button onClick={copiarPix}
               style={{
-                background: pixCopiado ? "#059669" : "#F7FAF9",
+                background: pixCopiado ? "var(--w-600)" : "#F7FAF9",
                 color: pixCopiado ? "white" : "#0F172A",
                 border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
                 borderRadius: 10, padding: "10px 14px", cursor: "pointer",
@@ -281,7 +281,7 @@ export default function PopupCobranca() {
 
             <button onClick={abrirWhatsApp}
               style={{
-                background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+                background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
                 color: "white", border: "none", borderRadius: 10,
                 padding: "12px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700,
                 display: "flex", justifyContent: "center", alignItems: "center", gap: 8,
@@ -375,7 +375,7 @@ export default function PopupCobranca() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
           <button onClick={copiarPix}
             style={{
-              background: pixCopiado ? "#059669" : "#F7FAF9",
+              background: pixCopiado ? "var(--w-600)" : "#F7FAF9",
               color: pixCopiado ? "white" : "#0F172A",
               border: `1px solid ${pixCopiado ? "#059669" : "#E6ECEA"}`,
               borderRadius: 10, padding: "10px 14px", cursor: "pointer",
@@ -388,7 +388,7 @@ export default function PopupCobranca() {
 
           <button onClick={abrirWhatsApp}
             style={{
-              background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+              background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
               color: "white", border: "none", borderRadius: 10,
               padding: "11px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700,
               display: "flex", justifyContent: "center", alignItems: "center", gap: 8,

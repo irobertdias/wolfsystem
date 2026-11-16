@@ -27,8 +27,8 @@ type Rascunho = {
 
 const STATUS: Record<string, [string, string]> = {
   enviado: ["Enviado", "bg-[#F1F5F9] text-[#475569]"],
-  visualizado: ["Visualizado", "bg-[#ECFDF5] text-[#047857]"],
-  aceito: ["Aceito", "bg-[#059669] text-white"],
+  visualizado: ["Visualizado", "bg-[var(--w-50)] text-[var(--w-700)]"],
+  aceito: ["Aceito", "bg-[var(--w-600)] text-white"],
   expirado: ["Expirado", "bg-[#F3F6F5] text-[#64748B]"],
   cancelado: ["Cancelado", "bg-[#F3F6F5] text-[#94A3B8]"],
   recusado: ["Recusado", "bg-[#FEF2F2] text-[#B91C1C]"],
@@ -40,9 +40,9 @@ const cartaoCls = "rounded-[20px] bg-white shadow-[0_1px_2px_rgba(16,24,40,.04),
 const pilula = "rounded-full px-[9px] py-0.5 text-[11px] font-bold";
 const botaoClaro = "inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#F3F6F5] px-3.5 text-[13px] font-bold text-[#334155] transition hover:bg-[#E6ECEA]";
 const botaoIcone = "inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#F3F6F5] text-[#475569] transition hover:bg-[#E6ECEA] hover:text-[#0F172A]";
-const botaoVerde = "inline-flex items-center justify-center gap-1.5 rounded-[14px] bg-gradient-to-br from-[#10B981] to-[#059669] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none";
+const botaoVerde = "inline-flex items-center justify-center gap-1.5 rounded-[14px] bg-gradient-to-br from-[var(--w-500)] to-[var(--w-600)] font-extrabold text-white shadow-[0_12px_24px_-12px_rgba(5,150,105,.8)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none";
 const CORES_AVATAR = [
-  ["linear-gradient(140deg, #D1FAE5, #A7F3D0)", "#065F46"], ["#FFF7ED", "#C2410C"], ["#F1F5F9", "#334155"],
+  ["linear-gradient(140deg, var(--w-100), var(--w-200))", "#065F46"], ["#FFF7ED", "#C2410C"], ["#F1F5F9", "#334155"],
   ["#FEF3C7", "#92400E"], ["#E0F2F1", "#0F766E"], ["#ECFDF5", "#047857"],
 ];
 function avatar(nome: string) {
@@ -54,7 +54,7 @@ function avatar(nome: string) {
 function Etapa({ n, titulo, extra }: { n: number; titulo: string; extra?: React.ReactNode }) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-2.5">
-      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-[#059669] text-[12px] font-extrabold text-white">{n}</span>
+      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-lg bg-[var(--w-600)] text-[12px] font-extrabold text-white">{n}</span>
       <span className="text-[15px] font-extrabold text-[#0F172A]">{titulo}</span>
       {extra && <span className="ml-auto">{extra}</span>}
     </div>
@@ -203,12 +203,12 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
               const p = PLANOS.find((x) => x.id === b.id);
               return { ...s, base: b.id, usuarios: p ? String(Math.max(inteiro(s.usuarios), p.usuarios)) : s.usuarios, whatsapps: p ? String(Math.max(inteiro(s.whatsapps), p.whatsapps)) : s.whatsapps };
             })}
-              className={`rounded-2xl p-4 text-left transition ${r.base === b.id ? "bg-white shadow-[0_10px_24px_-14px_rgba(5,150,105,.5)] outline outline-2 outline-[#059669]" : "bg-[#F7FAF9] shadow-[inset_0_0_0_1px_#E6ECEA] hover:bg-white hover:shadow-[0_1px_2px_rgba(16,24,40,.05),0_8px_20px_-14px_rgba(16,24,40,.25)]"}`}>
+              className={`rounded-2xl p-4 text-left transition ${r.base === b.id ? "bg-white shadow-[0_10px_24px_-14px_rgba(5,150,105,.5)] outline outline-2 outline-[var(--w-600)]" : "bg-[#F7FAF9] shadow-[inset_0_0_0_1px_#E6ECEA] hover:bg-white hover:shadow-[0_1px_2px_rgba(16,24,40,.05),0_8px_20px_-14px_rgba(16,24,40,.25)]"}`}>
               <div className="flex items-center gap-2">
                 <span className="text-[14px] font-extrabold text-[#0F172A]">{b.nome}</span>
-                {r.base === b.id && <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-md bg-[#059669] text-white"><Icone nome="check" tamanho={12} espessura={2.6} /></span>}
+                {r.base === b.id && <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-md bg-[var(--w-600)] text-white"><Icone nome="check" tamanho={12} espessura={2.6} /></span>}
               </div>
-              {b.preco > 0 && <div className="mt-1 text-[18px] font-extrabold tracking-tight text-[#047857]">{brlOrc(b.preco)}<span className="text-[12px] font-semibold text-[#64748B]">/mês</span></div>}
+              {b.preco > 0 && <div className="mt-1 text-[18px] font-extrabold tracking-tight text-[var(--w-700)]">{brlOrc(b.preco)}<span className="text-[12px] font-semibold text-[#64748B]">/mês</span></div>}
               <div className="mt-0.5 text-[12px] text-[#64748B]">{b.info}</div>
             </button>
           ))}
@@ -236,12 +236,12 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
             return (
               <button type="button" key={m.id} disabled={noPlano} onClick={() => setR((s) => ({ ...s, modulos: s.modulos.includes(m.id) ? s.modulos.filter((x) => x !== m.id) : [...s.modulos, m.id] }))}
                 className={`flex items-start gap-3 rounded-[14px] p-3.5 text-left transition ${marcado ? "bg-[#F7FFFB] shadow-[inset_0_0_0_1.5px_#A7F3D0]" : "bg-[#F7FAF9] shadow-[inset_0_0_0_1px_#E6ECEA] hover:bg-white"} ${noPlano ? "cursor-default" : ""}`}>
-                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${marcado ? "bg-[#059669] text-white" : "bg-white text-transparent shadow-[inset_0_0_0_1.5px_#CBD5E1]"}`}><Icone nome="check" tamanho={12} espessura={2.6} /></span>
+                <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md ${marcado ? "bg-[var(--w-600)] text-white" : "bg-white text-transparent shadow-[inset_0_0_0_1.5px_#CBD5E1]"}`}><Icone nome="check" tamanho={12} espessura={2.6} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13.5px] font-bold text-[#0F172A]">{m.nome}</span>
                   <span className="block text-[12px]" style={{ color: m.cor }}>{m.sub}</span>
                 </span>
-                <span className={`shrink-0 text-[12.5px] font-extrabold ${noPlano ? "text-[#059669]" : "text-[#334155]"}`}>{noPlano ? "no plano" : brlOrc(m.preco)}</span>
+                <span className={`shrink-0 text-[12.5px] font-extrabold ${noPlano ? "text-[var(--w-600)]" : "text-[#334155]"}`}>{noPlano ? "no plano" : brlOrc(m.preco)}</span>
               </button>
             );
           })}
@@ -287,7 +287,7 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
             <button type="button" onClick={() => aplicarEmTodos(Math.min(100, Math.max(0, num(descGeral))))} className="h-9 rounded-[10px] bg-[#0F172A] px-3 font-bold text-white">Aplicar</button>
             <span className="ml-auto font-semibold text-[#64748B]">Fechar mensalidade em</span>
             <input className="h-9 w-24 rounded-[10px] border border-[#E6ECEA] bg-white px-2 text-right font-semibold" placeholder="R$" value={alvo} onChange={(e) => setAlvo(e.target.value)} />
-            <button type="button" onClick={fecharEm} className="h-9 rounded-[10px] bg-[#059669] px-3 font-bold text-white">Ajustar</button>
+            <button type="button" onClick={fecharEm} className="h-9 rounded-[10px] bg-[var(--w-600)] px-3 font-bold text-white">Ajustar</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] text-[13px]">
@@ -315,7 +315,7 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
           </div>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-[#059669] to-[#065F46] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
+          <div className="relative overflow-hidden rounded-[18px] bg-gradient-to-br from-[var(--w-600)] to-[var(--w-800)] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
             <div aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-[120px] w-[120px] rounded-full bg-white/10" />
             <div className="relative text-[13px] font-semibold text-white/85">Mensalidade</div>
             <div className="relative text-[30px] font-extrabold tracking-tight tabular-nums">{brlOrc(t.mensal)}</div>
@@ -417,7 +417,7 @@ export default function OrcamentosPage() {
       {novoAberto && (
         <section className={`${cartaoCls} !rounded-[22px] p-[22px] sm:p-7`}>
           <div className="mb-5 flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#ECFDF5] text-[#059669]"><Icone nome="documento" tamanho={19} /></span>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--w-50)] text-[var(--w-600)]"><Icone nome="documento" tamanho={19} /></span>
             <div className="flex flex-col">
               <span className="text-[17px] font-extrabold">Novo orçamento</span>
               <span className="text-[12.5px] text-[#64748B]">Monte com a tabela de preços, dê desconto por item e gere o link</span>
@@ -429,9 +429,9 @@ export default function OrcamentosPage() {
 
       <section aria-label="Resumo" className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
         <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Enviados no mês</span><span className="text-[28px] font-extrabold tracking-tight">{mesLista.length}</span><span className="text-[12.5px] text-[#64748B]">{pelSite ? `${pelSite} vie${pelSite === 1 ? "io" : "ram"} pelo site` : "nenhum pelo site"}</span></div>
-        <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Aceitos</span><span className="text-[28px] font-extrabold tracking-tight">{aceitosMes.length}</span><span className="self-start rounded-full bg-[#ECFDF5] px-[9px] py-0.5 text-[12px] font-bold text-[#047857]">{taxaAceite}% de aceite</span></div>
+        <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Aceitos</span><span className="text-[28px] font-extrabold tracking-tight">{aceitosMes.length}</span><span className="self-start rounded-full bg-[var(--w-50)] px-[9px] py-0.5 text-[12px] font-bold text-[var(--w-700)]">{taxaAceite}% de aceite</span></div>
         <div className={kpi}><span className="text-[13px] font-semibold text-[#64748B]">Mensalidade fechada</span><span className="text-[28px] font-extrabold tracking-tight">{brlOrc(mensalFechada)}</span><span className="text-[12.5px] text-[#64748B]">+ {brlOrc(configFechada)} em configurações</span></div>
-        <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-[18px] bg-gradient-to-br from-[#059669] to-[#065F46] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
+        <div className="relative flex flex-col gap-1.5 overflow-hidden rounded-[18px] bg-gradient-to-br from-[var(--w-600)] to-[var(--w-800)] px-[22px] py-5 text-white shadow-[0_16px_32px_-16px_rgba(6,95,70,.7)]">
           <div aria-hidden className="pointer-events-none absolute -right-[30px] -top-[30px] h-[120px] w-[120px] rounded-full bg-white/10" />
           <span className="relative text-[13px] font-semibold text-white/85">Aguardando resposta</span>
           <span className="relative text-[28px] font-extrabold tracking-tight">{aguardando.length}</span>
@@ -443,7 +443,7 @@ export default function OrcamentosPage() {
         <div className="flex flex-wrap items-center gap-2 px-3.5 py-3">
           {filtros.map(([k, t]) => (
             <button key={k} onClick={() => setFiltro(k)}
-              className={`h-[38px] rounded-[11px] px-3.5 text-[13px] transition ${filtro === k ? "bg-[#ECFDF5] font-extrabold text-[#047857]" : "bg-[#F3F6F5] font-semibold text-[#475569] hover:bg-[#E6ECEA]"}`}>
+              className={`h-[38px] rounded-[11px] px-3.5 text-[13px] transition ${filtro === k ? "bg-[var(--w-50)] font-extrabold text-[var(--w-700)]" : "bg-[#F3F6F5] font-semibold text-[#475569] hover:bg-[#E6ECEA]"}`}>
               {t} {grupos[k].length}
             </button>
           ))}
@@ -451,7 +451,7 @@ export default function OrcamentosPage() {
 
         {visiveis.length === 0 && (
           <div className="flex flex-col items-center gap-2 px-6 pb-12 pt-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#ECFDF5] text-[#059669]"><Icone nome="documento" tamanho={22} /></span>
+            <span className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--w-50)] text-[var(--w-600)]"><Icone nome="documento" tamanho={22} /></span>
             <span className="text-[15px] font-extrabold">{lista.length ? "Nenhum orçamento neste filtro" : "Nenhum orçamento ainda"}</span>
             <span className="text-[13px] text-[#64748B]">{lista.length ? "Escolha outro filtro acima." : "Clique em Novo orçamento para montar o primeiro."}</span>
           </div>
@@ -488,14 +488,14 @@ export default function OrcamentosPage() {
                       : <span className={`${pilula} ${cls} ${o.status === "aceito" ? "!font-extrabold" : ""}`}>{rotulo}{o.status === "visualizado" && o.visualizacoes ? ` ${o.visualizacoes}x` : ""}</span>}
                     {o.criado_por === "site" && <span className={`${pilula} bg-[#E0F2F1] text-[#0F766E]`}>Site</span>}
                     {o.implantacao_em && <span className={`${pilula} bg-[#FEF3C7] text-[#92400E]`}>Dados recebidos</span>}
-                    {imp?.pagamento_realizado && <span className={`${pilula} bg-[#ECFDF5] text-[#047857]`}>Diz que pagou</span>}
+                    {imp?.pagamento_realizado && <span className={`${pilula} bg-[var(--w-50)] text-[var(--w-700)]`}>Diz que pagou</span>}
                   </div>
                   <span className="text-[13px] text-[#64748B]">{detalhe}</span>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[17px] font-extrabold tracking-tight">{brlOrc(o.mensalidade)}<span className="text-[12px] font-semibold text-[#64748B]">/mês</span></span>
                   {descPct > 0
-                    ? <span className="text-[12px] font-bold text-[#047857]">{descPct}% de desconto</span>
+                    ? <span className="text-[12px] font-bold text-[var(--w-700)]">{descPct}% de desconto</span>
                     : <span className="text-[12px] text-[#64748B]">+ {brlOrc(o.configuracao)} configuração</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -506,12 +506,12 @@ export default function OrcamentosPage() {
                   {ehAguardando(o) && <button title="Cancelar orçamento" onClick={() => acao(o.id, "cancelar")} className={`${botaoIcone} hover:!bg-[#FEF2F2] hover:!text-[#B91C1C]`}><Icone nome="x" tamanho={16} /></button>}
                   {imp
                     ? <button onClick={() => setAberto(aberto === o.id ? "" : o.id)} className="inline-flex h-10 items-center rounded-xl bg-[#0F172A] px-4 text-[13px] font-extrabold text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,.6)]">{aberto === o.id ? "Fechar dados" : "Ver dados"}</button>
-                    : <a href={whats(o.cliente_telefone, o.cliente_nome, o.link)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#ECFDF5] px-3.5 text-[13px] font-extrabold text-[#047857] transition hover:bg-[#D1FAE5]"><Icone nome="whatsapp" tamanho={15} />WhatsApp</a>}
+                    : <a href={whats(o.cliente_telefone, o.cliente_nome, o.link)} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[var(--w-50)] px-3.5 text-[13px] font-extrabold text-[var(--w-700)] transition hover:bg-[var(--w-100)]"><Icone nome="whatsapp" tamanho={15} />WhatsApp</a>}
                 </div>
               </div>
               {editando === o.id && (
                 <div className="mt-4 rounded-[18px] bg-white p-5 shadow-[inset_0_0_0_1.5px_#A7F3D0]">
-                  <div className="mb-4 flex items-center gap-2 text-[13.5px] font-extrabold text-[#065F46]"><Icone nome="editar" tamanho={15} />Editando {o.numero} · o link continua o mesmo</div>
+                  <div className="mb-4 flex items-center gap-2 text-[13.5px] font-extrabold text-[var(--w-800)]"><Icone nome="editar" tamanho={15} />Editando {o.numero} · o link continua o mesmo</div>
                   <Editor inicial={rascunhoDe(o)} editando onSalvar={(itens, r) => salvarEdicao(o.id, itens, r)} onCancelar={() => setEditando("")} />
                 </div>
               )}
@@ -525,7 +525,7 @@ export default function OrcamentosPage() {
                     {imp.observacoes && <div className="mt-2 rounded-xl bg-[#F7FAF9] p-3 text-[#475569]"><b className="text-[#64748B]">Observações:</b> {imp.observacoes}</div>}
                   </div>
                   <div className="min-w-0">
-                    <div className="mb-2 text-[13px] font-extrabold">Usuários <span className="ml-1 rounded-full bg-[#ECFDF5] px-2 py-0.5 text-[11px] text-[#047857]">{imp.usuarios.length}</span></div>
+                    <div className="mb-2 text-[13px] font-extrabold">Usuários <span className="ml-1 rounded-full bg-[var(--w-50)] px-2 py-0.5 text-[11px] text-[var(--w-700)]">{imp.usuarios.length}</span></div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-[12.5px]">
                         <thead className="text-[#64748B]"><tr><th className="py-1.5 font-bold">Nome</th><th className="font-bold">E-mail</th><th className="font-bold">Telefone</th><th className="font-bold">Perfil</th></tr></thead>

@@ -85,7 +85,7 @@ export default function Transferencias() {
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>Mova saldo entre contas — ajusta as duas automaticamente</p>
           </div>
         </div>
-        <button onClick={abrir} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova transferência</button>
+        <button onClick={abrir} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>+ Nova transferência</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
@@ -112,10 +112,10 @@ export default function Transferencias() {
               <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
             ) : lista.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: "48px 24px", textAlign: "center" }}>
-                <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🔄" tamanho={24} /></div>
+                <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🔄" tamanho={24} /></div>
                 <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhuma transferência ainda</p>
                 <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Registre movimentações de saldo entre as suas contas.</p>
-                <button onClick={abrir} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova transferência</button>
+                <button onClick={abrir} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova transferência</button>
               </td></tr>
             ) : lista.map((t, i) => {
               const o = cont(t.conta_id); const d = cont(t.conta_destino_id);
@@ -125,12 +125,12 @@ export default function Transferencias() {
                   <td style={td}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, flexWrap: "wrap" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#F7FAF9", borderRadius: 8, padding: "4px 10px" }}>{TIPO_CONTA[o?.tipo] || "🏦"} {nome(t.conta_id)}</span>
-                      <span style={{ color: "#047857", fontSize: 16, fontWeight: 800 }}>→</span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8, padding: "4px 10px", color: "#065F46" }}>{TIPO_CONTA[d?.tipo] || "🏦"} {nome(t.conta_destino_id)}</span>
+                      <span style={{ color: "var(--w-700)", fontSize: 16, fontWeight: 800 }}>→</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "4px 10px", color: "var(--w-800)" }}>{TIPO_CONTA[d?.tipo] || "🏦"} {nome(t.conta_destino_id)}</span>
                     </div>
                   </td>
                   <td style={{ ...td, color: "#64748B" }}>{t.descricao || "—"}</td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#047857", whiteSpace: "nowrap" }}>{brl(t.valor)}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "var(--w-700)", whiteSpace: "nowrap" }}>{brl(t.valor)}</td>
                   <td style={{ ...td, textAlign: "right" }}><button onClick={() => remover(t)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button></td>
                 </tr>
               );
@@ -143,12 +143,12 @@ export default function Transferencias() {
         <div onClick={() => setModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...card, padding: 28, width: "100%", maxWidth: 480 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h2 style={{ color: "#047857", fontSize: 18, fontWeight: 800, margin: 0 }}>Nova transferência</h2>
+              <h2 style={{ color: "var(--w-700)", fontSize: 18, fontWeight: 800, margin: 0 }}>Nova transferência</h2>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", border: "none", color: "#64748B", cursor: "pointer", width: 34, height: 34, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="x" tamanho={16} /></button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "end", marginBottom: 14 }}>
               <div><label style={lbl}>De (origem)</label><select value={form.origem} onChange={(e) => setForm({ ...form, origem: e.target.value })} style={input}><option value="">—</option>{contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
-              <div style={{ paddingBottom: 10, color: "#047857", fontSize: 20, fontWeight: 800 }}>→</div>
+              <div style={{ paddingBottom: 10, color: "var(--w-700)", fontSize: 20, fontWeight: 800 }}>→</div>
               <div><label style={lbl}>Para (destino)</label><select value={form.destino} onChange={(e) => setForm({ ...form, destino: e.target.value })} style={input}><option value="">—</option>{contas.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 12, marginBottom: 14 }}>
@@ -158,7 +158,7 @@ export default function Transferencias() {
             <div style={{ marginBottom: 20 }}><label style={lbl}>Descrição</label><input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} style={input} placeholder="opcional" /></div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>
               <button onClick={() => setModal(false)} style={{ background: "#F3F6F5", color: "#334155", border: "none", borderRadius: 12, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 600 }}>Cancelar</button>
-              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, #047857 0%, #34D399 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Transferir"}</button>
+              <button onClick={salvar} disabled={salvando} style={{ background: "linear-gradient(135deg, var(--w-700) 0%, var(--w-400) 100%)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 26px", fontSize: 13, cursor: "pointer", fontWeight: 700, opacity: salvando ? 0.6 : 1, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" }}>{salvando ? "Salvando…" : "Transferir"}</button>
             </div>
           </div>
         </div>

@@ -5,6 +5,33 @@
   --foreground: #0F172A;
 }
 
+/* ─── Cor do nicho ────────────────────────────────────────────────────
+   --w-50..900 é a cor principal do sistema. Padrão: verde Wolf (Telecom e
+   Financeiro). O <html data-nicho="..."> troca a paleta inteira, inclusive as
+   classes emerald do Tailwind. Definido em app/lib/vertical-workspace.ts. */
+:root {
+  --w-50: #ECFDF5; --w-100: #D1FAE5; --w-200: #A7F3D0; --w-300: #6EE7B7; --w-400: #34D399;
+  --w-500: #10B981; --w-600: #059669; --w-700: #047857; --w-800: #065F46; --w-900: #064E3B;
+}
+html[data-nicho="consignado"] {
+  --w-50: #EFF6FF; --w-100: #DBEAFE; --w-200: #BFDBFE; --w-300: #93C5FD; --w-400: #60A5FA;
+  --w-500: #3B82F6; --w-600: #2563EB; --w-700: #1D4ED8; --w-800: #1E40AF; --w-900: #1E3A8A;
+}
+html[data-nicho="vendas"] {
+  --w-50: #FFF7ED; --w-100: #FFEDD5; --w-200: #FED7AA; --w-300: #FDBA74; --w-400: #FB923C;
+  --w-500: #F97316; --w-600: #EA580C; --w-700: #C2410C; --w-800: #9A3412; --w-900: #7C2D12;
+}
+html[data-nicho="roupas"] {
+  --w-50: #FFF1F2; --w-100: #FFE4E6; --w-200: #FECDD3; --w-300: #FDA4AF; --w-400: #FB7185;
+  --w-500: #F43F5E; --w-600: #E11D48; --w-700: #BE123C; --w-800: #9F1239; --w-900: #881337;
+}
+html[data-nicho="consignado"], html[data-nicho="vendas"], html[data-nicho="roupas"] {
+  --color-emerald-50: var(--w-50); --color-emerald-100: var(--w-100); --color-emerald-200: var(--w-200);
+  --color-emerald-300: var(--w-300); --color-emerald-400: var(--w-400); --color-emerald-500: var(--w-500);
+  --color-emerald-600: var(--w-600); --color-emerald-700: var(--w-700); --color-emerald-800: var(--w-800);
+  --color-emerald-900: var(--w-900);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -29,8 +56,8 @@ body {
 }
 /* WOLF PREMIUM SHELL — MODELO ESTRUTURAL AZM, IDENTIDADE WOLF */
 :root {
-  --wolf-shell-accent: #059669;
-  --wolf-shell-accent-strong: #047857;
+  --wolf-shell-accent: var(--w-600);
+  --wolf-shell-accent-strong: var(--w-700);
   --wolf-shell-surface: #ffffff;
   --wolf-shell-muted: #f4f6f8;
   --wolf-shell-border: #e3e7ec;
@@ -296,7 +323,7 @@ body {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #059669;
+  background: var(--w-600);
   box-shadow: 0 0 0 5px rgba(5,150,105, 0.1);
 }
 
@@ -497,11 +524,11 @@ body {
    comportamento. Cores e sombras centralizadas nas variáveis abaixo.
    ===================================================================== */
 :root {
-  --a2-verde: #059669;
-  --a2-verde-escuro: #047857;
-  --a2-verde-profundo: #065F46;
-  --a2-verde-claro: #ECFDF5;
-  --a2-verde-borda: #A7F3D0;
+  --a2-verde: var(--w-600);
+  --a2-verde-escuro: var(--w-700);
+  --a2-verde-profundo: var(--w-800);
+  --a2-verde-claro: var(--w-50);
+  --a2-verde-borda: var(--w-200);
   --a2-fundo: #F3F6F5;
   --a2-superficie: #FFFFFF;
   --a2-texto: #0F172A;
@@ -511,8 +538,8 @@ body {
   --a2-sombra-1: 0 1px 2px rgba(16,24,40,.05), 0 12px 32px -12px rgba(16,24,40,.14);
   --a2-sombra-2: 0 2px 4px rgba(16,24,40,.04), 0 24px 48px -20px rgba(16,24,40,.18);
   --a2-sombra-verde: 0 8px 18px -8px rgba(5,150,105,.7);
-  --wolf-shell-accent: #059669;
-  --wolf-shell-accent-strong: #047857;
+  --wolf-shell-accent: var(--w-600);
+  --wolf-shell-accent-strong: var(--w-700);
   --wolf-shell-muted: #F3F6F5;
   --wolf-shell-border: #E6ECEA;
   --wolf-shell-text: #0F172A;
@@ -610,8 +637,8 @@ body {
   width: 40px; height: 40px; flex-basis: 40px;
   border-radius: 12px;
   color: var(--a2-verde-profundo);
-  background-color: #D1FAE5;
-  background-image: linear-gradient(140deg, #D1FAE5, #A7F3D0);
+  background-color: var(--w-100);
+  background-image: linear-gradient(140deg, var(--w-100), var(--w-200));
   box-shadow: none;
   font-size: 13px; font-weight: 800;
 }
@@ -752,10 +779,10 @@ input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color:
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not(.a2-input-limpo):focus,
 select:focus, textarea:not(.a2-input-limpo):focus {
   outline: none !important;
-  border-color: #10B981 !important;
+  border-color: var(--w-500) !important;
   box-shadow: 0 0 0 4px rgba(16,185,129,.14) !important;
 }
-::selection { background: #A7F3D0; color: #064E3B; }
+::selection { background: var(--w-200); color: var(--w-900); }
 * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
 *::-webkit-scrollbar { width: 9px; height: 9px; }
 *::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 9px; border: 2px solid transparent; background-clip: padding-box; }
@@ -764,7 +791,7 @@ select:focus, textarea:not(.a2-input-limpo):focus {
 /* ---------- A2: Visão geral ---------- */
 .a2-visao-hero {
   position: relative; overflow: hidden; border-radius: 24px; color: #fff;
-  background: linear-gradient(125deg, #10B981 0%, #059669 35%, #065F46 75%, #064E3B 100%);
+  background: linear-gradient(125deg, var(--w-500) 0%, var(--w-600) 35%, var(--w-800) 75%, var(--w-900) 100%);
   padding: 34px 38px 104px;
   box-shadow: 0 24px 48px -24px rgba(6,95,70,.55);
 }
@@ -796,8 +823,8 @@ select:focus, textarea:not(.a2-input-limpo):focus {
 }
 /* ---------- A2: Atendimento ---------- */
 .a2-input-limpo:focus { outline: none; }
-label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shadow: 0 0 0 4px rgba(16,185,129,.14), inset 0 0 0 1px #10B981 !important; }
-.a2-chat-item:not(.sel):hover { box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 10px 22px -12px rgba(16,24,40,.25), inset 0 0 0 1.5px #D1FAE5 !important; }
+label:has(> .a2-input-limpo:focus), div:has(> .a2-input-limpo:focus) { box-shadow: 0 0 0 4px rgba(16,185,129,.14), inset 0 0 0 1px var(--w-500) !important; }
+.a2-chat-item:not(.sel):hover { box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 10px 22px -12px rgba(16,24,40,.25), inset 0 0 0 1.5px var(--w-100) !important; }
 /* ---------- A2: Contatos ---------- */
 .a2-linha-contato:hover { background: #F7FAF9; }
 .a2-menu-config:not(.ativo):hover { background: #F3F6F5 !important; }

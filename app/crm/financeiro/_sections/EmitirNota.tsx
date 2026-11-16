@@ -82,8 +82,8 @@ export default function EmitirNota() {
         <button onClick={abrir} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 11, padding: "12px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 12px ${COR}40` }}>+ Nova nota</button>
       </div>
 
-      <div style={{ background: provedor ? "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)" : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: `1px solid ${provedor ? "#A7F3D0" : "#fde68a"}`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 38, height: 38, borderRadius: 10, background: provedor ? "#ECFDF5" : "#FFF7ED", color: provedor ? "#059669" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center" }}>{provedor ? <Icone nome="link" tamanho={18} /> : <Icone nome="alerta" tamanho={18} />}</div>
+      <div style={{ background: provedor ? "linear-gradient(135deg, var(--w-50) 0%, var(--w-100) 100%)" : "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)", border: `1px solid ${provedor ? "#A7F3D0" : "#fde68a"}`, borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: provedor ? "var(--w-50)" : "#FFF7ED", color: provedor ? "var(--w-600)" : "#C2410C", display: "flex", alignItems: "center", justifyContent: "center" }}>{provedor ? <Icone nome="link" tamanho={18} /> : <Icone nome="alerta" tamanho={18} />}</div>
         <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.5 }}>
           {provedor ? <>Provedor configurado: <b>{provedor}</b>. A emissão ao-vivo na SEFAZ entra quando ligarmos a integração.</>
             : <>Sem provedor de NF-e. Aqui você <b>registra</b> as notas e gera o "a receber"; a <b>emissão automática na SEFAZ</b> precisa de um provedor (PlugNotas, Focus, eNotas) — configure em <b>Configurações</b>.</>}
@@ -110,7 +110,7 @@ export default function EmitirNota() {
             {carregando ? <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: "#94A3B8" }}>Carregando…</td></tr>
               : lista.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: "48px 24px", textAlign: "center" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🧾" tamanho={24} /></div>
+                  <div style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}><IconeEmoji e="🧾" tamanho={24} /></div>
                   <p style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "10px 0 2px" }}>Nenhuma nota emitida</p>
                   <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 14px" }}>Registre uma nota e, se quiser, gere a conta a receber automaticamente.</p>
                   <button onClick={abrir} style={{ background: `linear-gradient(135deg, ${COR} 0%, ${G2} 100%)`, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ Nova nota</button>
@@ -120,8 +120,8 @@ export default function EmitirNota() {
                   <td style={{ ...td, fontWeight: 700 }}>{n.destinatario_nome}</td>
                   <td style={{ ...td, color: "#64748B" }}>{n.numero || "—"}</td>
                   <td style={{ ...td, color: "#64748B" }}>{dataBR(n.emissao)}</td>
-                  <td style={td}>{n.lancamento_id ? <span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Gerado</span> : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>}</td>
-                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "#059669", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>
+                  <td style={td}>{n.lancamento_id ? <span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 11px", borderRadius: 20, fontWeight: 700 }}>Gerado</span> : <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>}</td>
+                  <td style={{ ...td, textAlign: "right", fontWeight: 800, color: "var(--w-600)", whiteSpace: "nowrap" }}>{brl(n.valor_total)}</td>
                   <td style={{ ...td, textAlign: "right" }}><button onClick={() => remover(n)} style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", borderRadius: 8, padding: "5px 9px", fontSize: 13, cursor: "pointer" }}><Icone nome="lixeira" tamanho={15} /></button></td>
                 </tr>
               ))}
@@ -146,7 +146,7 @@ export default function EmitirNota() {
               <div><label style={lbl}>Valor</label><input value={form.valor_total} onChange={(e) => setForm({ ...form, valor_total: e.target.value })} style={input} placeholder="0,00" /></div>
               <div><label style={lbl}>Emissão</label><input type="date" value={form.emissao} onChange={(e) => setForm({ ...form, emissao: e.target.value })} style={input} /></div>
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155", background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: "10px 12px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, cursor: "pointer", fontSize: 14, color: "#334155", background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: "10px 12px" }}>
               <input type="checkbox" checked={form.gerarReceber} onChange={(e) => setForm({ ...form, gerarReceber: e.target.checked })} /> Gerar conta a receber automaticamente
             </label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", borderTop: "1px solid #E6ECEA", paddingTop: 16 }}>

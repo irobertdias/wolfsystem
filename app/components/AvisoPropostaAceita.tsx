@@ -54,7 +54,7 @@ export default function AvisoPropostaAceita() {
 
   return (
     <div role="alert" style={{ position: "fixed", right: 20, bottom: 86, zIndex: 2500, width: 340, maxWidth: "calc(100vw - 40px)", background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 6px rgba(16,24,40,.08), 0 24px 48px -20px rgba(16,24,40,.45)" }}>
-      <div style={{ padding: "14px 16px 12px", background: "linear-gradient(130deg, #10B981 0%, #059669 45%, #065F46 100%)", color: "#fff", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ padding: "14px 16px 12px", background: "linear-gradient(130deg, var(--w-500) 0%, var(--w-600) 45%, var(--w-800) 100%)", color: "#fff", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icone nome="check" tamanho={18} espessura={2.4} /></span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <b style={{ display: "block", fontSize: 14.5 }}>Proposta aceita!</b>
@@ -65,11 +65,11 @@ export default function AvisoPropostaAceita() {
       <div style={{ padding: "14px 16px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.5 }}>
           <b style={{ color: "#0F172A" }}>{p.cliente_nome}</b> aceitou a proposta nº {p.numero}
-          {p.total > 0 && <> com benefício estimado de <b style={{ color: "#047857" }}>{p.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></>}.
+          {p.total > 0 && <> com benefício estimado de <b style={{ color: "var(--w-700)" }}>{p.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</b></>}.
           O cliente já está no CRM; falta o contrato.
         </div>
         <button onClick={() => { dispensar(); router.push(`/crm/contratos?revisional=${p.id}`); }}
-          style={{ height: 44, border: 0, borderRadius: 13, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", boxShadow: "0 12px 24px -12px rgba(5,150,105,.75)" }}>
+          style={{ height: 44, border: 0, borderRadius: 13, cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", boxShadow: "0 12px 24px -12px rgba(5,150,105,.75)" }}>
           <Icone nome="documento" tamanho={16} /> Gerar contrato agora
         </button>
       </div>

@@ -328,7 +328,7 @@ export function PontoSection() {
         h1 { font-size: 18px; margin: 0; }
         .sub { color: #64748B; font-size: 12px; margin: 2px 0 0; }
         table { border-collapse: collapse; width: 100%; font-size: 11px; margin-top: 14px; }
-        th { background: #047857; color: #fff; padding: 6px 8px; border: 1px solid #047857; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+        th { background: var(--w-700); color: #fff; padding: 6px 8px; border: 1px solid var(--w-700); font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
         .resumo { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
         .box { border: 1px solid #E6ECEA; border-radius: 8px; padding: 10px 14px; min-width: 120px; }
         .box .v { font-size: 18px; font-weight: 800; }
@@ -337,7 +337,7 @@ export function PontoSection() {
         .assin div { flex: 1; border-top: 1px solid #0F172A; padding-top: 6px; text-align: center; font-size: 11px; color: #334155; }
         @media print { body { margin: 12mm; } .noprint { display: none; } }
       </style></head><body>
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #059669;padding-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--w-600);padding-bottom:10px;">
         <div>
           <h1>Folha de Ponto</h1>
           <p class="sub">Grupo Unita · UnitaSystem</p>
@@ -475,7 +475,7 @@ export function PontoSection() {
         </div>
       ) : porFunc.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="relogio" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="relogio" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>Nenhuma batida de ponto neste mês.</p>
         </div>
       ) : (
@@ -501,7 +501,7 @@ export function PontoSection() {
                         width: 38,
                         height: 38,
                         borderRadius: "50%",
-                        background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                        background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -522,14 +522,14 @@ export function PontoSection() {
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ color: "#059669", fontSize: 16, fontWeight: 800 }}>
+                    <span style={{ color: "var(--w-600)", fontSize: 16, fontWeight: 800 }}>
                       {fmtHoras(f.totalHoras)}
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); gerarFolhaPonto(f); }}
                       title="Gerar folha de ponto pra assinatura (PDF)"
                       style={{
-                        background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0",
+                        background: "var(--w-50)", color: "var(--w-800)", border: "1px solid var(--w-200)",
                         borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700,
                         cursor: "pointer", whiteSpace: "nowrap",
                       }}
@@ -555,14 +555,14 @@ export function PontoSection() {
                         >
                           <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>{d.dia}</span>
                           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <span style={{ color: "#059669", fontSize: 12, fontWeight: 700 }}>
+                            <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700 }}>
                               {fmtHoras(d.horas)} trabalhadas
                             </span>
                             {podeEditar && (
                               <>
                                 <button onClick={() => abrirNovo(f.funcionario, f.cargo, d.dia)}
                                   title="Adicionar batida neste dia"
-                                  style={{ background: "#ECFDF5", color: "#065F46", border: "1px solid #A7F3D0", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                  style={{ background: "var(--w-50)", color: "var(--w-800)", border: "1px solid var(--w-200)", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
                                   + batida
                                 </button>
                                 <button onClick={() => abrirAusencia(f.funcionario, f.cargo, d.dia)}
@@ -740,7 +740,7 @@ export function PontoSection() {
                 Cancelar
               </button>
               <button onClick={salvarEdit} disabled={salvandoEdit}
-                style={{ background: salvandoEdit ? "#6EE7B7" : COR, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: salvandoEdit ? "wait" : "pointer" }}>
+                style={{ background: salvandoEdit ? "var(--w-300)" : COR, color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 800, cursor: salvandoEdit ? "wait" : "pointer" }}>
                 {salvandoEdit ? "Salvando..." : "Salvar"}
               </button>
             </div>

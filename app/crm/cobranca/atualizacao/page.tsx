@@ -20,7 +20,7 @@ import Icone, { IconeEmoji } from "../../../components/a2/Icone";
 const card = { background: "#ffffff", borderRadius: 20, boxShadow: "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2)" };
 const input = { background: "#F7FAF9", border: "1px solid #E6ECEA", borderRadius: 12, padding: "11px 14px", color: "#0F172A", fontSize: 14, fontWeight: 600, outline: "none", boxSizing: "border-box" as const };
 const label = { color: "#64748B", fontSize: 11, fontWeight: 700, display: "block", marginBottom: 6 };
-const btnPri = { background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" };
+const btnPri = { background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", color: "#fff", border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13, cursor: "pointer", fontWeight: 700, boxShadow: "0 12px 24px -12px rgba(5,150,105,.7)" };
 const btnSec = { background: "#fff", color: "#334155", border: "1px solid #E6ECEA", borderRadius: 10, padding: "10px 16px", fontSize: 13, cursor: "pointer", fontWeight: 600 };
 
 // 🆕 Super admin Wolf — libera tudo
@@ -432,8 +432,8 @@ export default function CobrancaAtualizacao() {
       {feedback && (
         <div style={{ background: feedback.tipo === "ok" ? "#ECFDF5" : feedback.tipo === "erro" ? "#fef2f2" : "#fffbeb", border: `1px solid ${feedback.tipo === "ok" ? "#A7F3D0" : feedback.tipo === "erro" ? "#fecaca" : "#fde68a"}`, borderLeft: `4px solid ${feedback.tipo === "ok" ? "#059669" : feedback.tipo === "erro" ? "#dc2626" : "#C2410C"}`, borderRadius: 12, padding: "12px 18px", display: "flex", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <p style={{ color: feedback.tipo === "ok" ? "#047857" : feedback.tipo === "erro" ? "#991b1b" : "#92400e", fontSize: 13.5, margin: 0, fontWeight: 700 }}>{feedback.titulo}</p>
-            <p style={{ color: feedback.tipo === "ok" ? "#059669" : feedback.tipo === "erro" ? "#dc2626" : "#b45309", fontSize: 12, margin: "2px 0 0" }}>{feedback.msg}</p>
+            <p style={{ color: feedback.tipo === "ok" ? "var(--w-700)" : feedback.tipo === "erro" ? "#991b1b" : "#92400e", fontSize: 13.5, margin: 0, fontWeight: 700 }}>{feedback.titulo}</p>
+            <p style={{ color: feedback.tipo === "ok" ? "var(--w-600)" : feedback.tipo === "erro" ? "#dc2626" : "#b45309", fontSize: 12, margin: "2px 0 0" }}>{feedback.msg}</p>
           </div>
           <button onClick={() => setFeedback(null)} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 16, color: "#94A3B8" }}><Icone nome="x" tamanho={16} /></button>
         </div>
@@ -444,14 +444,14 @@ export default function CobrancaAtualizacao() {
         <h3 style={{ color: "#0F172A", fontSize: 15, fontWeight: 700, margin: "0 0 4px" }}>1. Suba a planilha de status das faturas</h3>
         <p style={{ color: "#64748B", fontSize: 12.5, margin: "0 0 14px" }}>Acha o cliente pela <b>ordem de serviço</b> e puxa o <b>custcode</b> sozinho. Aceita .xlsx, .xls, .csv.</p>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onArquivo} style={{ display: "none" }} />
-        <div style={{ border: "2px dashed #6EE7B7", borderRadius: 12, padding: 24, textAlign: "center", background: "#ECFDF5", cursor: "pointer" }} onClick={() => fileRef.current?.click()}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="upload" tamanho={24} /></span>
-          <p style={{ color: "#059669", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{nomeArquivo || "Clique pra escolher um arquivo"}</p>
+        <div style={{ border: "2px dashed var(--w-300)", borderRadius: 12, padding: 24, textAlign: "center", background: "var(--w-50)", cursor: "pointer" }} onClick={() => fileRef.current?.click()}>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="upload" tamanho={24} /></span>
+          <p style={{ color: "var(--w-600)", fontSize: 14, fontWeight: 700, margin: "0 0 4px" }}>{nomeArquivo || "Clique pra escolher um arquivo"}</p>
           <p style={{ color: "#10B981", fontSize: 12, margin: 0 }}>{temPlanilha ? `${formatNum(dados.length)} linha(s) carregada(s)` : "Aceita .xlsx, .xls, .csv"}</p>
         </div>
         {temPlanilha && (
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, color: "#334155", fontSize: 12, cursor: "pointer" }}>
-            <input type="checkbox" checked={temCabecalho} onChange={e => setTemCabecalho(e.target.checked)} style={{ accentColor: "#059669" }} /> Primeira linha é o cabeçalho
+            <input type="checkbox" checked={temCabecalho} onChange={e => setTemCabecalho(e.target.checked)} style={{ accentColor: "var(--w-600)" }} /> Primeira linha é o cabeçalho
           </label>
         )}
       </div>
@@ -518,8 +518,8 @@ export default function CobrancaAtualizacao() {
           {/* matching + gravar */}
           <div style={{ ...card, padding: isMobile ? 16 : 20, display: "flex", flexDirection: isMobile ? "column" : "row", gap: 14, alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-              <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Casaram c/ CRM</p><p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.clientesMatched)}<span style={{ color: "#94A3B8", fontSize: 13 }}> / {formatNum(res.totalClientes)}</span></p></div>
-              <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Custcodes a preencher</p><p style={{ color: "#059669", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.custPreencher)}</p></div>
+              <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Casaram c/ CRM</p><p style={{ color: "var(--w-600)", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.clientesMatched)}<span style={{ color: "#94A3B8", fontSize: 13 }}> / {formatNum(res.totalClientes)}</span></p></div>
+              <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Custcodes a preencher</p><p style={{ color: "var(--w-600)", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.custPreencher)}</p></div>
               {res.semVenda.length > 0 && <div><p style={{ color: "#94A3B8", fontSize: 11, margin: 0, fontWeight: 600 }}>Ordens sem venda</p><p style={{ color: "#dc2626", fontSize: 20, fontWeight: 800, margin: "2px 0 0" }}>{formatNum(res.semVenda.length)}</p></div>}
             </div>
             <button onClick={gravar} disabled={gravando} style={{ ...btnPri, opacity: gravando ? 0.6 : 1, cursor: gravando ? "not-allowed" : "pointer", whiteSpace: "nowrap" }}>{gravando ? "⏳ Gravando..." : "Atualizar faturas no sistema"}</button>
@@ -555,15 +555,15 @@ export default function CobrancaAtualizacao() {
                           {!c.matched && <span style={{ color: "#dc2626", fontSize: 12, fontWeight: 600 }}>sem venda no CRM</span>}
                         </td>
                         <td style={{ padding: "11px 14px" }}>
-                          <span style={{ fontFamily: "monospace", fontSize: 12.5, color: c.custcode ? "#0F172A" : "#94A3B8", fontWeight: 700, background: c.custcodeNovo ? "#ECFDF5" : "transparent", border: c.custcodeNovo ? "1px solid #A7F3D0" : "1px solid transparent", borderRadius: 6, padding: "2px 7px" }}>{c.custcode || "—"}</span>
-                          {c.custcodeNovo && <span style={{ color: "#059669", fontSize: 12, fontWeight: 700, marginLeft: 4 }}>novo</span>}
+                          <span style={{ fontFamily: "monospace", fontSize: 12.5, color: c.custcode ? "#0F172A" : "#94A3B8", fontWeight: 700, background: c.custcodeNovo ? "var(--w-50)" : "transparent", border: c.custcodeNovo ? "1px solid var(--w-200)" : "1px solid transparent", borderRadius: 6, padding: "2px 7px" }}>{c.custcode || "—"}</span>
+                          {c.custcodeNovo && <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 700, marginLeft: 4 }}>novo</span>}
                         </td>
                         <td style={{ padding: "11px 14px" }}>
                           <span style={{ background: rp.bg, color: rp.cor, border: `1px solid ${rp.border}`, fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{rp.texto}</span>
                         </td>
                         <td style={{ padding: "11px 14px", fontFamily: "monospace", fontSize: 12, color: "#64748B", whiteSpace: "nowrap" }}>{c.ordem}</td>
                         <td style={{ padding: "11px 14px", color: "#334155", fontSize: 13, fontWeight: 600 }}>{c.faturas.length}</td>
-                        <td style={{ padding: "11px 14px", color: c.pagas > 0 ? "#059669" : "#CBD5E1", fontSize: 13, fontWeight: 700 }}>{c.pagas || "—"}</td>
+                        <td style={{ padding: "11px 14px", color: c.pagas > 0 ? "var(--w-600)" : "#CBD5E1", fontSize: 13, fontWeight: 700 }}>{c.pagas || "—"}</td>
                         <td style={{ padding: "11px 14px", color: c.pendentes > 0 ? "#C2410C" : "#CBD5E1", fontSize: 13, fontWeight: 700 }}>{c.pendentes || "—"}</td>
                         <td style={{ padding: "11px 14px", color: c.inadimplentes > 0 ? "#dc2626" : "#CBD5E1", fontSize: 13, fontWeight: 700 }}>{c.inadimplentes || "—"}</td>
                       </tr>
@@ -585,7 +585,7 @@ export default function CobrancaAtualizacao() {
 
       {!temPlanilha && (
         <div style={{ ...card, padding: 44, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="upload" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="upload" tamanho={24} /></span>
           <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 700, margin: "0 0 6px" }}>Suba a planilha pra começar</h3>
           <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>O resultado aparece aqui assim que você carregar o arquivo.</p>
         </div>

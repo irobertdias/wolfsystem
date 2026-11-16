@@ -1205,7 +1205,7 @@ export default function Funil() {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", padding: 32 }}>
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", maxWidth: 480 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 18, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={30} /></div>
+          <div style={{ width: 80, height: 80, borderRadius: 18, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}><IconeEmoji e={"🔒"} tamanho={30} /></div>
           <h1 style={{ color: "#0F172A", fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Acesso restrito</h1>
           <p style={{ color: "#64748B", fontSize: 13, margin: 0 }}>Você não tem permissão para ver o Funil de Vendas.</p>
         </div>
@@ -1245,7 +1245,7 @@ export default function Funil() {
           {/* Mini-stats */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "repeat(6, 1fr)", gap: 10 }}>
             <Mini label="Registros" valor={formatNum(metricasEtapa.count)} cor={cor} bg={`${cor}12`} icone="#️⃣" isMobile={isMobile} />
-            <Mini label="Valor Total" valor={formatBRLCompacto(metricasEtapa.total)} cor="#059669" bg="#ECFDF5" icone="💰" isMobile={isMobile} />
+            <Mini label="Valor Total" valor={formatBRLCompacto(metricasEtapa.total)} cor="#059669" bg="var(--w-50)" icone="💰" isMobile={isMobile} />
             <Mini label="Ticket Médio" valor={formatBRLCompacto(metricasEtapa.ticket)} cor="#06b6d4" bg="#ecfeff" icone="🎫" isMobile={isMobile} />
             <Mini label="Mediana" valor={formatBRLCompacto(metricasEtapa.mediana)} cor="#0F766E" bg="#F0FDFA" icone="📊" isMobile={isMobile} />
             <Mini label="Mínimo" valor={formatBRLCompacto(metricasEtapa.min)} cor="#64748B" bg="#F7FAF9" icone="🔻" isMobile={isMobile} />
@@ -1345,7 +1345,7 @@ export default function Funil() {
                           const isValor = c.tipo === "moeda";
                           const txt = isValor ? formatBRL(lerNumero(p, c)) : (lerTexto(p, c) || "—");
                           return (
-                            <td key={c.slug} style={{ padding: "10px 14px", color: isValor ? "#059669" : "#0F172A", fontSize: 12, fontWeight: isValor ? 700 : 500, whiteSpace: "nowrap", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{txt}</td>
+                            <td key={c.slug} style={{ padding: "10px 14px", color: isValor ? "var(--w-600)" : "#0F172A", fontSize: 12, fontWeight: isValor ? 700 : 500, whiteSpace: "nowrap", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>{txt}</td>
                           );
                         })}
                         <td style={{ padding: "10px 14px", color: "#64748B", fontSize: 12 }}>{nomeVendedor(p.vendedor)}</td>
@@ -1382,17 +1382,17 @@ export default function Funil() {
           <div>
             <h1 style={{ color: "#0F172A", fontSize: isMobile ? 24 : 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>Funil de {vocabularioDoWorkspace(workspaceId).itens}</h1>
             <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>
-              <b style={{ color: "#059669" }}>{metricas.total}</b> registros · {periodoLabelCurto}
+              <b style={{ color: "var(--w-600)" }}>{metricas.total}</b> registros · {periodoLabelCurto}
               {campoStatus && <> · etapa: <b>{campoStatus.label}</b></>}
               {campoValor && <> · valor: <b>{campoValor.label}</b></>}
-              {equipeId && <> · <span style={{ color: "#059669", fontWeight: 700 }}>equipe</span></>}
+              {equipeId && <> · <span style={{ color: "var(--w-600)", fontWeight: 700 }}>equipe</span></>}
             </p>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <EquipeSelector />
           <button onClick={() => setShowConfig(s => !s)}
-            style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 6, background: showConfig ? "#ECFDF5" : "#ffffff", color: showConfig ? "#059669" : "#64748B", borderColor: showConfig ? "#A7F3D0" : "#E6ECEA" }}>
+            style={{ ...inputStyle, display: "flex", alignItems: "center", gap: 6, background: showConfig ? "var(--w-50)" : "#ffffff", color: showConfig ? "var(--w-600)" : "#64748B", borderColor: showConfig ? "var(--w-200)" : "#E6ECEA" }}>
             Configurar funil
           </button>
         </div>
@@ -1403,7 +1403,7 @@ export default function Funil() {
         <div style={{ ...cardStyle, padding: isMobile ? 16 : 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
             <h3 style={{ ...sectionTitleStyle, margin: 0, fontSize: 14 }}>
-              <span style={{ width: 28, height: 28, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⚙️</span>
+              <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⚙️</span>
               Como ler este funil neste workspace
             </h3>
             <button onClick={() => { const auto = autoDetectarConfig(campos); salvarConfigFunil(auto); }}
@@ -1412,7 +1412,7 @@ export default function Funil() {
             </button>
           </div>
           <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 16px", lineHeight: 1.5 }}>
-            O funil lê os campos que você criou no <b>Editor de Proposta</b>. Aqui você só diz o que cada coisa significa — qual campo é a <b>etapa</b>, qual é o <b>valor (R$)</b>, e quais situações contam como <b style={{ color: "#059669" }}>ganho</b> ou <b style={{ color: "#dc2626" }}>perdido</b>. Funciona pra qualquer ramo (telecom, cobrança, advocacia, contabilidade).
+            O funil lê os campos que você criou no <b>Editor de Proposta</b>. Aqui você só diz o que cada coisa significa — qual campo é a <b>etapa</b>, qual é o <b>valor (R$)</b>, e quais situações contam como <b style={{ color: "var(--w-600)" }}>ganho</b> ou <b style={{ color: "#dc2626" }}>perdido</b>. Funciona pra qualquer ramo (telecom, cobrança, advocacia, contabilidade).
           </p>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
             <div>
@@ -1439,8 +1439,8 @@ export default function Funil() {
           </div>
           {/* Marcar ganho/perdido */}
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
-            <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 10, padding: 12 }}>
-              <p style={{ color: "#047857", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>Situações que contam como GANHO</p>
+            <div style={{ background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 10, padding: 12 }}>
+              <p style={{ color: "var(--w-700)", fontSize: 11, fontWeight: 700, margin: "0 0 8px" }}>Situações que contam como GANHO</p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {opcoesStatus.map(opt => {
                   const at = config.statusGanho.includes(opt);
@@ -1450,7 +1450,7 @@ export default function Funil() {
                       const np = config.statusPerdido.filter(x => x !== opt);
                       salvarConfigFunil({ ...config, statusGanho: ng, statusPerdido: np });
                     }}
-                      style={{ ...chipStyle, background: at ? "#059669" : "#ffffff", color: at ? "white" : "#64748B", borderColor: at ? "#059669" : "#E6ECEA", fontWeight: at ? 700 : 600 }}>
+                      style={{ ...chipStyle, background: at ? "var(--w-600)" : "#ffffff", color: at ? "white" : "#64748B", borderColor: at ? "var(--w-600)" : "#E6ECEA", fontWeight: at ? 700 : 600 }}>
                       {at ? "✓ " : ""}{opt}
                     </button>
                   );
@@ -1498,8 +1498,8 @@ export default function Funil() {
                       </span>
                       <input type="range" min={0} max={100} step={5} value={val} disabled={isG || isP}
                         onChange={e => salvarConfigFunil({ ...config, probabilidades: { ...config.probabilidades, [opt]: parseInt(e.target.value) } })}
-                        style={{ flex: 1, accentColor: "#059669", cursor: isG || isP ? "not-allowed" : "pointer" }} />
-                      <span style={{ color: isG ? "#059669" : isP ? "#dc2626" : "#059669", fontSize: 12, fontWeight: 800, width: 42, textAlign: "right" }}>{val}%</span>
+                        style={{ flex: 1, accentColor: "var(--w-600)", cursor: isG || isP ? "not-allowed" : "pointer" }} />
+                      <span style={{ color: isG ? "var(--w-600)" : isP ? "#dc2626" : "var(--w-600)", fontSize: 12, fontWeight: 800, width: 42, textAlign: "right" }}>{val}%</span>
                     </div>
                   );
                 })}
@@ -1544,14 +1544,14 @@ export default function Funil() {
               const at = periodo === p.key;
               return (
                 <button key={p.key} onClick={() => setPeriodo(p.key)}
-                  style={{ background: at ? "#ECFDF5" : "#ffffff", color: at ? "#047857" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
+                  style={{ background: at ? "var(--w-50)" : "#ffffff", color: at ? "var(--w-700)" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "inset 0 0 0 1.5px var(--w-200)" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
                   {p.label}
                 </button>
               );
             })}
             {/* Botão Personalizado (calendário) */}
             <button onClick={() => setPeriodo("custom")}
-              style={{ background: periodo === "custom" ? "#ECFDF5" : "#ffffff", color: periodo === "custom" ? "#047857" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: periodo === "custom" ? 800 : 600, boxShadow: periodo === "custom" ? "inset 0 0 0 1.5px #A7F3D0" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
+              style={{ background: periodo === "custom" ? "var(--w-50)" : "#ffffff", color: periodo === "custom" ? "var(--w-700)" : "#475569", border: "none", borderRadius: 10, padding: "8px 14px", fontSize: 12.5, cursor: "pointer", fontWeight: periodo === "custom" ? 800 : 600, boxShadow: periodo === "custom" ? "inset 0 0 0 1.5px var(--w-200)" : "inset 0 0 0 1px #EEF2F1", transition: "all 0.15s" }}>
               Personalizado
             </button>
           </div>
@@ -1559,12 +1559,12 @@ export default function Funil() {
           {periodo === "custom" && (
             <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap", alignItems: "flex-end", background: "#F7FAF9", borderRadius: 12, padding: 12 }}>
               <div>
-                <label style={{ color: "#047857", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>De</label>
+                <label style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>De</label>
                 <input type="date" value={dataInicio} max={dataFim || undefined} onChange={e => setDataInicio(e.target.value)}
                   style={{ ...inputStyle, cursor: "text", borderColor: "#E6ECEA" }} />
               </div>
               <div>
-                <label style={{ color: "#047857", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Até</label>
+                <label style={{ color: "var(--w-700)", fontSize: 12, fontWeight: 700, display: "block", marginBottom: 5 }}>Até</label>
                 <input type="date" value={dataFim} min={dataInicio || undefined} onChange={e => setDataFim(e.target.value)}
                   style={{ ...inputStyle, cursor: "text", borderColor: "#E6ECEA" }} />
               </div>
@@ -1576,12 +1576,12 @@ export default function Funil() {
                   { l: "Este ano", calc: () => { const n = new Date(); return [new Date(n.getFullYear(), 0, 1), new Date(n.getFullYear(), 11, 31)] as [Date, Date]; } },
                 ]).map(a => (
                   <button key={a.l} onClick={() => { const [i, f] = a.calc(); setDataInicio(i.toISOString().slice(0, 10)); setDataFim(f.toISOString().slice(0, 10)); }}
-                    style={{ background: "#F3F6F5", color: "#047857", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+                    style={{ background: "#F3F6F5", color: "var(--w-700)", borderRadius: 8, padding: "7px 11px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
                     {a.l}
                   </button>
                 ))}
               </div>
-              {(!dataInicio || !dataFim) && <span style={{ color: "#047857", fontSize: 11, fontWeight: 600, alignSelf: "center" }}>escolha as duas datas</span>}
+              {(!dataInicio || !dataFim) && <span style={{ color: "var(--w-700)", fontSize: 11, fontWeight: 600, alignSelf: "center" }}>escolha as duas datas</span>}
             </div>
           )}
         </div>
@@ -1628,22 +1628,22 @@ export default function Funil() {
       {/* ═══ TABS ═══ */}
       <div style={{ ...cardStyle, padding: 5, display: "flex", gap: 4, overflowX: "auto", WebkitOverflowScrolling: "touch", alignSelf: "flex-start", maxWidth: "100%" }}>
         {([
-          { key: "quadro",     label: "Quadro",      icone: "", color: "#059669" },
-          { key: "visao",      label: "Visão Geral", icone: "📊", color: "#059669" },
-          { key: "etapas",     label: "Etapas",      icone: "🎯", color: "#059669" },
-          { key: "dimensoes",  label: "Quebras",     icone: "🧩", color: "#059669" },
-          { key: "vendedores", label: "Vendedores",  icone: "👥", color: "#059669" },
-          { key: "atendimentos", label: "Atendimentos", icone: "📞", color: "#059669" },
+          { key: "quadro",     label: "Quadro",      icone: "", color: "var(--w-600)" },
+          { key: "visao",      label: "Visão Geral", icone: "📊", color: "var(--w-600)" },
+          { key: "etapas",     label: "Etapas",      icone: "🎯", color: "var(--w-600)" },
+          { key: "dimensoes",  label: "Quebras",     icone: "🧩", color: "var(--w-600)" },
+          { key: "vendedores", label: "Vendedores",  icone: "👥", color: "var(--w-600)" },
+          { key: "atendimentos", label: "Atendimentos", icone: "📞", color: "var(--w-600)" },
           { key: "metas",      label: "Metas",       icone: "🏆", color: "#eab308" },
           { key: "temporal",   label: "Temporal",    icone: "📈", color: "#C2410C" },
-          { key: "cohort",     label: "Coorte",      icone: "🧬", color: "#059669" },
-          { key: "horarios",   label: "Horários",    icone: "🗓️", color: "#10B981" },
-          { key: "lista",      label: "Lista",       icone: "📑", color: "#059669" },
+          { key: "cohort",     label: "Coorte",      icone: "🧬", color: "var(--w-600)" },
+          { key: "horarios",   label: "Horários",    icone: "🗓️", color: "var(--w-500)" },
+          { key: "lista",      label: "Lista",       icone: "📑", color: "var(--w-600)" },
         ] as { key: AbaKey; label: string; icone: string; color: string }[]).map(t => {
           const at = aba === t.key;
           return (
             <button key={t.key} onClick={() => setAba(t.key)}
-              style={{ background: at ? "#059669" : "transparent", color: at ? "#FFFFFF" : "#475569", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "0 8px 18px -8px rgba(5,150,105,.7)" : "none", transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0 }}>
+              style={{ background: at ? "var(--w-600)" : "transparent", color: at ? "#FFFFFF" : "#475569", border: "none", borderRadius: 9, padding: "8px 14px", fontSize: 13, cursor: "pointer", fontWeight: at ? 800 : 600, boxShadow: at ? "0 8px 18px -8px rgba(5,150,105,.7)" : "none", transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0 }}>
               {t.label}
             </button>
           );
@@ -1656,7 +1656,7 @@ export default function Funil() {
         <div style={{ ...cardStyle, padding: 48, textAlign: "center", color: "#64748B" }}>Carregando configuração de campos...</div>
       ) : metricas.total === 0 ? (
         <div style={{ ...cardStyle, padding: 48, textAlign: "center" }}>
-          <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(5,150,105,0.25)" }}>
+          <div style={{ width: 80, height: 80, borderRadius: 20, background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, margin: "0 auto 16px", boxShadow: "0 12px 24px rgba(5,150,105,0.25)" }}>
             <Icone nome="funil" tamanho={36} cor="#FFFFFF" espessura={1.7} />
           </div>
           <h3 style={{ color: "#0F172A", fontSize: 16, fontWeight: 800, margin: "0 0 8px" }}>Sem negócios no período</h3>
@@ -1695,14 +1695,14 @@ export default function Funil() {
                 <KPI cor="#06b6d4" bg="#ecfeff" icone="🎫" label="Ticket Médio" valor={formatBRLCompacto(metricas.ticket)} titulo={formatBRL(metricas.ticket)} sub={`mediana ${formatBRLCompacto(metricas.ticketMediana)}`} trend={metricas.tTicket} isMobile={isMobile} />
                 <KPI cor="#C2410C" bg="#FFF7ED" icone="⏱️" label="Ciclo Médio" valor={`${metricas.ciclo}d`} sub="Entrada → ganho" isMobile={isMobile} />
                 <KPI cor="#0F766E" bg="#F0FDFA" icone="🔮" label="Forecast Ponderado" valor={formatBRLCompacto(metricas.forecastPonderado)} titulo={formatBRL(metricas.forecastPonderado)} sub={`valor × prob. por etapa`} isMobile={isMobile} />
-                <KPI cor="#059669" bg="#ECFDF5" icone="📨" label="Total" valor={formatNum(metricas.total)} sub={periodoLabelCurto} trend={metricas.tTotal} isMobile={isMobile} />
+                <KPI cor="#059669" bg="var(--w-50)" icone="📨" label="Total" valor={formatNum(metricas.total)} sub={periodoLabelCurto} trend={metricas.tTotal} isMobile={isMobile} />
                 <KPI cor="#dc2626" bg="#fef2f2" icone="🚫" label="Perdidos" valor={formatNum(metricas.perdidos)} sub={`${metricas.taxaPerda}% dos fechados`} isMobile={isMobile} />
               </div>
 
               {/* Funil visual */}
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                 <h3 style={sectionTitleStyle}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📊</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📊</span>
                   Funil — {campoStatus?.label || "Etapas"}
                   <span style={{ color: "#94A3B8", fontSize: 11, fontWeight: 600, marginLeft: "auto" }}>clique numa etapa pra abrir o dashboard</span>
                 </h3>
@@ -1799,7 +1799,7 @@ export default function Funil() {
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
                               <p style={{ color: "#dc2626", fontSize: 12, fontWeight: 800, margin: 0 }}>{diasParado}d parado</p>
-                              <p style={{ color: "#059669", fontSize: 11, fontWeight: 700, margin: "2px 0 0" }}>{formatBRLCompacto(valor)}</p>
+                              <p style={{ color: "var(--w-600)", fontSize: 11, fontWeight: 700, margin: "2px 0 0" }}>{formatBRLCompacto(valor)}</p>
                             </div>
                           </div>
                         ))}
@@ -1832,7 +1832,7 @@ export default function Funil() {
               </div>
               {etapaAberta ? renderDrilldownEtapa() : (
                 <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
-                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
                   <p style={{ color: "#64748B", fontSize: 13 }}>Escolha uma etapa acima pra ver o dashboard dela.</p>
                 </div>
               )}
@@ -1854,7 +1854,7 @@ export default function Funil() {
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {dimensoesDisponiveis.map(dim => (
                       <button key={dim.slug} onClick={() => setDimensaoSel(dim.slug)}
-                        style={{ ...chipStyle, background: dimensaoSel === dim.slug ? "#059669" : "#ffffff", color: dimensaoSel === dim.slug ? "white" : "#64748B", borderColor: dimensaoSel === dim.slug ? "#059669" : "#E6ECEA", fontWeight: dimensaoSel === dim.slug ? 700 : 600 }}>
+                        style={{ ...chipStyle, background: dimensaoSel === dim.slug ? "var(--w-600)" : "#ffffff", color: dimensaoSel === dim.slug ? "white" : "#64748B", borderColor: dimensaoSel === dim.slug ? "var(--w-600)" : "#E6ECEA", fontWeight: dimensaoSel === dim.slug ? 700 : 600 }}>
                         {dim.label}
                       </button>
                     ))}
@@ -1867,7 +1867,7 @@ export default function Funil() {
                   {/* Gráfico de barras: receita + pipeline por valor da dimensão */}
                   <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                     <h3 style={sectionTitleStyle}>
-                      <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🧩</span>
+                      <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🧩</span>
                       {camposMap.get(dimensaoSel)?.label} — receita e pipeline
                     </h3>
                     <ResponsiveContainer width="100%" height={Math.min(360, breakdownDim.length * 38 + 40)}>
@@ -1877,7 +1877,7 @@ export default function Funil() {
                         <YAxis dataKey="nomeCurto" type="category" stroke="#64748B" fontSize={10} width={85} />
                         <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: any) => [formatBRL(v), n === "receita" ? "Realizado" : "Pipeline"]} cursor={{ fill: "#F1F5F4" }} />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
-                        <Bar dataKey="receita" stackId="a" fill="#059669" name="Realizado" />
+                        <Bar dataKey="receita" stackId="a" fill="var(--w-600)" name="Realizado" />
                         <Bar dataKey="pipeline" stackId="a" fill="#14B8A6" name="Pipeline" radius={[0, 8, 8, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -1900,12 +1900,12 @@ export default function Funil() {
                             return (
                               <tr key={d.valor} style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff" }}>
                                 <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{d.valor}</td>
-                                <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{d.qtd}</td>
-                                <td style={{ padding: "12px 16px" }}><span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{d.ganhos}</span></td>
+                                <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{d.qtd}</td>
+                                <td style={{ padding: "12px 16px" }}><span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{d.ganhos}</span></td>
                                 <td style={{ padding: "12px 16px" }}><span style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{d.perdidos}</span></td>
                                 <td style={{ padding: "12px 16px" }}><span style={{ background: `${corWr}15`, color: corWr, fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 800 }}>{d.winRate}%</span></td>
-                                <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{formatBRL(d.receita)}</td>
-                                <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 600 }}>{formatBRL(d.pipeline)}</td>
+                                <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{formatBRL(d.receita)}</td>
+                                <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 13, fontWeight: 600 }}>{formatBRL(d.pipeline)}</td>
                               </tr>
                             );
                           })}
@@ -1923,7 +1923,7 @@ export default function Funil() {
             <div style={{ ...cardStyle, overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6ECEA" }}>
                 <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👥</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👥</span>
                   Desempenho por vendedor
                 </h3>
               </div>
@@ -1946,13 +1946,13 @@ export default function Funil() {
                           <tr key={v.email} style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff" }}>
                             <td style={{ padding: "14px", fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span style={{ color: "#94A3B8", fontSize: 12 }}>#{i + 1}</span>}</td>
                             <td style={{ padding: "14px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{v.nome}</td>
-                            <td style={{ padding: "14px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{v.total}</td>
-                            <td style={{ padding: "14px" }}><span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{v.ganhos}</span></td>
+                            <td style={{ padding: "14px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{v.total}</td>
+                            <td style={{ padding: "14px" }}><span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{v.ganhos}</span></td>
                             <td style={{ padding: "14px" }}><span style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{v.perdidos}</span></td>
                             <td style={{ padding: "14px" }}><span style={{ background: `${corWr}15`, color: corWr, fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 800 }}>{v.winRate}%</span></td>
-                            <td style={{ padding: "14px", color: "#059669", fontSize: 12, fontWeight: 600 }}>{formatBRLCompacto(v.ticket)}</td>
-                            <td style={{ padding: "14px", color: "#059669", fontSize: 12, fontWeight: 600 }}>{formatBRLCompacto(v.pipeline)}</td>
-                            <td style={{ padding: "14px", color: "#059669", fontSize: 13, fontWeight: 800 }}>{formatBRL(v.receita)}</td>
+                            <td style={{ padding: "14px", color: "var(--w-600)", fontSize: 12, fontWeight: 600 }}>{formatBRLCompacto(v.ticket)}</td>
+                            <td style={{ padding: "14px", color: "var(--w-600)", fontSize: 12, fontWeight: 600 }}>{formatBRLCompacto(v.pipeline)}</td>
+                            <td style={{ padding: "14px", color: "var(--w-600)", fontSize: 13, fontWeight: 800 }}>{formatBRL(v.receita)}</td>
                           </tr>
                         );
                       })}
@@ -1979,11 +1979,11 @@ export default function Funil() {
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24, marginTop: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 10 }}>
                   <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎯</span>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🎯</span>
                     Funil de atendimento (por etiqueta)
                   </h3>
                   <button onClick={() => setShowMapearEtq(true)}
-                    style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #d8b4fe", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
+                    style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid #d8b4fe", borderRadius: 10, padding: "8px 14px", fontSize: 12, cursor: "pointer", fontWeight: 700 }}>
                     Mapear etiquetas
                   </button>
                 </div>
@@ -2014,7 +2014,7 @@ export default function Funil() {
               <div style={{ ...cardStyle, overflow: "hidden", marginTop: 14 }}>
                 <div style={{ padding: "16px 20px", borderBottom: "1px solid #E6ECEA" }}>
                   <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👤</span>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>👤</span>
                     Performance por atendente
                   </h3>
                   <p style={{ color: "#94A3B8", fontSize: 11, margin: "4px 0 0" }}>Baseado nas etiquetas marcadas no chat. Reclassifique em "Mapear etiquetas".</p>
@@ -2038,8 +2038,8 @@ export default function Funil() {
                             <tr key={r.email} style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff" }}>
                               <td style={{ padding: "14px", fontSize: 16 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : <span style={{ color: "#94A3B8", fontSize: 12 }}>#{i + 1}</span>}</td>
                               <td style={{ padding: "14px", color: "#0F172A", fontSize: 13, fontWeight: 700 }}>{r.nome}</td>
-                              <td style={{ padding: "14px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{r.total}</td>
-                              <td style={{ padding: "14px" }}><span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.venda}</span></td>
+                              <td style={{ padding: "14px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{r.total}</td>
+                              <td style={{ padding: "14px" }}><span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.venda}</span></td>
                               <td style={{ padding: "14px" }}><span style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.inviavel}</span></td>
                               <td style={{ padding: "14px" }}><span style={{ background: "#FFF7ED", color: "#C2410C", border: "1px solid #fde68a", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{r.andamento}</span></td>
                               <td style={{ padding: "14px" }}><span style={{ background: `${corConv}15`, color: corConv, fontSize: 13, padding: "4px 12px", borderRadius: 10, fontWeight: 800 }}>{r.taxaConv}%</span></td>
@@ -2056,7 +2056,7 @@ export default function Funil() {
               {/* Ranking de etiquetas mais usadas */}
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 20, marginTop: 14 }}>
                 <h3 style={{ ...sectionTitleStyle, margin: "0 0 14px" }}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🏷️</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🏷️</span>
                   Etiquetas mais usadas no período
                 </h3>
                 {rankingEtiquetas.length === 0 ? (
@@ -2139,7 +2139,7 @@ export default function Funil() {
             <>
               {(metas.metaReceita === 0 && metas.metaGanhos === 0) ? (
                 <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
-                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+                  <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
                   <h3 style={{ color: "#0F172A", fontSize: 18, fontWeight: 800, margin: "0 0 6px" }}>Defina suas metas do mês</h3>
                   <p style={{ color: "#64748B", fontSize: 13, margin: "0 0 16px" }}>Configure a meta de receita e/ou de ganhos em ⚙️ Configurar funil pra acompanhar o pace.</p>
                   <button onClick={() => setShowConfig(true)} style={{ background: "linear-gradient(135deg, #eab308 0%, #ca8a04 100%)", color: "white", border: "none", borderRadius: 10, padding: "10px 20px", fontSize: 13, cursor: "pointer", fontWeight: 700 }}>Definir metas</button>
@@ -2161,15 +2161,15 @@ export default function Funil() {
                         <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                             <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>Receita</span>
-                            <span style={{ color: metas.pctReceita >= 100 ? "#059669" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctReceita}%</span>
+                            <span style={{ color: metas.pctReceita >= 100 ? "var(--w-600)" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctReceita}%</span>
                           </div>
                           <div style={{ background: "#E6ECEA", borderRadius: 8, height: 14, overflow: "hidden", marginBottom: 6, position: "relative" }}>
-                            <div style={{ background: metas.pctReceita >= 100 ? "linear-gradient(90deg,#059669,#10B981)" : "linear-gradient(90deg,#eab308,#facc15)", width: `${Math.min(100, metas.pctReceita)}%`, height: "100%", transition: "width 0.4s" }} />
+                            <div style={{ background: metas.pctReceita >= 100 ? "linear-gradient(90deg,var(--w-600),var(--w-500))" : "linear-gradient(90deg,#eab308,#facc15)", width: `${Math.min(100, metas.pctReceita)}%`, height: "100%", transition: "width 0.4s" }} />
                             {/* marcador do ritmo esperado */}
                             <div style={{ position: "absolute", top: -2, left: `${metas.pctRitmo}%`, width: 2, height: 18, background: "#64748B" }} title="ritmo esperado" />
                           </div>
                           <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 12px" }}>
-                            <b style={{ color: "#059669" }}>{formatBRL(metas.receitaMes)}</b> de <b>{formatBRL(metas.metaReceita)}</b>
+                            <b style={{ color: "var(--w-600)" }}>{formatBRL(metas.receitaMes)}</b> de <b>{formatBRL(metas.metaReceita)}</b>
                           </p>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                             <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
@@ -2178,10 +2178,10 @@ export default function Funil() {
                             </div>
                             <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Projeção</p>
-                              <p style={{ color: metas.projReceita >= metas.metaReceita ? "#059669" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.projReceita)}</p>
+                              <p style={{ color: metas.projReceita >= metas.metaReceita ? "var(--w-600)" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{formatBRLCompacto(metas.projReceita)}</p>
                             </div>
                           </div>
-                          <p style={{ color: metas.projReceita >= metas.metaReceita ? "#059669" : "#dc2626", fontSize: 11, fontWeight: 700, margin: "10px 0 0", textAlign: "center" }}>
+                          <p style={{ color: metas.projReceita >= metas.metaReceita ? "var(--w-600)" : "#dc2626", fontSize: 11, fontWeight: 700, margin: "10px 0 0", textAlign: "center" }}>
                             {metas.projReceita >= metas.metaReceita ? "No ritmo pra bater a meta" : "Abaixo do ritmo necessário"}
                           </p>
                         </div>
@@ -2192,14 +2192,14 @@ export default function Funil() {
                         <div style={{ background: "#F7FAF9", borderRadius: 12, padding: 18 }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
                             <span style={{ color: "#0F172A", fontSize: 13, fontWeight: 700 }}>Ganhos (quantidade)</span>
-                            <span style={{ color: metas.pctGanhos >= 100 ? "#059669" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctGanhos}%</span>
+                            <span style={{ color: metas.pctGanhos >= 100 ? "var(--w-600)" : "#64748B", fontSize: 20, fontWeight: 800 }}>{metas.pctGanhos}%</span>
                           </div>
                           <div style={{ background: "#E6ECEA", borderRadius: 8, height: 14, overflow: "hidden", marginBottom: 6, position: "relative" }}>
-                            <div style={{ background: metas.pctGanhos >= 100 ? "linear-gradient(90deg,#059669,#10B981)" : "linear-gradient(90deg,#059669,#34D399)", width: `${Math.min(100, metas.pctGanhos)}%`, height: "100%", transition: "width 0.4s" }} />
+                            <div style={{ background: metas.pctGanhos >= 100 ? "linear-gradient(90deg,var(--w-600),var(--w-500))" : "linear-gradient(90deg,var(--w-600),var(--w-400))", width: `${Math.min(100, metas.pctGanhos)}%`, height: "100%", transition: "width 0.4s" }} />
                             <div style={{ position: "absolute", top: -2, left: `${metas.pctRitmo}%`, width: 2, height: 18, background: "#64748B" }} title="ritmo esperado" />
                           </div>
                           <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 12px" }}>
-                            <b style={{ color: "#059669" }}>{metas.qtdMes}</b> de <b>{metas.metaGanhos}</b> ganhos
+                            <b style={{ color: "var(--w-600)" }}>{metas.qtdMes}</b> de <b>{metas.metaGanhos}</b> ganhos
                           </p>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                             <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
@@ -2208,7 +2208,7 @@ export default function Funil() {
                             </div>
                             <div style={{ background: "#F7FAF9", borderRadius: 8, padding: 10 }}>
                               <p style={{ color: "#94A3B8", fontSize: 12, margin: 0, fontWeight: 600 }}>Projeção</p>
-                              <p style={{ color: metas.projGanhos >= metas.metaGanhos ? "#059669" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.projGanhos}</p>
+                              <p style={{ color: metas.projGanhos >= metas.metaGanhos ? "var(--w-600)" : "#C2410C", fontSize: 15, fontWeight: 800, margin: "2px 0 0" }}>{metas.projGanhos}</p>
                             </div>
                           </div>
                         </div>
@@ -2219,7 +2219,7 @@ export default function Funil() {
                   {/* Contribuição por vendedor pra meta */}
                   <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                     <h3 style={sectionTitleStyle}>
-                      <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🤝</span>
+                      <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🤝</span>
                       Quem está puxando a meta (receita ganha no período filtrado)
                     </h3>
                     {vendedoresStats.filter(v => v.receita > 0).length === 0 ? (
@@ -2230,8 +2230,8 @@ export default function Funil() {
                           <CartesianGrid strokeDasharray="3 3" stroke="#E6ECEA" horizontal={false} />
                           <XAxis type="number" stroke="#64748B" fontSize={10} tickFormatter={v => formatBRLCompacto(v)} />
                           <YAxis dataKey="nome" type="category" stroke="#64748B" fontSize={11} width={76} />
-                          <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [formatBRL(v), "Receita"]} cursor={{ fill: "#ECFDF5" }} />
-                          <Bar dataKey="receita" fill="#059669" radius={[0, 8, 8, 0]} />
+                          <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [formatBRL(v), "Receita"]} cursor={{ fill: "var(--w-50)" }} />
+                          <Bar dataKey="receita" fill="var(--w-600)" radius={[0, 8, 8, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
@@ -2247,13 +2247,13 @@ export default function Funil() {
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
                   <h3 style={{ ...sectionTitleStyle, margin: 0 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
+                    <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📈</span>
                     Receita ao longo do tempo
                   </h3>
                   <div style={{ display: "flex", gap: 4 }}>
                     {(["dia", "semana", "mes"] as const).map(m => (
                       <button key={m} onClick={() => setAgrupTempo(m)}
-                        style={{ ...chipStyle, background: agrupTempo === m ? "#ECFDF5" : "#ffffff", color: agrupTempo === m ? "#059669" : "#64748B", borderColor: agrupTempo === m ? "#059669" : "#E6ECEA", fontWeight: agrupTempo === m ? 700 : 600 }}>
+                        style={{ ...chipStyle, background: agrupTempo === m ? "var(--w-50)" : "#ffffff", color: agrupTempo === m ? "var(--w-600)" : "#64748B", borderColor: agrupTempo === m ? "var(--w-600)" : "#E6ECEA", fontWeight: agrupTempo === m ? 700 : 600 }}>
                         {m === "dia" ? "Diário" : m === "semana" ? "Semanal" : "Mensal"}
                       </button>
                     ))}
@@ -2263,22 +2263,22 @@ export default function Funil() {
                   <AreaChart data={serieTemporal} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                     <defs>
                       <linearGradient id="recGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#059669" stopOpacity={0.4} />
-                        <stop offset="100%" stopColor="#059669" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="var(--w-600)" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="var(--w-600)" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E6ECEA" />
                     <XAxis dataKey="label" stroke="#64748B" fontSize={10} interval="preserveStartEnd" />
                     <YAxis stroke="#64748B" fontSize={10} tickFormatter={v => formatBRLCompacto(v)} />
                     <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [formatBRL(v), "Receita"]} />
-                    <Area type="monotone" dataKey="receita" stroke="#059669" strokeWidth={2.5} fill="url(#recGrad)" />
+                    <Area type="monotone" dataKey="receita" stroke="var(--w-600)" strokeWidth={2.5} fill="url(#recGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
 
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                 <h3 style={sectionTitleStyle}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📊</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>📊</span>
                   Registros por período (gerados, ganhos, perdidos)
                 </h3>
                 <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
@@ -2289,7 +2289,7 @@ export default function Funil() {
                     <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} />
                     <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
                     <Line type="monotone" dataKey="geradas" stroke="#14B8A6" strokeWidth={2} dot={false} name="Gerados" />
-                    <Line type="monotone" dataKey="ganhos" stroke="#059669" strokeWidth={2} dot={false} name="Ganhos" />
+                    <Line type="monotone" dataKey="ganhos" stroke="var(--w-600)" strokeWidth={2} dot={false} name="Ganhos" />
                     <Line type="monotone" dataKey="perdidos" stroke="#dc2626" strokeWidth={2} dot={false} name="Perdidos" />
                   </LineChart>
                 </ResponsiveContainer>
@@ -2302,11 +2302,11 @@ export default function Funil() {
             <>
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24 }}>
                 <h3 style={sectionTitleStyle}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#ECFDF5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🧬</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-50)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🧬</span>
                   Coorte — últimas 12 semanas
                 </h3>
                 <p style={{ color: "#64748B", fontSize: 12, margin: "0 0 18px", lineHeight: 1.5 }}>
-                  Cada linha é a semana em que os registros entraram. Mostra quantos viraram <b style={{ color: "#059669" }}>ganho</b>, <b style={{ color: "#dc2626" }}>perdido</b> ou seguem <b style={{ color: "#C2410C" }}>em aberto</b>. Vê se o funil esquenta ou esfria com o tempo.
+                  Cada linha é a semana em que os registros entraram. Mostra quantos viraram <b style={{ color: "var(--w-600)" }}>ganho</b>, <b style={{ color: "#dc2626" }}>perdido</b> ou seguem <b style={{ color: "#C2410C" }}>em aberto</b>. Vê se o funil esquenta ou esfria com o tempo.
                 </p>
                 <ResponsiveContainer width="100%" height={isMobile ? 200 : 260}>
                   <BarChart data={cohort} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -2315,7 +2315,7 @@ export default function Funil() {
                     <YAxis stroke="#64748B" fontSize={10} tickFormatter={v => `${v}%`} domain={[0, 100]} />
                     <Tooltip contentStyle={{ background: "#ffffff", border: "1px solid #E6ECEA", borderRadius: 10, fontSize: 12 }} formatter={(v: any, n: any) => [`${v}%`, n === "taxaGanho" ? "Ganho" : n === "taxaPerda" ? "Perdido" : "Em aberto"]} />
                     <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => v === "taxaGanho" ? "Ganho" : v === "taxaPerda" ? "Perdido" : "Em aberto"} />
-                    <Bar dataKey="taxaGanho" stackId="a" fill="#059669" />
+                    <Bar dataKey="taxaGanho" stackId="a" fill="var(--w-600)" />
                     <Bar dataKey="taxaAberto" stackId="a" fill="#C2410C" />
                     <Bar dataKey="taxaPerda" stackId="a" fill="#dc2626" radius={[6, 6, 0, 0]} />
                   </BarChart>
@@ -2338,11 +2338,11 @@ export default function Funil() {
                         return (
                           <tr key={i} style={{ borderTop: "1px solid #F1F5F4", background: "#ffffff" }}>
                             <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap" }}>{c.label}</td>
-                            <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{c.total}</td>
-                            <td style={{ padding: "12px 16px" }}><span style={{ background: "#ECFDF5", color: "#059669", border: "1px solid #A7F3D0", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.ganhos}</span></td>
+                            <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{c.total}</td>
+                            <td style={{ padding: "12px 16px" }}><span style={{ background: "var(--w-50)", color: "var(--w-600)", border: "1px solid var(--w-200)", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.ganhos}</span></td>
                             <td style={{ padding: "12px 16px" }}><span style={{ background: "#FEF2F2", color: "#B91C1C", border: "none", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.perdidos}</span></td>
                             <td style={{ padding: "12px 16px" }}><span style={{ background: "#FFF7ED", color: "#C2410C", border: "1px solid #fde68a", fontSize: 12, padding: "3px 10px", borderRadius: 10, fontWeight: 700 }}>{c.aberto}</span></td>
-                            <td style={{ padding: "12px 16px", color: "#059669", fontSize: 13, fontWeight: 700 }}>{formatBRLCompacto(c.receita)}</td>
+                            <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 13, fontWeight: 700 }}>{formatBRLCompacto(c.receita)}</td>
                             <td style={{ padding: "12px 16px" }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <div style={{ flex: 1, background: "#F1F5F4", borderRadius: 4, height: 6, overflow: "hidden", minWidth: 50, maxWidth: 90 }}>
@@ -2365,10 +2365,10 @@ export default function Funil() {
           {aba === "horarios" && (
             <>
               <div style={{ ...cardStyle, padding: isMobile ? 16 : 24, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 14, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🔥"} tamanho={25} /></div>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><IconeEmoji e={"🔥"} tamanho={25} /></div>
                 <div>
                   <p style={{ color: "#64748B", fontSize: 12, fontWeight: 700, margin: 0 }}>Horário de pico</p>
-                  <p style={{ color: "#059669", fontSize: isMobile ? 18 : 22, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>
+                  <p style={{ color: "var(--w-600)", fontSize: isMobile ? 18 : 22, fontWeight: 800, margin: "2px 0 0", letterSpacing: -0.3 }}>
                     {picoHorario.qtd > 0 ? `${DIAS_SEMANA_LONGO[picoHorario.dia]} às ${picoHorario.hora}h` : "Sem dados"}
                   </p>
                   <p style={{ color: "#94A3B8", fontSize: 12, margin: "2px 0 0" }}>{picoHorario.qtd > 0 ? `${picoHorario.qtd} registro(s) nesse horário` : "—"}</p>
@@ -2377,7 +2377,7 @@ export default function Funil() {
 
               <div style={{ ...cardStyle, padding: isMobile ? 14 : 24 }}>
                 <h3 style={sectionTitleStyle}>
-                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "#D1FAE5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🗓️</span>
+                  <span style={{ width: 32, height: 32, borderRadius: 8, background: "var(--w-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🗓️</span>
                   Mapa de calor — dia × hora
                 </h3>
                 <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -2405,7 +2405,7 @@ export default function Funil() {
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
                 <div style={{ ...cardStyle, padding: isMobile ? 16 : 20 }}>
                   <h3 style={{ ...sectionTitleStyle, fontSize: 14, margin: "0 0 14px" }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "#D1FAE5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📅</span>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--w-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>📅</span>
                     Por dia da semana
                   </h3>
                   <ResponsiveContainer width="100%" height={200}>
@@ -2420,7 +2420,7 @@ export default function Funil() {
                 </div>
                 <div style={{ ...cardStyle, padding: isMobile ? 16 : 20 }}>
                   <h3 style={{ ...sectionTitleStyle, fontSize: 14, margin: "0 0 14px" }}>
-                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "#D1FAE5", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⏰</span>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--w-100)", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>⏰</span>
                     Por hora do dia
                   </h3>
                   <ResponsiveContainer width="100%" height={200}>
@@ -2450,7 +2450,7 @@ export default function Funil() {
                     { k: "nome_az", l: "Nome" },
                   ] as { k: OrdemLista; l: string }[]).map(o => (
                     <button key={o.k} onClick={() => setListaOrdem(o.k)}
-                      style={{ ...chipStyle, fontSize: 11, background: listaOrdem === o.k ? "#ECFDF5" : "#F7FAF9", color: listaOrdem === o.k ? "#059669" : "#64748B", borderColor: listaOrdem === o.k ? "#059669" : "#E6ECEA", fontWeight: listaOrdem === o.k ? 700 : 600 }}>
+                      style={{ ...chipStyle, fontSize: 11, background: listaOrdem === o.k ? "var(--w-50)" : "#F7FAF9", color: listaOrdem === o.k ? "var(--w-600)" : "#64748B", borderColor: listaOrdem === o.k ? "var(--w-600)" : "#E6ECEA", fontWeight: listaOrdem === o.k ? 700 : 600 }}>
                       {o.l}
                     </button>
                   ))}
@@ -2475,7 +2475,7 @@ export default function Funil() {
                         {colunasLista.map(c => {
                           const isValor = c.tipo === "moeda";
                           const txt = isValor ? formatBRL(lerNumero(p, c)) : (lerTexto(p, c) || "—");
-                          return <td key={c.slug} style={{ padding: "12px 16px", color: isValor ? "#059669" : "#0F172A", fontSize: 12, fontWeight: isValor ? 700 : 500, whiteSpace: "nowrap", maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis" }}>{txt}</td>;
+                          return <td key={c.slug} style={{ padding: "12px 16px", color: isValor ? "var(--w-600)" : "#0F172A", fontSize: 12, fontWeight: isValor ? 700 : 500, whiteSpace: "nowrap", maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis" }}>{txt}</td>;
                         })}
                         <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>{nomeVendedor(p.vendedor)}</td>
                       </tr>
@@ -2598,12 +2598,12 @@ function QuadroFunil({ etapas, props, statusDe, valorDe, nomeDe, detalheDe, vend
             .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
           const ganho = e.tipo === "ganho";
           return (
-            <section key={e.opcao} aria-label={`Etapa ${e.opcao}`} style={{ background: ganho ? "linear-gradient(180deg, #ECFDF5, #E3F5EC)" : "#EAF0EE", borderRadius: 20, padding: 14, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
+            <section key={e.opcao} aria-label={`Etapa ${e.opcao}`} style={{ background: ganho ? "linear-gradient(180deg, var(--w-50), #E3F5EC)" : "#EAF0EE", borderRadius: 20, padding: 14, display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 6px" }}>
                 <span style={{ width: 10, height: 10, borderRadius: "50%", background: cor, flexShrink: 0 }} />
                 <span style={{ fontSize: 14, fontWeight: 800, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={e.opcao}>{e.opcao}</span>
                 <span style={{ background: "#FFFFFF", color: "#475569", borderRadius: 999, padding: "1px 8px", fontSize: 12, fontWeight: 700 }}>{e.qtd}</span>
-                <span style={{ marginLeft: "auto", color: ganho ? "#047857" : "#64748B", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>{compactoBRL(e.valor)}</span>
+                <span style={{ marginLeft: "auto", color: ganho ? "var(--w-700)" : "#64748B", fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>{compactoBRL(e.valor)}</span>
               </div>
               {cards.length === 0 && (
                 <div style={{ border: "1.5px dashed #CBD5E1", borderRadius: 14, padding: "18px 12px", textAlign: "center", color: "#94A3B8", fontSize: 12.5, fontWeight: 600 }}>Nenhum negócio aqui</div>
@@ -2626,7 +2626,7 @@ function QuadroFunil({ etapas, props, statusDe, valorDe, nomeDe, detalheDe, vend
                     <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 8, borderTop: "1px solid #F1F5F4", width: "100%" }}>
                       <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{valorDe(p).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
                       <span style={{ marginLeft: "auto", color: "#94A3B8", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{haQuanto(ref)}</span>
-                      {vend && vend !== "—" && <span title={vend} style={{ width: 26, height: 26, borderRadius: 8, background: "#ECFDF5", color: "#047857", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{iniciaisDe(vend)}</span>}
+                      {vend && vend !== "—" && <span title={vend} style={{ width: 26, height: 26, borderRadius: 8, background: "var(--w-50)", color: "var(--w-700)", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{iniciaisDe(vend)}</span>}
                     </div>
                   </button>
                 );

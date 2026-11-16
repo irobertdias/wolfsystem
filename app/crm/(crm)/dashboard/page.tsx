@@ -198,8 +198,8 @@ function AnelMeta({ valor, meta, mobile }: { valor: number; meta: number; mobile
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <defs>
           <linearGradient id="wolfAnelGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#34d399" />
-            <stop offset="100%" stopColor="#059669" />
+            <stop offset="0%" stopColor="var(--w-400)" />
+            <stop offset="100%" stopColor="var(--w-600)" />
           </linearGradient>
         </defs>
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={stroke} />
@@ -713,7 +713,7 @@ export default function Dashboard() {
         </div>
 
         <div className="fu" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(340px, 1fr) 1.3fr", gap: isMobile ? 14 : 18 }}>
-          <div style={{ borderRadius: 20, padding: isMobile ? 22 : 28, background: "linear-gradient(140deg, #064e3b 0%, #065f46 55%, #047857 100%)", boxShadow: "0 10px 30px rgba(6,78,59,0.35)", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", gap: isMobile ? 18 : 24, position: "relative", overflow: "hidden" }}>
+          <div style={{ borderRadius: 20, padding: isMobile ? 22 : 28, background: "linear-gradient(140deg, var(--w-900) 0%, var(--w-800) 55%, var(--w-700) 100%)", boxShadow: "0 10px 30px rgba(6,78,59,0.35)", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", gap: isMobile ? 18 : 24, position: "relative", overflow: "hidden" }}>
             <div style={{ position: "absolute", top: -42, right: -42, width: 160, height: 160, borderRadius: "50%", background: "rgba(52,211,153,0.15)" }} />
             <AnelMeta valor={instaladas} meta={META_INSTALADAS} mobile={isMobile} />
             <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
@@ -776,7 +776,7 @@ export default function Dashboard() {
                 <p style={{ color: "#334155", fontSize: 13, margin: 0, fontWeight: 800 }}>{voc.concluidas}</p>
                 <p style={{ color: T.ink, fontSize: 14, margin: 0, fontWeight: 900, ...numStyle }}>{instaladas} <span style={{ color: T.faint, fontWeight: 600 }}>/ {META_INSTALADAS}</span></p>
               </div>
-              <BarraProg pct={pctMeta} cor={`linear-gradient(90deg, #34d399, ${T.green})`} />
+              <BarraProg pct={pctMeta} cor={`linear-gradient(90deg, #34D399, ${T.green})`} />
               <p style={{ color: pctMeta >= 100 ? T.green : T.sub, fontSize: 11.5, margin: "6px 0 0", fontWeight: 700 }}>{pctMeta >= 100 ? "Meta batida" : `${pctMeta.toFixed(1)}% · faltam ${faltam}`}</p>
             </div>
             <div>
@@ -800,8 +800,8 @@ export default function Dashboard() {
                 <p style={{ color: T.sub, fontSize: 12, margin: "3px 0 0" }}>{voc.porDia}</p>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
-                <span style={{ background: "#ecfdf5", color: T.green, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.instaladas, 0)} {voc.abrev}</span>
-                <span style={{ background: "#ECFDF5", color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.aguardando, 0)} aguard.</span>
+                <span style={{ background: "var(--w-50)", color: T.green, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.instaladas, 0)} {voc.abrev}</span>
+                <span style={{ background: "var(--w-50)", color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 11, fontWeight: 800, padding: "4px 10px", borderRadius: 8 }}>{vendasPorDia.reduce((a, d) => a + d.aguardando, 0)} aguard.</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
@@ -862,7 +862,7 @@ export default function Dashboard() {
               <>
                 <ResponsiveContainer width="100%" height={isMobile ? 180 : 210}>
                   <BarChart data={rankingVendedores.slice(0, 10)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                    <defs><linearGradient id="wolfRankBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#34d399" /><stop offset="100%" stopColor={T.green} /></linearGradient></defs>
+                    <defs><linearGradient id="wolfRankBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--w-400)" /><stop offset="100%" stopColor={T.green} /></linearGradient></defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="nomeCurto" stroke={T.faint} fontSize={10} tickLine={false} axisLine={false} interval={0} angle={-30} textAnchor="end" height={isMobile ? 60 : 55} />
                     <YAxis stroke={T.faint} fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
@@ -876,13 +876,13 @@ export default function Dashboard() {
                   {rankingVendedores.slice(0, 5).map((v, i) => {
                     const medalha = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
                     return (
-                      <div key={v.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: i === 0 ? "linear-gradient(135deg,#ecfdf5,#d1fae5)" : T.soft, border: `1px solid ${i === 0 ? "#a7f3d0" : T.line}`, borderRadius: 11, padding: "10px 14px" }}>
+                      <div key={v.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: i === 0 ? "linear-gradient(135deg,var(--w-50),var(--w-100))" : T.soft, border: `1px solid ${i === 0 ? "#a7f3d0" : T.line}`, borderRadius: 11, padding: "10px 14px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
                           {medalha ? <span style={{ fontSize: 18, flexShrink: 0 }}>{medalha}</span> : <span style={{ background: "#e2e8f0", color: T.sub, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6, flexShrink: 0, minWidth: 28, textAlign: "center" }}>#{i + 1}</span>}
                           <span style={{ color: T.ink, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.nome}</span>
                         </div>
                         <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                          <span style={{ color: i === 0 ? "#065f46" : T.green, fontSize: 14, fontWeight: 900, ...numStyle }}>{v.instaladas} {voc.abrev}</span>
+                          <span style={{ color: i === 0 ? "var(--w-800)" : T.green, fontSize: 14, fontWeight: 900, ...numStyle }}>{v.instaladas} {voc.abrev}</span>
                           {v.aguardando > 0 && <span style={{ color: grupoMeta.AGUARDANDO_INST.cor, fontSize: 12, fontWeight: 800 }}>+{v.aguardando} aguard.</span>}
                         </span>
                       </div>

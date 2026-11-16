@@ -149,10 +149,10 @@ export default function RHLayolt() {
         style={{
           width: "100%", display: "flex", alignItems: "center", gap: 10,
           padding: "9px 12px", border: 0, borderRadius: 11, cursor: "pointer", textAlign: "left", whiteSpace: "nowrap",
-          background: sel ? "#ECFDF5" : "transparent", color: sel ? "#065F46" : "#475569",
+          background: sel ? "var(--w-50)" : "transparent", color: sel ? "var(--w-800)" : "#475569",
           fontSize: 13.5, fontWeight: sel ? 800 : 600, transition: "background .15s",
         }}>
-        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "#059669" : "#94A3B8"} />
+        <Icone nome={i.icone as any} tamanho={16} cor={sel ? "var(--w-600)" : "#94A3B8"} />
         {i.label}
       </button>
     );
@@ -171,7 +171,7 @@ export default function RHLayolt() {
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8 }}>
           <button onClick={() => setMenuMobile((v) => !v)}
             style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: 0, borderRadius: 16, boxShadow: SOMBRA, padding: "12px 16px", fontSize: 14, fontWeight: 800, color: "#0F172A", cursor: "pointer" }}>
-            <Icone nome="usuarios" tamanho={18} cor="#059669" />
+            <Icone nome="usuarios" tamanho={18} cor="var(--w-600)" />
             RH · {LABELS[aba] || ""}
             <span style={{ marginLeft: "auto", display: "inline-flex", transform: menuMobile ? "rotate(180deg)" : "none", transition: "transform .15s" }}><Icone nome="baixo" tamanho={16} /></span>
           </button>
@@ -184,7 +184,7 @@ export default function RHLayolt() {
       ) : (
         <nav aria-label="Seções do RH" style={{ flex: "0 0 250px", background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: 12, display: "flex", flexDirection: "column", gap: 2, position: "sticky", top: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 12px 4px" }}>
-            <span style={{ width: 32, height: 32, borderRadius: 10, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={17} /></span>
+            <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="usuarios" tamanho={17} /></span>
             <span style={{ display: "flex", flexDirection: "column" }}>
               <span style={{ fontWeight: 800, color: "#0F172A", fontSize: 16 }}>Recursos humanos</span>
               <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 600 }}>Gestão de pessoas</span>
@@ -204,7 +204,7 @@ export default function RHLayolt() {
 function EmConstrucao({ titulo }: { titulo: string }) {
   return (
     <div style={{ background: "#fff", borderRadius: 20, boxShadow: SOMBRA, padding: "44px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="relogio" tamanho={24} /></span>
+      <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome="relogio" tamanho={24} /></span>
       <h2 style={{ margin: 0, color: "#0F172A", fontSize: 18, fontWeight: 800 }}>{titulo}</h2>
       <p style={{ margin: 0, fontSize: 14, color: "#64748B" }}>Tela em construção, chega em breve.</p>
     </div>

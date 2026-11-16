@@ -277,7 +277,7 @@ export function DocumentosSection() {
         <button
           onClick={abrirNovo}
           style={{
-            background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+            background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
             color: "white",
             border: "none",
             borderRadius: 12,
@@ -381,7 +381,7 @@ export function DocumentosSection() {
         </div>
       ) : filtrados.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="busca" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {lista.length === 0 ? "Nenhum documento cadastrado." : "Nada encontrado"}
           </p>
@@ -429,9 +429,9 @@ export function DocumentosSection() {
                         {d.arquivoUrl ? (
                           <span
                             style={{
-                              background: "#ECFDF5",
-                              color: "#059669",
-                              border: "1px solid #A7F3D0",
+                              background: "var(--w-50)",
+                              color: "var(--w-600)",
+                              border: "1px solid var(--w-200)",
                               fontSize: 11,
                               padding: "3px 10px",
                               borderRadius: 10,
@@ -471,9 +471,9 @@ export function DocumentosSection() {
                             onClick={() => verArquivo(d)}
                             disabled={abrindo === d.id}
                             style={{
-                              background: "#ECFDF5",
+                              background: "var(--w-50)",
                               color: COR_TEXTO,
-                              border: "1px solid #A7F3D0",
+                              border: "1px solid var(--w-200)",
                               borderRadius: 8,
                               padding: "5px 11px",
                               fontSize: 11,
@@ -599,8 +599,8 @@ export function DocumentosSection() {
                 {arquivo ? (
                   <div
                     style={{
-                      border: "1px solid #A7F3D0",
-                      background: "#ECFDF5",
+                      border: "1px solid var(--w-200)",
+                      background: "var(--w-50)",
                       borderRadius: 12,
                       padding: "12px 14px",
                       display: "flex",
@@ -654,7 +654,7 @@ export function DocumentosSection() {
                   <div
                     onClick={() => inputArquivoRef.current?.click()}
                     style={{
-                      border: "2px dashed #A7F3D0",
+                      border: "2px dashed var(--w-200)",
                       borderRadius: 12,
                       padding: 20,
                       textAlign: "center",
@@ -662,7 +662,7 @@ export function DocumentosSection() {
                       cursor: "pointer",
                     }}
                   >
-                    <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+                    <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
                     <p style={{ color: COR_TEXTO, fontSize: 13, margin: 0, fontWeight: 700 }}>
                       Clique para escolher o arquivo
                     </p>
@@ -701,7 +701,7 @@ export function DocumentosSection() {
                 onClick={salvar}
                 disabled={enviando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 10,

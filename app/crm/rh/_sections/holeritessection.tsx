@@ -265,7 +265,7 @@ export function HoleritesSection() {
                 onClick={gerarHolerites}
                 disabled={gerando}
                 style={{
-                  background: `linear-gradient(140deg, #10B981, #059669 60%, #047857)`,
+                  background: `linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))`,
                   color: "white",
                   border: "none",
                   borderRadius: 8,
@@ -289,7 +289,7 @@ export function HoleritesSection() {
         </div>
       ) : itens.length === 0 ? (
         <div style={{ ...card, padding: 40, textAlign: "center" }}>
-          <span style={{ width: 52, height: 52, borderRadius: 15, background: "#ECFDF5", color: "#059669", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
+          <span style={{ width: 52, height: 52, borderRadius: 15, background: "var(--w-50)", color: "var(--w-600)", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 10 }}><Icone nome="pasta" tamanho={24} /></span>
           <p style={{ color: "#64748B", fontSize: 13 }}>
             {todos.length === 0 ? "Nenhum holerite gerado ainda." : "Sem holerites nesta competência."}
           </p>
@@ -346,7 +346,7 @@ export function HoleritesSection() {
                       <td style={{ padding: "12px 16px", color: "#64748B", fontSize: 12 }}>
                         {h.competencia}
                       </td>
-                      <td style={{ padding: "12px 16px", color: "#059669", fontSize: 12 }}>{real(p)}</td>
+                      <td style={{ padding: "12px 16px", color: "var(--w-600)", fontSize: 12 }}>{real(p)}</td>
                       <td style={{ padding: "12px 16px", color: "#dc2626", fontSize: 12 }}>{real(d)}</td>
                       <td style={{ padding: "12px 16px", color: "#0F172A", fontSize: 12, fontWeight: 800 }}>
                         {real(p - d)}
@@ -354,8 +354,8 @@ export function HoleritesSection() {
                       <td style={{ padding: "12px 16px" }}>
                         <span
                           style={{
-                            background: h.pago ? "#ECFDF5" : "#FFF7ED",
-                            color: h.pago ? "#059669" : "#C2410C",
+                            background: h.pago ? "var(--w-50)" : "#FFF7ED",
+                            color: h.pago ? "var(--w-600)" : "#C2410C",
                             border: `1px solid ${h.pago ? "#A7F3D0" : "#fde68a"}`,
                             fontSize: 11,
                             padding: "3px 10px",
@@ -371,9 +371,9 @@ export function HoleritesSection() {
                         <button
                           onClick={() => setVer(h)}
                           style={{
-                            background: "#ECFDF5",
+                            background: "var(--w-50)",
                             color: COR_TEXTO,
-                            border: "1px solid #A7F3D0",
+                            border: "1px solid var(--w-200)",
                             borderRadius: 8,
                             padding: "5px 11px",
                             fontSize: 11,
@@ -462,7 +462,7 @@ export function HoleritesSection() {
             <div style={{ padding: 24, overflowY: "auto" }}>
               <p
                 style={{
-                  color: "#059669",
+                  color: "var(--w-600)",
                   fontSize: 12,
                   fontWeight: 800,
                   margin: "0 0 8px",
@@ -481,7 +481,7 @@ export function HoleritesSection() {
                   }}
                 >
                   <span style={{ color: "#475569", fontSize: 13 }}>{l.rotulo}</span>
-                  <span style={{ color: "#059669", fontSize: 13, fontWeight: 600 }}>{real(l.valor)}</span>
+                  <span style={{ color: "var(--w-600)", fontSize: 13, fontWeight: 600 }}>{real(l.valor)}</span>
                 </div>
               ))}
               <p
@@ -514,7 +514,7 @@ export function HoleritesSection() {
                   justifyContent: "space-between",
                   marginTop: 16,
                   padding: "12px 14px",
-                  background: "#ECFDF5",
+                  background: "var(--w-50)",
                   borderRadius: 10,
                 }}
               >

@@ -109,7 +109,7 @@ export function Softphone() {
           height: tamanho,
           borderRadius: "50%",
           background: temChamada
-            ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
+            ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))"
             : "#ffffff",
           border: temChamada ? "none" : "1px solid #E6ECEA",
           cursor: "pointer",
@@ -118,7 +118,7 @@ export function Softphone() {
             : "0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06)",
           zIndex: 9000,
           fontSize: isMobile ? 18 : 24,
-          color: temChamada ? "white" : "#059669",
+          color: temChamada ? "white" : "var(--w-600)",
           opacity,
           animation: temChamada ? "pulse 1.5s infinite" : "none",
           transition: "opacity 0.2s, transform 0.15s",
@@ -167,7 +167,7 @@ export function Softphone() {
       }}>
         {/* HEADER */}
         <div style={{
-          background: "linear-gradient(140deg, #10B981, #059669 60%, #047857)",
+          background: "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))",
           padding: "12px 16px",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
@@ -304,7 +304,7 @@ function ChamadaAtivaView({ chamada, segundosConectado, labelStatus, corStatus, 
               style={{
                 width: 50, height: 50, borderRadius: "50%",
                 background: mostrarTeclado
-                  ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
+                  ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))"
                   : "#F1F5F4",
                 border: mostrarTeclado ? "none" : "1px solid #E6ECEA",
                 color: mostrarTeclado ? "white" : "#0F172A",
@@ -379,7 +379,7 @@ function TecladoView({ numero, setNumero, adicionar, apagar, chamar, formatarNum
           style={{
             flex: 2, padding: 13,
             background: numero
-              ? "linear-gradient(140deg, #10B981, #059669 60%, #047857)"
+              ? "linear-gradient(140deg, var(--w-500), var(--w-600) 60%, var(--w-700))"
               : "#F1F5F4",
             border: "none", borderRadius: 12,
             cursor: numero ? "pointer" : "not-allowed",

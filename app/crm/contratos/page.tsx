@@ -691,7 +691,7 @@ export default function ContratosPage() {
           <div className={styles.modalBackdrop} onMouseDown={e => { if (e.target === e.currentTarget) setDadosPend(null); }}>
             <div role="dialog" aria-label="Dados do contrato" style={{ background: "#fff", borderRadius: 22, width: "min(640px, 100%)", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 30px 80px -20px rgba(15,23,42,.45)" }}>
               <div style={{ padding: "20px 24px 6px" }}>
-                <span style={{ color: "#059669", fontSize: 12, fontWeight: 900, letterSpacing: 1 }}>GERAR CONTRATO</span>
+                <span style={{ color: "var(--w-600)", fontSize: 12, fontWeight: 900, letterSpacing: 1 }}>GERAR CONTRATO</span>
                 <h2 style={{ margin: "6px 0 4px", fontSize: 21, color: "#0F172A" }}>Dados do contrato · {dadosPend.form.nome || "cliente"}</h2>
                 <p style={{ margin: 0, color: "#64748b", fontSize: 13.5 }}>Preencha só estes campos. O resto do contrato já está pronto.</p>
               </div>
@@ -704,7 +704,7 @@ export default function ContratosPage() {
                       return (
                         <button key={i} type="button" onClick={() => trocarModeloPendente(i)}
                           style={{ flex: "1 1 200px", minHeight: 44, borderRadius: 12, cursor: "pointer", padding: "8px 14px", fontSize: 14, fontWeight: 800, textAlign: "left",
-                            border: sel ? "2px solid #059669" : "1px solid #E6ECEA", background: sel ? "#ECFDF5" : "#fff", color: sel ? "#047857" : "#475569" }}>
+                            border: sel ? "2px solid var(--w-600)" : "1px solid #E6ECEA", background: sel ? "var(--w-50)" : "#fff", color: sel ? "var(--w-700)" : "#475569" }}>
                           {sel ? "● " : "○ "}{a.nome}
                         </button>
                       );
@@ -747,7 +747,7 @@ export default function ContratosPage() {
               {dadosPend.erro && <div style={{ margin: "0 24px", background: "#FEF2F2", color: "#B91C1C", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700 }}>{dadosPend.erro}</div>}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, padding: "16px 24px 22px" }}>
                 <button onClick={() => setDadosPend(null)} style={{ height: 44, borderRadius: 12, border: "1px solid #E6ECEA", background: "#fff", padding: "0 18px", fontWeight: 800, color: "#475569", cursor: "pointer" }}>Cancelar</button>
-                <button onClick={confirmarDadosPendentes} style={{ height: 44, borderRadius: 12, border: 0, background: "linear-gradient(135deg,#10B981,#059669 60%,#047857)", padding: "0 22px", fontWeight: 900, color: "#fff", cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" }}>Continuar para o contrato →</button>
+                <button onClick={confirmarDadosPendentes} style={{ height: 44, borderRadius: 12, border: 0, background: "linear-gradient(135deg,var(--w-500),var(--w-600) 60%,var(--w-700))", padding: "0 22px", fontWeight: 900, color: "#fff", cursor: "pointer", boxShadow: "0 12px 24px -12px rgba(5,150,105,.8)" }}>Continuar para o contrato →</button>
               </div>
             </div>
           </div>
@@ -772,7 +772,7 @@ export default function ContratosPage() {
               {empresas.find(e => e.id === formContrato.empresa_id) && <small>{empresas.find(e => e.id === formContrato.empresa_id)?.razao_social} · {empresas.find(e => e.id === formContrato.empresa_id)?.endereco_completo}</small>}
             </label>
             {(empresas.find(e => e.id === formContrato.empresa_id) as any)?.assinatura_automatica ? (
-              <div className={styles.full} style={{ display: "flex", alignItems: "center", gap: 12, background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "#065F46" }}>
+              <div className={styles.full} style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--w-50)", border: "1px solid var(--w-200)", borderRadius: 12, padding: "10px 14px", fontSize: 13, color: "var(--w-800)" }}>
                 {(empresas.find(e => e.id === formContrato.empresa_id) as any)?.carimbo_assinatura && <img src={(empresas.find(e => e.id === formContrato.empresa_id) as any).carimbo_assinatura} alt="Carimbo da empresa" style={{ height: 44, background: "#fff", borderRadius: 8, padding: 4 }} />}
                 <span><b>A empresa assina automaticamente</b> com o carimbo cadastrado. Só o cliente (e os participantes extras, se houver) recebe o link para assinar.</span>
               </div>
