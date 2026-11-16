@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 
 import Icone, { IconeEmoji } from "../../components/a2/Icone";
 import { VERTICAIS, verticalDoWorkspace, type Vertical } from "../../lib/vertical-workspace";
+import { SIMBOLOS } from "../../lib/arte-nicho";
 // ⚠️ Só este email tem acesso à tela de clientes
 const ADMIN_EMAIL = "robert.dias@live.com";
 const CONTRATOS_PLANOS = {
@@ -955,7 +956,7 @@ export default function Clientes() {
             <div>
               <p style={{ color: "var(--w-600)", fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>Tipo de workspace</p>
               <p style={{ color: "#94A3B8", fontSize: 12.5, margin: "0 0 12px" }}>Define o perfil do cliente: textos, painel e telas iniciais.</p>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 10 }}>
                 {VERTICAIS.map((v) => {
                   const ativo = (formCadastro.vertical || "telecom") === v.id;
                   return (
@@ -968,7 +969,7 @@ export default function Clientes() {
                         display: "flex", flexDirection: "column", gap: 6,
                       }}>
                       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span style={{ width: 30, height: 30, borderRadius: 9, background: ativo ? "var(--w-600)" : "var(--w-50)", color: ativo ? "#fff" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><Icone nome={v.icone as any} tamanho={16} /></span>
+                        <span style={{ width: 30, height: 30, borderRadius: 9, background: ativo ? "var(--w-600)" : "var(--w-50)", color: ativo ? "#fff" : "var(--w-600)", display: "flex", alignItems: "center", justifyContent: "center" }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={SIMBOLOS[v.id][0]} /></svg></span>
                         {ativo && <Icone nome="check" tamanho={15} cor="var(--w-600)" espessura={2.6} />}
                       </span>
                       <span style={{ fontSize: 13.5, fontWeight: 800, color: "#0F172A" }}>{v.nome}</span>

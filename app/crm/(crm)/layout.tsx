@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { usePermissao } from "../../hooks/usePermissao";
 import { useWorkspace } from "../../hooks/useWorkspace";
-import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace } from "../../lib/vertical-workspace";
+import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace, SISTEMA_DO_NICHO } from "../../lib/vertical-workspace";
 import Icone from "../../components/a2/Icone";
 
 const COR = "#059669";
@@ -49,7 +49,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
   }, []);
 
   // Nichos com CRM próprio (Financeiro, Consignado): aqui fica só a lista de contatos.
-  const revisional = ehRevisional(wsId) || ["consignado", "vendas", "roupas"].includes(verticalDoWorkspace(wsId));
+  const revisional = ehRevisional(wsId) || !!SISTEMA_DO_NICHO[verticalDoWorkspace(wsId)];
   const voc = vocabularioDoWorkspace(wsId); // nomes do ramo (Vendas, Contratos, Pedidos...)
 
   const itensTodos: Item[] = [

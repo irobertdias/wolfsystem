@@ -4,7 +4,7 @@
 
 import { padraoNicho, arteNicho, ROTULO, TOM_PADRAO } from "./arte-nicho";
 
-export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas";
+export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas" | "informatica";
 
 // Tipos oferecidos no cadastro do cliente (o "revisional" aparece como Financeiro).
 export const VERTICAIS: { id: Vertical; nome: string; desc: string; icone: string }[] = [
@@ -13,7 +13,17 @@ export const VERTICAIS: { id: Vertical; nome: string; desc: string; icone: strin
   { id: "consignado", nome: "Consignado", desc: "Crédito consignado e averbação", icone: "predio" },
   { id: "vendas", nome: "Vendas", desc: "Vendas em geral, produtos e serviços", icone: "dinheiro" },
   { id: "roupas", nome: "Roupas", desc: "Loja de roupas e moda", icone: "tag" },
+  { id: "informatica", nome: "Informática", desc: "Loja de informática e assistência técnica", icone: "config" },
 ];
+
+// Sistema próprio de cada nicho (Telecom usa o CRM de vendas de internet; o Financeiro, /crm/revisional).
+// Cada um é um módulo independente: mudar um não mexe nos outros.
+export const SISTEMA_DO_NICHO: Partial<Record<Vertical, string>> = {
+  consignado: "/crm/consignado",
+  roupas: "/crm/moda",
+  vendas: "/crm/comercial",
+  informatica: "/crm/informatica",
+};
 
 export function normalizarVertical(v: unknown): Vertical | null {
   const s = String(v ?? "").trim().toLowerCase();
@@ -207,5 +217,32 @@ export function vocabularioDoWorkspace(workspaceId?: string | number | null): Vo
   if (v === "consignado") return CONSIGNADO;
   if (v === "vendas") return VENDAS;
   if (v === "roupas") return ROUPAS;
+  if (v === "informatica") return INFORMATICA;
   return TELECOM;
 }
+
+const INFORMATICA: Vocabulario = {
+  itens: "Vendas",
+  itemSing: "venda",
+  subtituloCrm: "Vendas & Assistência",
+  concluidas: "Vendas concluídas",
+  concluidasMin: "concluídas",
+  concluidaSing: "concluída",
+  abrev: "concl.",
+  aguardando: "Aguardando pagamento",
+  aguardandoCurto: "aguardando pagamento",
+  aguardandoParaConcluida: "Aguardando → concluída",
+  taxa: "taxa de conclusão",
+  taxaTitulo: "Taxa de conclusão",
+  fornecedores: "Marcas",
+  fornecedorSing: "marca",
+  iconeFornecedor: "💻",
+  semFornecedor: "sem marca",
+  receitaConcluida: "Receita concluída",
+  ticketDetalhe: "média por venda",
+  porDia: "Vendas concluídas e aguardando pagamento por dia",
+  somenteConcluidas: "Somente vendas concluídas",
+  secaoEndereco: "Endereço do cliente",
+  secaoAgendamento: "Andamento",
+  secaoPlano: "Produto, condições e valores",
+};

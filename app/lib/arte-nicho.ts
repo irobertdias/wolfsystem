@@ -39,6 +39,14 @@ export const SIMBOLOS: Record<Vertical, string[]> = {
     `${circ(12, 12, 9)}M8.5 12.5l2.5 2.5 4.5-5`,                                                     // check
     `M19 5L5 19${circ(7, 7, 2)}${circ(17, 17, 2)}`,                                                  // desconto
   ],
+  informatica: [
+    "M3 4h18v12H3zM8 20h8M12 16v4",                                                                  // monitor
+    "M5 5h14v10H5zM2 19h20l-2-4H4z",                                                                 // notebook
+    "M7 7h10v10H7zM10 10h4v4h-4zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4",     // chip
+    "M12 2a5 5 0 0 1 5 5v8a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5zM12 2v6",                                // mouse
+    "M14.5 4.5a4 4 0 0 0-5 5L3 16l2.5 2.5 6.5-6.5a4 4 0 0 0 5-5l-2.5 2.5-2-.5-.5-2z",                // chave (assistência)
+    "M2 7h20v10H2zM6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10",                                  // teclado
+  ],
   roupas: [
     "M12 6.5a2 2 0 1 1 2 2c-1 .4-2 1-2 2l9.5 6.5H2.5L12 10.5",                                       // cabide
     "M8 3L3 6l2 4 3-1v12h8V9l3 1 2-4-5-3c0 2-2 3.2-4 3.2S8 5 8 3z",                                  // camiseta
@@ -55,6 +63,7 @@ export const ROTULO: Record<Vertical, string> = {
   consignado: "Crédito consignado",
   vendas: "Vendas & Pedidos",
   roupas: "Moda & Vestuário",
+  informatica: "Informática & Assistência",
 };
 
 const enc = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -92,5 +101,5 @@ export const iconeNicho = (v: Vertical) => SIMBOLOS[v][0];
 
 // Tons escuros de cada nicho para o padrão de fundo (o padrão é imagem: não lê variável CSS).
 export const TOM_PADRAO: Record<Vertical, string> = {
-  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C",
+  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C", informatica: "#6D28D9",
 };

@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { usePermissao } from "../hooks/usePermissao";
 import { useModulos } from "../hooks/useModulos";
 import { useWorkspace } from "../hooks/useWorkspace";
-import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace } from "../lib/vertical-workspace";
+import { ehRevisional, verticalDoWorkspace, vocabularioDoWorkspace, SISTEMA_DO_NICHO } from "../lib/vertical-workspace";
 import { ROTULO, iconeNicho } from "../lib/arte-nicho";
 import AuthGuard from "../components/AuthGuard";
 import PontoGuard from "../components/PontoGuard";
@@ -36,7 +36,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   const revisional = ehRevisional(wsAberto);
   // Nichos com CRM próprio: o módulo do nicho substitui a Visão e o CRM de vendas.
   const ramo = verticalDoWorkspace(wsAberto);
-  const crmNicho = revisional ? "/crm/revisional" : ramo === "consignado" ? "/crm/consignado" : ramo === "vendas" || ramo === "roupas" ? "/crm/loja" : "";
+  // Cada nicho tem o próprio sistema (independente dos outros).
+  const crmNicho = revisional ? "/crm/revisional" : (SISTEMA_DO_NICHO[ramo] || "");
   const voc = vocabularioDoWorkspace(wsAberto);
   // IA vendedora de planos (consulta de cobertura de operadora): só faz sentido em telecom
   const telecom = verticalDoWorkspace(wsAberto) === "telecom";

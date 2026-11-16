@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { usePermissao } from "../../hooks/usePermissao";
-import { useWorkspace } from "../../hooks/useWorkspace";
 import { useLoja, type Modo } from "./_dados";
 import Painel from "./_sections/Painel";
 import Pedidos from "./_sections/Pedidos";
@@ -54,10 +53,8 @@ const SOMBRA = "0 1px 2px rgba(16,24,40,.04), 0 14px 32px -18px rgba(16,24,40,.2
 export type Alvo = { pedidoId?: number; novo?: boolean; orcamento?: boolean; telefone?: string; t?: number };
 export type Navegar = (aba: string, alvo?: Alvo) => void;
 
-export default function LojaLayolt({ modoForcado }: { modoForcado?: Modo }) {
-  const { vertical } = useWorkspace();
-  const modo: Modo = modoForcado || (vertical === "roupas" ? "roupas" : "vendas");
-  return <LojaComModo key={modo} modo={modo} />;
+export default function ComercialLayolt() {
+  return <LojaComModo modo="vendas" />;
 }
 
 function LojaComModo({ modo }: { modo: Modo }) {
@@ -65,7 +62,7 @@ function LojaComModo({ modo }: { modo: Modo }) {
   const dados = useLoja(modo);
   const gestor = isSuperAdmin || isDono || perfil === "Administrador";
   const temAcesso = gestor || !!(permissoes as any).crm_acessar || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || !!permissoes.dashboard;
-  const chave = `wolf_loja_aba_${modo}`;
+  const chave = "wolf_comercial_aba";
   const [aba, setAba] = useState("painel");
   const [alvo, setAlvo] = useState<Alvo>({});
   const [isMobile, setIsMobile] = useState(false);
