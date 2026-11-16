@@ -7,6 +7,7 @@ import {
   salvarPedido, mudarEtapa, textoPedido, nomeUsuario, baixarCSV, type Pedido, type DadosPedido, type Item, type Produto,
 } from "../_dados";
 import Icone from "../../../components/a2/Icone";
+import BuscaProdutoLoja from "../../../components/BuscaProdutoLoja";
 import AcoesOrcamentoLoja, { PopupOrcamentoSalvo, CalcularFreteLoja } from "../../../components/AcoesOrcamentoLoja";
 import { novoToken } from "../../../lib/loja-orcamento";
 import { useModulos } from "../../../hooks/useModulos";
@@ -67,9 +68,12 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
   // ─── itens ───
   const setD = (patch: Partial<DadosPedido>) => setF((x) => (x ? { ...x, d: { ...x.d, ...patch } } : x));
   const setItem = (i: number, patch: Partial<Item>) => setF((x) => (x ? { ...x, d: { ...x.d, itens: x.d.itens.map((it, j) => (j === i ? { ...it, ...patch } : it)) } } : x));
+  const [escolher, setEscolher] = useState<number | "novo" | null>(null);
   const addItem = () => {
-    const p = produtos[0];
-    if (!p) { setErro(modo === "roupas" ? "Cadastre as peças no Catálogo primeiro." : "Cadastre os produtos ou serviços primeiro."); return; }
+    if (!produtos.length) { setErro(modo === "roupas" ? "Cadastre as peças no Catálogo primeiro." : "Cadastre os produtos ou serviços primeiro."); return; }
+    setEscolher("novo");
+  };
+  const incluirProduto = (p: Produto) => {
     const v = p.variantes[0];
     setD({ itens: [...(f?.d.itens || []), { produto_id: p.id, variante_id: v?.id || "", nome: p.nome, tamanho: v?.tamanho, cor: v?.cor, qtd: 1, preco: num(p.preco), servico: p.servico, garantia_meses: p.garantia_meses }] });
   };
@@ -191,10 +195,10 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
               const falta = !it.servico && est !== undefined && num(it.qtd) > num(est) && !(atual && ped(atual).estoque_baixado);
               return (
                 <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F7FAF9", borderRadius: 12, padding: 8 }}>
-                  <select style={{ ...inputSm, flex: "2 1 200px", width: "auto" }} value={it.produto_id} onChange={(e) => trocarProduto(i, e.target.value)}>
-                    {!p && <option value={it.produto_id}>{it.nome} (removido do catálogo)</option>}
-                    {produtos.map((x) => <option key={x.id} value={x.id}>{x.nome}{x.servico ? " (serviço)" : ""}</option>)}
-                  </select>
+                  <button type="button" onClick={() => setEscolher(i)} title="Trocar produto" style={{ ...inputSm, flex: "2 1 200px", width: "auto", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left", background: "#fff" }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flex: "0 0 auto" }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{p ? `${p.nome}${p.servico ? " (serviço)" : ""}` : `${it.nome} (removido do catálogo)`}</span>
+                  </button>
                   {p && p.variantes.length > 1 && (
                     <select style={{ ...inputSm, flex: "1 1 150px", width: "auto" }} value={it.variante_id} onChange={(e) => trocarVariante(i, e.target.value)}>
                       {p.variantes.map((v) => <option key={v.id} value={v.id}>{descVariante(v) || "Único"} · {v.estoque} em estoque</option>)}
@@ -210,6 +214,10 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
             })}
             <div><Btn variante="ghost" onClick={addItem}>＋ Adicionar {modo === "roupas" ? "peça" : "item"}</Btn></div>
           </div>
+          {escolher !== null && (
+            <BuscaProdutoLoja produtos={produtos} titulo={escolher === "novo" ? "Adicionar item" : "Trocar produto"} onFechar={() => setEscolher(null)}
+              onEscolher={(p) => { if (escolher === "novo") incluirProduto(p); else trocarProduto(escolher, p.id); setEscolher(null); }} />
+          )}
 
           <Row>
             <Field label="Desconto (R$)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.d.desconto ?? ""} onChange={(e) => setD({ desconto: e.target.value as any })} /></Field>

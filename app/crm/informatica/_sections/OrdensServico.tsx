@@ -9,6 +9,7 @@ import {
   brl, dataBR, hoje, num, telFmt, subtotal, mesDe, nomeUsuario, baixarCSV, type Pedido, type DadosOS, type Item, type Produto,
 } from "../_dados";
 import Icone from "../../../components/a2/Icone";
+import BuscaProdutoLoja from "../../../components/BuscaProdutoLoja";
 
 type Form = { nome: string; telefone1: string; cpf: string; status_venda: string; d: DadosOS };
 
@@ -74,10 +75,16 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
   // ─── peças ───
   const setD = (patch: Partial<DadosOS>) => setF((x) => (x ? { ...x, d: { ...x.d, ...patch } } : x));
   const setPeca = (i: number, patch: Partial<Item>) => setF((x) => (x ? { ...x, d: { ...x.d, pecas: x.d.pecas.map((it, j) => (j === i ? { ...it, ...patch } : it)) } } : x));
+  const [escolher, setEscolher] = useState<number | "novo" | null>(null);
   const addPeca = () => {
-    const p = pecas[0];
-    if (!p) { setErro("Cadastre as peças em Produtos, peças e serviços para lançar na OS."); return; }
-    setD({ pecas: [...(f?.d.pecas || []), { produto_id: p.id, variante_id: p.variantes[0]?.id || "unico", nome: p.nome, qtd: 1, preco: num(p.preco) }] });
+    if (!pecas.length) { setErro("Cadastre as peças em Produtos, peças e serviços para lançar na OS."); return; }
+    setEscolher("novo");
+  };
+  const escolherPeca = (p: Produto) => {
+    const item = { produto_id: p.id, variante_id: p.variantes[0]?.id || "unico", nome: p.nome, preco: num(p.preco) };
+    if (escolher === "novo") setD({ pecas: [...(f?.d.pecas || []), { ...item, qtd: 1 }] });
+    else if (typeof escolher === "number") setPeca(escolher, item);
+    setEscolher(null);
   };
   const estoque = (it: Item) => pecas.find((p) => p.id === it.produto_id)?.variantes.find((v) => v.id === it.variante_id)?.estoque;
 
@@ -245,10 +252,10 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
             const est = estoque(it), falta = est !== undefined && num(it.qtd) > num(est) && !(atual && os(atual).estoque_baixado);
             return (
               <div key={i} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F3F6F5", borderRadius: 12, padding: 8 }}>
-                <select style={{ ...inputSm, flex: "2 1 220px", width: "auto" }} value={it.produto_id} onChange={(e) => { const p = pecas.find((x) => x.id === e.target.value); if (p) setPeca(i, { produto_id: p.id, variante_id: p.variantes[0]?.id || "unico", nome: p.nome, preco: num(p.preco) }); }}>
-                  {!pecas.some((p) => p.id === it.produto_id) && <option value={it.produto_id}>{it.nome}</option>}
-                  {pecas.map((p) => <option key={p.id} value={p.id}>{p.nome} · {p.variantes.reduce((s, v) => s + num(v.estoque), 0)} em estoque</option>)}
-                </select>
+                <button type="button" onClick={() => setEscolher(i)} title="Trocar peça" style={{ ...inputSm, flex: "2 1 220px", width: "auto", display: "flex", alignItems: "center", gap: 8, cursor: "pointer", textAlign: "left", background: "#fff" }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flex: "0 0 auto" }}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{it.nome}</span>
+                </button>
                 <input style={{ ...inputSm, width: 70 }} inputMode="numeric" value={it.qtd} onChange={(e) => setPeca(i, { qtd: e.target.value as any })} title="Quantidade" />
                 <input style={{ ...inputSm, width: 110 }} inputMode="decimal" value={String(it.preco).replace(".", ",")} onChange={(e) => setPeca(i, { preco: e.target.value as any })} title="Preço" />
                 <b style={{ minWidth: 90, textAlign: "right", fontSize: 13.5 }}>{brl(num(it.qtd) * num(it.preco))}</b>
@@ -258,6 +265,7 @@ export default function OrdensServico({ dados, alvo, gestor }: any) {
             );
           })}
           <div><Btn variante="ghost" onClick={addPeca}>＋ Adicionar peça do estoque</Btn></div>
+          {escolher !== null && <BuscaProdutoLoja produtos={pecas} titulo={escolher === "novo" ? "Adicionar peça" : "Trocar peça"} onEscolher={escolherPeca} onFechar={() => setEscolher(null)} />}
           <Row>
             <Field label="Mão de obra (R$)" flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.d.mao_obra ?? ""} onChange={(e) => setD({ mao_obra: e.target.value as any })} /></Field>
             <Field label="Desconto (R$)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.d.desconto ?? ""} onChange={(e) => setD({ desconto: e.target.value as any })} /></Field>
