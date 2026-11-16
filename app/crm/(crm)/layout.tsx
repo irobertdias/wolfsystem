@@ -49,7 +49,7 @@ export default function CRMModuloLayout({ children }: { children: React.ReactNod
   }, []);
 
   // Nichos com CRM próprio (Financeiro, Consignado): aqui fica só a lista de contatos.
-  const revisional = ehRevisional(wsId) || verticalDoWorkspace(wsId) === "consignado";
+  const revisional = ehRevisional(wsId) || ["consignado", "vendas", "roupas"].includes(verticalDoWorkspace(wsId));
   const voc = vocabularioDoWorkspace(wsId); // nomes do ramo (Vendas, Contratos, Pedidos...)
 
   const itensTodos: Item[] = [

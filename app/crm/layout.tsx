@@ -35,8 +35,8 @@ export default function CRMLayout({ children }: { children: React.ReactNode }) {
   // Revisional ocupa o lugar da Visão e do CRM comercial.
   const revisional = ehRevisional(wsAberto);
   // Nichos com CRM próprio: o módulo do nicho substitui a Visão e o CRM de vendas.
-  const consignado = verticalDoWorkspace(wsAberto) === "consignado";
-  const crmNicho = revisional ? "/crm/revisional" : consignado ? "/crm/consignado" : "";
+  const ramo = verticalDoWorkspace(wsAberto);
+  const crmNicho = revisional ? "/crm/revisional" : ramo === "consignado" ? "/crm/consignado" : ramo === "vendas" || ramo === "roupas" ? "/crm/loja" : "";
   const voc = vocabularioDoWorkspace(wsAberto);
   // IA vendedora de planos (consulta de cobertura de operadora): só faz sentido em telecom
   const telecom = verticalDoWorkspace(wsAberto) === "telecom";
