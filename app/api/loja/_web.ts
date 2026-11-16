@@ -71,19 +71,23 @@ export async function imagensBing(q: string, qtd = 16): Promise<FotoAchada[]> {
   } catch { return []; }
 }
 
-/** Google Imagens pela API oficial (Programmable Search). Precisa de GOOGLE_CSE_KEY e GOOGLE_CSE_CX. */
-export async function imagensGoogle(q: string, qtd = 10): Promise<FotoAchada[] | null> {
-  const key = process.env.GOOGLE_CSE_KEY, cx = process.env.GOOGLE_CSE_CX;
-  if (!key || !cx) return null;
+/** Google Imagens via Serper (serper.dev). Precisa da variável SERPER_API_KEY.
+ *  (A API oficial do Google não aceita clientes novos e acaba em 01/01/2027.) */
+export async function imagensGoogle(q: string, qtd = 16): Promise<FotoAchada[] | null> {
+  const key = process.env.SERPER_API_KEY;
+  if (!key) return null;
   try {
-    const r = await buscarComTempo(`https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(key)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(q)}&searchType=image&num=${Math.min(10, qtd)}&gl=br&hl=pt-BR&safe=active`, 9000);
+    const r = await buscarComTempo("https://google.serper.dev/images", 9000, { method: "POST", headers: { "X-API-KEY": key, "Content-Type": "application/json" }, body: JSON.stringify({ q, gl: "br", hl: "pt-br", num: Math.min(20, qtd) }) });
     if (!r.ok) return null;
     const j: any = await r.json();
-    return (j.items || []).filter((i: any) => i?.link && urlPublica(i.link)).map((i: any) => ({ url: i.link, mini: i.image?.thumbnailLink, pagina: i.image?.contextLink, titulo: i.title }));
+    return (j.images || [])
+      .map((i: any) => ({ url: i.imageUrl || i.original || "", mini: i.thumbnailUrl || i.thumbnail, pagina: i.link, titulo: i.title }))
+      .filter((f: FotoAchada) => f.url && urlPublica(f.url))
+      .slice(0, qtd);
   } catch { return null; }
 }
 
-/** Fotos: Google (se configurado) e, se não, Bing. */
+/** Fotos: Google via Serper (se SERPER_API_KEY existir) e, se não, Bing. */
 export async function buscarImagens(q: string): Promise<FotoAchada[]> {
   const g = await imagensGoogle(q);
   if (g && g.length) return g;
