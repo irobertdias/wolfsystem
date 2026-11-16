@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabase";
 
 export type SugestaoIA = { nome?: string; marca?: string; modelo?: string; categoria?: string; descricao?: string; especificacoes?: string[]; preco_medio?: number; garantia_meses?: number; ean?: string; fontes?: string[] };
 
+type Foto = { url: string; mini?: string; titulo?: string };
+
 async function token() { const { data } = await supabase.auth.getSession(); return data.session?.access_token || ""; }
 
 async function fotoParaDataUrl(url: string, ws: string, lado = 520): Promise<string> {
@@ -28,26 +30,43 @@ export default function AssistenteIAProduto({ wsId, nicho, categorias, nomeInici
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState("");
   const [sug, setSug] = useState<SugestaoIA | null>(null);
-  const [fotos, setFotos] = useState<string[]>([]);
+  const [fotos, setFotos] = useState<Foto[]>([]);
+  const [aviso, setAviso] = useState("");
   const [baixando, setBaixando] = useState("");
   const [escolhida, setEscolhida] = useState("");
 
   async function buscar() {
     if (q.trim().length < 3) { setErro("Digite o nome ou modelo do produto."); return; }
-    setBuscando(true); setErro(""); setSug(null); setFotos([]);
+    setBuscando(true); setErro(""); setAviso(""); setSug(null); setFotos([]); setEscolhida("");
     try {
       const r = await fetch("/api/loja/ia-produto", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await token()}` }, body: JSON.stringify({ ws: wsId, q, nicho, categorias }) });
       const j = await r.json();
       if (!j.success) throw new Error(j.error || "Falha na busca");
-      setSug(j.dados); setFotos(j.fotos || []);
-      if (!j.fotos?.length) setErro("Não achei fotos deste produto; envie uma foto sua.");
+      const lista: Foto[] = (j.fotos || []).map((f: any) => (typeof f === "string" ? { url: f } : f));
+      setSug(j.dados); setFotos(lista);
+      if (j.aviso) setAviso(j.aviso);
+      // Já preenche o cadastro e coloca a primeira foto que baixar (dá para trocar clicando em outra)
+      if (j.dados?.nome) onAplicar(j.dados);
+      if (!lista.length) setErro("Não achei fotos deste produto; envie uma foto sua.");
+      else {
+        setBuscando(false);
+        for (const f of lista.slice(0, 5)) { if (await usarFoto(f, true)) break; }
+        return;
+      }
     } catch (e: any) { setErro(e.message); }
     setBuscando(false);
   }
-  async function usarFoto(u: string) {
-    setBaixando(u); setErro("");
-    try { onFoto(await fotoParaDataUrl(u, wsId)); setEscolhida(u); } catch (e: any) { setErro(e.message); }
+  async function usarFoto(f: Foto, silencioso = false): Promise<boolean> {
+    const u = f.url;
+    setBaixando(u); if (!silencioso) setErro("");
+    let ok = false;
+    try {
+      let d: string;
+      try { d = await fotoParaDataUrl(u, wsId); } catch (e) { if (!f.mini) throw e; d = await fotoParaDataUrl(f.mini, wsId); }
+      onFoto(d); setEscolhida(u); ok = true;
+    } catch (e: any) { if (!silencioso) setErro(e.message); }
     setBaixando("");
+    return ok;
   }
 
   const bt: any = { height: 40, borderRadius: 12, border: 0, padding: "0 16px", fontWeight: 800, fontSize: 13.5, cursor: "pointer", whiteSpace: "nowrap" };
@@ -60,6 +79,7 @@ export default function AssistenteIAProduto({ wsId, nicho, categorias, nomeInici
       </div>
       {buscando && <span style={{ fontSize: 12.5, color: "#64748B" }}>Pesquisando o produto na internet e separando as fotos… (leva uns 15 a 30 segundos)</span>}
       {erro && <span style={{ fontSize: 12.5, color: "#B45309", fontWeight: 700 }}>{erro}</span>}
+      {aviso && <span style={{ fontSize: 12, color: "#64748B" }}>{aviso}</span>}
       {sug && (
         <div style={{ background: "#fff", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 6, fontSize: 13 }}>
           <b style={{ fontSize: 14.5 }}>{sug.nome || q}</b>
@@ -67,21 +87,22 @@ export default function AssistenteIAProduto({ wsId, nicho, categorias, nomeInici
           {sug.descricao && <span style={{ color: "#334155" }}>{sug.descricao}</span>}
           {!!sug.especificacoes?.length && <ul style={{ margin: "2px 0 0 18px", padding: 0, color: "#475569" }}>{sug.especificacoes.slice(0, 8).map((s, i) => <li key={i}>{s}</li>)}</ul>}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
-            <button type="button" onClick={() => onAplicar(sug)} style={{ ...bt, background: "var(--w-600)", color: "#fff" }}>Usar estes dados</button>
+            <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--w-700)", alignSelf: "center" }}>✓ Dados colocados no cadastro abaixo</span>
+            <button type="button" onClick={() => onAplicar(sug)} style={{ ...bt, height: 32, background: "var(--w-50)", color: "var(--w-700)" }}>Aplicar de novo</button>
             {!!sug.fontes?.length && <span style={{ fontSize: 11.5, color: "#94A3B8", alignSelf: "center" }}>Fontes: {sug.fontes.slice(0, 3).map((u) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }).filter(Boolean).join(", ")}</span>}
           </div>
         </div>
       )}
       {fotos.length > 0 && (
         <div>
-          <span style={{ fontSize: 12, fontWeight: 800, color: "#64748B" }}>Fotos encontradas: clique para usar</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: "#64748B" }}>Fotos encontradas: a marcada já está no produto; clique em outra para trocar</span>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(92px, 1fr))", gap: 8, marginTop: 6 }}>
-            {fotos.map((u) => (
-              <button key={u} type="button" onClick={() => usarFoto(u)} title="Usar esta foto" style={{ position: "relative", aspectRatio: "1", borderRadius: 12, border: 0, cursor: "pointer", background: `#fff url("${u}") center/contain no-repeat`, boxShadow: escolhida === u ? "inset 0 0 0 3px var(--w-600)" : "inset 0 0 0 1px #E6ECEA", opacity: baixando && baixando !== u ? 0.5 : 1 }}>
+            {fotos.map((f) => { const u = f.url; return (
+              <button key={u} type="button" onClick={() => usarFoto(f)} title={f.titulo || "Usar esta foto"} style={{ position: "relative", aspectRatio: "1", borderRadius: 12, border: 0, cursor: "pointer", background: `#fff url("${f.mini || u}") center/contain no-repeat`, boxShadow: escolhida === u ? "inset 0 0 0 3px var(--w-600)" : "inset 0 0 0 1px #E6ECEA", opacity: baixando && baixando !== u ? 0.5 : 1 }}>
                 {baixando === u && <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.7)", fontSize: 11, fontWeight: 800 }}>baixando…</span>}
                 {escolhida === u && <span style={{ position: "absolute", right: 6, top: 6, background: "var(--w-600)", color: "#fff", borderRadius: 99, width: 20, height: 20, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center" }}>✓</span>}
               </button>
-            ))}
+            ); })}
           </div>
         </div>
       )}
