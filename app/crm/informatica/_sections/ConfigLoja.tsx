@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { Page, PageHeader, Card, Btn, Banner, Field, Row, inputSm } from "../../financeiro/_sections/_ui";
 import { num, salvarConfig } from "../_dados";
-import { reduzirLogo, cnpjFmt, type EmpresaLoja } from "../../../lib/loja-orcamento";
+import { reduzirLogo, cnpjFmt, coresDaLogo, type EmpresaLoja, type FreteConfig } from "../../../lib/loja-orcamento";
+import ConfigFreteLoja from "../../../components/ConfigFreteLoja";
 import ChaveIALoja from "../../../components/ChaveIALoja";
 import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
@@ -18,6 +19,8 @@ export default function ConfigLoja({ dados }: any) {
   const [aviso, setAviso] = useState("");
   const [emp, setEmp] = useState<EmpresaLoja>({});
   useEffect(() => { setEmp(cfg.empresa || {}); }, [cfg]);
+  const [fr, setFr] = useState<FreteConfig>({});
+  useEffect(() => { setFr(cfg.frete || {}); }, [cfg]);
   const [salvando, setSalvando] = useState(false);
   useEffect(() => {
     setF({ pagamentos: cfg.formas_pagamento.join("\n"), categorias: cfg.categorias.join("\n"), tamanhos: cfg.tamanhos.join(", "), taxa: String(cfg.taxa_entrega).replace(".", ","), minimo: String(cfg.estoque_minimo), validade: String(cfg.validade_orcamento_dias), tecnicos: (cfg.tecnicos || []).join("\n"), garantia: String(cfg.garantia_servico_dias ?? 90) });
@@ -27,7 +30,7 @@ export default function ConfigLoja({ dados }: any) {
     setSalvando(true); setAviso("");
     const { error } = await salvarConfig(wsId, {
       ...cfg,
-      empresa: emp,
+      empresa: emp, frete: fr,
       formas_pagamento: lista(f.pagamentos), categorias: lista(f.categorias), tamanhos: lista(f.tamanhos),
       taxa_entrega: num(f.taxa), estoque_minimo: Math.max(0, Math.round(num(f.minimo))), validade_orcamento_dias: Math.max(1, Math.round(num(f.validade)) || 7), tecnicos: lista(f.tecnicos), garantia_servico_dias: Math.max(0, Math.round(num(f.garantia))),
     });
@@ -44,7 +47,7 @@ export default function ConfigLoja({ dados }: any) {
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
           <label style={{ width: 130, height: 130, borderRadius: 16, cursor: "pointer", background: emp.logo ? `#fff url(${emp.logo}) center/contain no-repeat` : "var(--w-50)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--w-700)", fontSize: 12.5, fontWeight: 800, textAlign: "center", boxShadow: "inset 0 0 0 1.5px var(--w-200)", flexShrink: 0 }}>
             {!emp.logo && "＋ Logo da empresa"}
-            <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const a = e.target.files?.[0]; if (!a) return; try { setEmp({ ...emp, logo: await reduzirLogo(a) }); } catch (er: any) { setAviso("Erro: " + er.message); } }} />
+            <input type="file" accept="image/*" style={{ display: "none" }} onChange={async (e) => { const a = e.target.files?.[0]; if (!a) return; try { const logo = await reduzirLogo(a); const c = await coresDaLogo(logo); setEmp({ ...emp, logo, cor: c.cor || emp.cor, cor2: c.cor2 || emp.cor2 }); } catch (er: any) { setAviso("Erro: " + er.message); } }} />
           </label>
           <div style={{ flex: "1 1 420px", display: "flex", flexDirection: "column", gap: 10 }}>
             <Row>
@@ -62,11 +65,27 @@ export default function ConfigLoja({ dados }: any) {
               <Field label="E-mail" flex="1 1 200px"><input style={inputSm} value={emp.email || ""} onChange={(e) => setEmp({ ...emp, email: e.target.value })} /></Field>
               <Field label="Site / Instagram" flex="1 1 170px"><input style={inputSm} value={emp.site || ""} onChange={(e) => setEmp({ ...emp, site: e.target.value })} /></Field>
             </Row>
+            <Row>
+              <Field label="Cor principal da marca (PDF e link)" flex="1 1 200px">
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="color" value={emp.cor || "#0F172A"} onChange={(e) => setEmp({ ...emp, cor: e.target.value })} style={{ width: 46, height: 40, border: 0, background: "none", cursor: "pointer", padding: 0 }} />
+                  <input style={inputSm} value={emp.cor || ""} onChange={(e) => setEmp({ ...emp, cor: e.target.value })} placeholder="#1D6FA5" />
+                </div>
+              </Field>
+              <Field label="Cor de destaque" flex="1 1 200px">
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="color" value={emp.cor2 || emp.cor || "#0F172A"} onChange={(e) => setEmp({ ...emp, cor2: e.target.value })} style={{ width: 46, height: 40, border: 0, background: "none", cursor: "pointer", padding: 0 }} />
+                  <input style={inputSm} value={emp.cor2 || ""} onChange={(e) => setEmp({ ...emp, cor2: e.target.value })} placeholder="#F26B21" />
+                </div>
+              </Field>
+              {emp.logo && <a onClick={async () => { const c = await coresDaLogo(emp.logo!); setEmp({ ...emp, cor: c.cor || emp.cor, cor2: c.cor2 || emp.cor2 }); }} style={{ alignSelf: "flex-end", fontSize: 12.5, fontWeight: 700, color: "var(--w-700)", cursor: "pointer", paddingBottom: 10 }}>pegar as cores da logo</a>}
+            </Row>
             <Field label="Condições impressas no orçamento"><textarea style={{ ...inputSm, minHeight: 64 }} value={emp.condicoes || ""} onChange={(e) => setEmp({ ...emp, condicoes: e.target.value })} placeholder="Ex.: Garantia de 90 dias no serviço. Preços sujeitos a alteração após a validade." /></Field>
             {emp.logo && <a onClick={() => setEmp({ ...emp, logo: undefined })} style={{ fontSize: 12, color: "#94A3B8", cursor: "pointer" }}>remover logo</a>}
           </div>
         </div>
       </Card>
+      <ConfigFreteLoja valor={fr} onChange={setFr} taxaFixa={f.taxa} onTaxaFixa={(s) => setF({ ...f, taxa: s })} roupas={roupas} />
       {iaLiberada && <ChaveIALoja wsId={wsId} />}
       <Card titulo="Vendas">
         <Row>
@@ -76,7 +95,6 @@ export default function ConfigLoja({ dados }: any) {
       </Card>
       <Card titulo={roupas ? "Entrega, estoque e grade" : "Entrega, estoque e orçamentos"}>
         <Row>
-          <Field label={roupas ? "Taxa de entrega padrão (R$)" : "Frete padrão (R$)"} flex="1 1 180px"><input style={inputSm} inputMode="decimal" value={f.taxa} onChange={(e) => setF({ ...f, taxa: e.target.value })} /></Field>
           <Field label="Avisar estoque baixo com até (un.)" flex="1 1 180px"><input style={inputSm} inputMode="numeric" value={f.minimo} onChange={(e) => setF({ ...f, minimo: e.target.value })} /></Field>
           {roupas
             ? <Field label="Tamanhos da grade (separados por vírgula)" flex="2 1 280px"><input style={inputSm} value={f.tamanhos} onChange={(e) => setF({ ...f, tamanhos: e.target.value })} placeholder="PP, P, M, G, GG ou 34, 36, 38…" /></Field>

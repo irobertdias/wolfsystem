@@ -52,7 +52,7 @@ function entidades(s: string) {
 export type FotoAchada = { url: string; mini?: string; pagina?: string; titulo?: string };
 
 /** Busca de imagens do Bing (não depende da IA): foto original + miniatura do próprio Bing. */
-export async function imagensBing(q: string, qtd = 16): Promise<FotoAchada[]> {
+export async function imagensBing(q: string, qtd = 30): Promise<FotoAchada[]> {
   try {
     const r = await buscarComTempo(`https://www.bing.com/images/search?q=${encodeURIComponent(q)}&first=1&cc=BR&setlang=pt-br`, 9000, { headers: NAVEGADOR });
     if (!r.ok) return [];

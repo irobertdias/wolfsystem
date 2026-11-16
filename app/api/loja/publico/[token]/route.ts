@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseServer } from "../../../_auth";
+import { calcularFrete } from "../../_frete";
+
+const so = (v: any) => String(v || "").replace(/\D/g, "");
 
 // Página pública do orçamento/pedido das lojas (Informática, Vendas, Roupas).
 // Sem login: o token do link é a credencial. Os preços vêm sempre do banco.
@@ -36,9 +39,15 @@ function publico(p: any, loja: any, nomeWs: string) {
     cliente: { nome: p.nome, telefone: p.telefone1 || "", endereco: p.endereco || "", cidade: p.cidade || "", estado: p.estado || "" },
     itens, subtotal: sub, desconto: num(d.desconto), frete: num(d.frete),
     entrega: d.entrega || "retirada", pagamento: d.pagamento || "", observacoes: d.observacoes || "",
-    empresa: { nome: emp.nome || nomeWs, cnpj: emp.cnpj || "", ie: emp.ie || "", endereco: emp.endereco || "", cidade: emp.cidade || "", cep: emp.cep || "", telefone: emp.telefone || "", email: emp.email || "", site: emp.site || "", logo: emp.logo || "", condicoes: emp.condicoes || "" },
+    // frete só conta se for entrega (orçamento de retirada não cobra frete)
+    ...(d.entrega === "entrega" ? {} : { frete: 0 }),
+    empresa: { nome: emp.nome || nomeWs, cnpj: emp.cnpj || "", ie: emp.ie || "", endereco: emp.endereco || "", cidade: emp.cidade || "", cep: emp.cep || "", telefone: emp.telefone || "", email: emp.email || "", site: emp.site || "", logo: emp.logo || "", condicoes: emp.condicoes || "", cor: emp.cor || "", cor2: emp.cor2 || "" },
     formas_pagamento: Array.isArray(loja.formas_pagamento) && loja.formas_pagamento.length ? loja.formas_pagamento : ["PIX", "Cartão de crédito", "Cartão de débito", "Dinheiro"],
     taxa_entrega: num(loja.taxa_entrega),
+    frete_modo: loja.frete?.modo === "calculado" ? "calculado" : "fixo",
+    frete_gratis_acima: num(loja.frete?.gratis_acima),
+    servico_frete: d.servico_frete || "", prazo_frete: d.prazo_frete || "",
+    cor: emp.cor || "", cor2: emp.cor2 || "",
     status: d.aceite ? "aceito" : vencido ? "expirado" : aberto ? "aberto" : "fechado",
     aceite: d.aceite || null,
   };
@@ -82,12 +91,26 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
 
     const agora = new Date().toISOString();
     const d = r.p.dados_customizados?.pedido || {};
-    const frete = entrega === "entrega" ? (num(d.frete) || pub.taxa_entrega) : 0;
+    // Frete: recalculado aqui pelo CEP (calculado) ou a taxa fixa — nunca o valor que veio do navegador.
+    let frete = 0, servicoFrete = "", prazoFrete = "";
+    if (entrega === "entrega") {
+      if (pub.frete_modo === "calculado") {
+        if (so(cep).length !== 8) return NextResponse.json({ success: false, error: "Informe o CEP para calcular o frete" }, { status: 400 });
+        const calc = await calcularFrete(r.loja, cep, d.itens || []);
+        const op = calc.opcoes.find((o) => o.servico === txt(b.servico_frete, 20)) || calc.opcoes[0];
+        if (!op) return NextResponse.json({ success: false, error: calc.aviso || "Não foi possível calcular o frete para este CEP" }, { status: 400 });
+        frete = op.valor; servicoFrete = op.servico; prazoFrete = op.prazo || "";
+      } else {
+        frete = num(d.frete) || pub.taxa_entrega;
+        if (pub.frete_gratis_acima > 0 && pub.subtotal >= pub.frete_gratis_acima) frete = 0;
+      }
+    }
     const aceite = { em: agora, entrega, endereco, cidade, estado, cep, pagamento, observacoes: txt(b.observacoes, 500), ip: (request.headers.get("x-forwarded-for") || "").split(",")[0].trim().slice(0, 64) };
     const novo = {
-      ...d, tipo: "pedido", entrega, frete, pagamento, aceite,
+      ...d, tipo: "pedido", entrega, frete, pagamento, aceite, aprovado_cliente_em: agora,
+      servico_frete: entrega === "entrega" ? servicoFrete || undefined : undefined, prazo_frete: entrega === "entrega" ? prazoFrete || undefined : undefined,
       endereco_entrega: entrega === "entrega" ? [endereco, cidade, estado, cep].filter(Boolean).join(" · ") : d.endereco_entrega,
-      historico: [...(d.historico || []), { em: agora, etapa: "AGUARDANDO PAGAMENTO", nota: `Aceito pelo cliente pelo link (${entrega === "entrega" ? "entrega" : "retirada"} · ${pagamento})`, por: "cliente" }],
+      historico: [...(d.historico || []), { em: agora, etapa: "AGUARDANDO PAGAMENTO", nota: `Orçamento aprovado pelo cliente pelo link e virou pedido (${entrega === "entrega" ? `entrega${servicoFrete ? " " + servicoFrete : ""} ${frete.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "retirada"} · ${pagamento})`, por: "cliente" }],
     };
     const total = Math.max(0, pub.subtotal - pub.desconto + frete);
     const doc = txt(b.documento, 18).replace(/\D/g, "");

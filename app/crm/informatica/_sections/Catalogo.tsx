@@ -59,7 +59,7 @@ export default function Catalogo({ dados, gestor }: any) {
     } else {
       variantes = [{ id: f.variantes[0]?.id || "unico", estoque: f.servico ? 0 : Math.max(0, Math.round(num(f.estoqueUnico))) }];
     }
-    const prod: Produto = { id: f.id, nome: f.nome.trim(), categoria: f.categoria, marca: f.marca?.trim() || undefined, modelo: f.modelo?.trim() || undefined, garantia_meses: Math.round(num(f.garantia_meses)) || undefined, sku, descricao: f.descricao, preco: num(f.preco), custo: num(f.custo) || undefined, foto: f.foto, ativo: f.ativo !== false, servico: !!f.servico, variantes };
+    const prod: Produto = { id: f.id, nome: f.nome.trim(), categoria: f.categoria, marca: f.marca?.trim() || undefined, modelo: f.modelo?.trim() || undefined, garantia_meses: Math.round(num(f.garantia_meses)) || undefined, sku, descricao: f.descricao, preco: num(f.preco), custo: num(f.custo) || undefined, peso_kg: num((f as any).peso_kg) || undefined, foto: f.foto, ativo: f.ativo !== false, servico: !!f.servico, variantes };
     setSalvando(true);
     const existe = produtos.some((p) => p.id === prod.id);
     const { error } = await salvarConfig(wsId, { ...cfg, produtos: existe ? produtos.map((p) => (p.id === prod.id ? prod : p)) : [...produtos, prod] });
@@ -141,7 +141,7 @@ export default function Catalogo({ dados, gestor }: any) {
                 <Field label="Marca" flex="1 1 130px"><input style={inputSm} value={f.marca || ""} onChange={(e) => setF({ ...f, marca: e.target.value })} placeholder="Dell, Kingston, Logitech…" /></Field><Field label="Modelo" flex="1 1 130px"><input style={inputSm} value={f.modelo || ""} onChange={(e) => setF({ ...f, modelo: e.target.value })} /></Field><Field label="Garantia (meses)" flex="1 1 110px"><input style={inputSm} inputMode="numeric" value={f.garantia_meses ?? ""} onChange={(e) => setF({ ...f, garantia_meses: e.target.value as any })} placeholder="12" /></Field>
                 <Field label="Código / SKU (automático)" flex="1 1 120px"><input style={inputSm} value={f.sku || ""} onChange={(e) => setF({ ...f, sku: e.target.value.toUpperCase() })} placeholder={gerarSku(f.categoria, produtos)} /></Field>
                 <Field label="Preço de venda (R$)" flex="1 1 130px"><input style={inputSm} inputMode="decimal" value={String(f.preco || "").replace(".", ",")} onChange={(e) => setF({ ...f, preco: e.target.value as any })} /></Field>
-                <Field label="Custo (R$)" flex="1 1 110px"><input style={inputSm} inputMode="decimal" value={String(f.custo || "").replace(".", ",")} onChange={(e) => setF({ ...f, custo: e.target.value as any })} /></Field>
+                <Field label="Custo (R$)" flex="1 1 110px"><input style={inputSm} inputMode="decimal" value={String(f.custo || "").replace(".", ",")} onChange={(e) => setF({ ...f, custo: e.target.value as any })} /></Field>{!f.servico && <Field label="Peso (kg) p/ frete" flex="0 1 120px"><input style={inputSm} inputMode="decimal" value={String((f as any).peso_kg ?? "").replace(".", ",")} onChange={(e) => setF({ ...f, peso_kg: e.target.value } as any)} placeholder="0,5" /></Field>}
               </Row>
               {num(f.preco) > 0 && num(f.custo) > 0 && <span style={{ fontSize: 12.5, color: "#64748B" }}>Margem: <b>{Math.round(((num(f.preco) - num(f.custo)) / num(f.preco)) * 100)}%</b> ({brl(num(f.preco) - num(f.custo))} por {roupas ? "peça" : "unidade"})</span>}
             </div>

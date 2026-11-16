@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
-import type { EmpresaLoja } from "../../lib/loja-orcamento";
+import type { EmpresaLoja, FreteConfig } from "../../lib/loja-orcamento";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Informática — loja de informática e assistência técnica (vendas, orçamentos, estoque e OS)
@@ -51,6 +51,7 @@ export type Variante = { id: string; tamanho?: string; cor?: string; estoque: nu
 export type Produto = {
   id: string; nome: string; categoria?: string; marca?: string; sku?: string; descricao?: string;
   preco: number; custo?: number; foto?: string; ativo: boolean;
+  peso_kg?: number;              // usado no frete calculado
   servico?: boolean;             // serviço não controla estoque
   modelo?: string;
   garantia_meses?: number;       // garantia do produto vendido
@@ -59,6 +60,7 @@ export type Produto = {
 export type ConfigLoja = {
   produtos: Produto[];
   empresa?: EmpresaLoja;        // logo, CNPJ e contatos para orçamento/PDF/link
+  frete?: FreteConfig;          // frete fixo ou calculado pelo CEP
   categorias: string[];
   formas_pagamento: string[];
   taxa_entrega: number;
@@ -174,6 +176,9 @@ export type Historico = { em: string; etapa?: string; nota: string; por?: string
 export type DadosPedido = {
   numero?: string;
   link_token?: string;          // link público de aceite
+  aprovado_cliente_em?: string; // aprovado pelo cliente no link (vira pedido)
+  servico_frete?: string;       // SEDEX / PAC / Entrega
+  prazo_frete?: string;
   aceite?: { em: string; entrega?: string; endereco?: string; cidade?: string; estado?: string; cep?: string; pagamento?: string; observacoes?: string; ip?: string };
   tipo?: "pedido" | "orcamento";
   itens: Item[];
@@ -222,7 +227,8 @@ export const descVariante = (v: { tamanho?: string; cor?: string }) => [v.tamanh
 
 // ─── contas ───
 export const subtotal = (itens: Item[]) => itens.reduce((s, i) => s + num(i.qtd) * num(i.preco), 0);
-export const totalPedido = (d: DadosPedido) => Math.max(0, subtotal(d.itens) - num(d.desconto) + num(d.frete));
+// Frete só conta na entrega (retirada não cobra frete, mesmo que tenha sobrado valor no campo)
+export const totalPedido = (d: DadosPedido) => Math.max(0, subtotal(d.itens) - num(d.desconto) + (d.entrega === "retirada" ? 0 : num(d.frete)));
 export const qtdItens = (itens: Item[]) => itens.reduce((s, i) => s + num(i.qtd), 0);
 export const resumoItens = (itens: Item[]) => itens.map((i) => `${i.qtd}x ${i.nome}${descVariante(i) ? ` (${descVariante(i)})` : ""}`).join(", ").slice(0, 240);
 export const estoqueProduto = (p: Produto) => p.variantes.reduce((s, v) => s + num(v.estoque), 0);

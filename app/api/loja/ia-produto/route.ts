@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     (achado.imagens || []).filter((u) => /^https?:\/\//.test(u)).forEach((u) => add({ url: u }));
     bing.forEach(add);
     if (fotos.length < 3) (await imagensWikimedia(achado.nome || q)).forEach((u) => add({ url: u }));
-    fotos = fotos.slice(0, 16);
+    fotos = fotos.slice(0, 24);
 
     const fontes = [...new Set([melhor?.url, ...(achado.fontes || []), ...bing.slice(0, 3).map((f) => f.pagina)].filter(Boolean) as string[])].slice(0, 5);
     delete achado.imagens;

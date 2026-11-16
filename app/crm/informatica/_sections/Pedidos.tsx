@@ -7,7 +7,8 @@ import {
   salvarPedido, mudarEtapa, textoPedido, nomeUsuario, baixarCSV, type Pedido, type DadosPedido, type Item, type Produto,
 } from "../_dados";
 import Icone from "../../../components/a2/Icone";
-import AcoesOrcamentoLoja from "../../../components/AcoesOrcamentoLoja";
+import AcoesOrcamentoLoja, { PopupOrcamentoSalvo, CalcularFreteLoja } from "../../../components/AcoesOrcamentoLoja";
+import { novoToken } from "../../../lib/loja-orcamento";
 import { useModulos } from "../../../hooks/useModulos";
 import { nichoLiberado } from "../../../lib/modulos-nicho";
 
@@ -25,6 +26,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [copiado, setCopiado] = useState(false);
+  const [popup, setPopup] = useState<{ token: string; form: Form; atual: Pedido | null } | null>(null);
   const produtos: Produto[] = (cfg.produtos || []).filter((p: Produto) => p.ativo !== false);
   const { modulos } = useModulos();
   const nichoOk = nichoLiberado(modulos.nicho_opcoes, "informatica", "orcamentos");
@@ -91,10 +93,15 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
     const d: DadosPedido = { ...f.d, itens: f.d.itens.map((i) => ({ ...i, qtd: Math.max(1, Math.round(num(i.qtd))), preco: num(i.preco) })), desconto: num(f.d.desconto), frete: num(f.d.frete) };
     if (mudou) d.historico = [...(d.historico || []), { em: new Date().toISOString(), etapa: f.status_venda, nota: atual ? `Etapa: ${etapaDe(modo, f.status_venda).label}` : d.tipo === "orcamento" ? "Orçamento criado" : "Pedido criado", por: user?.email || "" }];
     const campos: Partial<Pedido> = { nome: f.nome.trim(), telefone1: f.telefone1.replace(/\D/g, "") || null, cpf: f.cpf.replace(/\D/g, "") || null, email: f.email.trim() || null, endereco: f.endereco.trim() || null, cidade: f.cidade.trim() || null, estado: f.estado.trim().toUpperCase() || null, status_venda: f.status_venda };
+    if (d.entrega !== "entrega") { d.frete = 0; d.servico_frete = undefined; d.prazo_frete = undefined; }
+    // Orçamento já sai com número e link de aceite (aparece no popup ao salvar)
+    if (!d.numero) d.numero = String(Date.now()).slice(-6);
+    if (nichoOk && d.tipo === "orcamento" && !d.link_token) d.link_token = novoToken();
     const { error } = await salvarPedido(wsId, modo, campos, d, atual);
     setSalvando(false);
     if (error) { setErro("Erro ao salvar: " + error.message); return; }
     setAberto(false); carregar();
+    if (nichoOk && d.tipo === "orcamento" && d.link_token && !d.aceite) setPopup({ token: d.link_token, form: { ...f, d }, atual });
   }
 
   async function avancar(p: Pedido, nova: string) {
@@ -138,7 +145,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
           return (
             <tr key={p.id}>
               <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>#{d.numero || p.id}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(p.data_proposta || p.created_at)}</div></td>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div></td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div>{d.aprovado_cliente_em && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#047857" }}>✓ aprovado pelo cliente</div>}</td>
               <td style={{ ...tdStyle, cursor: "pointer", maxWidth: 280 }} onClick={() => abrir(p)}><span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 13 } as any}>{p.plano || "—"}</span></td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>{d.pagamento || ""}</div></td>
               <td style={tdStyle}><Pill texto={e.label} cor={e.cor} /></td>
@@ -200,9 +207,13 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
                 <option value="entrega">Entrega</option><option value="retirada">Retirada {modo === "roupas" ? "na loja" : ""}</option>
               </select>
             </Field>
-            <Field label={modo === "roupas" ? "Taxa de entrega (R$)" : "Frete (R$)"} flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.d.frete ?? ""} onChange={(e) => setD({ frete: e.target.value as any })} /></Field>
+            {f.d.entrega === "entrega" && <Field label={modo === "roupas" ? "Taxa de entrega (R$)" : `Frete (R$)${f.d.servico_frete ? ` · ${f.d.servico_frete}` : ""}`} flex="1 1 140px"><input style={inputSm} inputMode="decimal" value={f.d.frete ?? ""} onChange={(e) => setD({ frete: e.target.value as any, servico_frete: undefined, prazo_frete: undefined })} /></Field>}
             <Field label="Pagamento" flex="1 1 170px"><select style={inputSm} value={f.d.pagamento || ""} onChange={(e) => setD({ pagamento: e.target.value })}><option value="">—</option>{cfg.formas_pagamento.map((x: string) => <option key={x}>{x}</option>)}</select></Field>
           </Row>
+          {f.d.entrega === "entrega" && cfg.frete?.modo === "calculado" && (
+            <CalcularFreteLoja wsId={wsId} itens={f.d.itens.map((i) => ({ produto_id: i.produto_id, qtd: num(i.qtd), preco: num(i.preco), servico: i.servico }))}
+              onEscolher={(o) => { setD({ frete: o.valor, servico_frete: o.servico, prazo_frete: o.prazo }); if (o.destino) setF((x) => (x ? { ...x, cidade: x.cidade || o.destino.cidade, estado: x.estado || o.destino.uf, endereco: x.endereco || [o.destino.logradouro, o.destino.bairro].filter(Boolean).join(", ") } : x)); }} />
+          )}
           {f.d.entrega === "entrega" && (
             <Row>
               <Field label="Endereço de entrega" flex="3 1 300px"><input style={inputSm} value={f.endereco} onChange={(e) => setF({ ...f, endereco: e.target.value })} placeholder="Rua, número, bairro, complemento" /></Field>
@@ -228,6 +239,7 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
           )}
         </Modal>
       )}
+      {popup && <PopupOrcamentoSalvo token={popup.token} form={popup.form} atual={popup.atual} empresa={cfg.empresa} nomeLoja={empresa} onClose={() => setPopup(null)} />}
     </Page>
   );
 }
