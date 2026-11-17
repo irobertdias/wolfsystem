@@ -106,8 +106,18 @@ export async function POST(request: NextRequest) {
         .filter((t: string) => t.length > 1 && !VAZIAS.has(t))
         .map((t: string) => (t.length > 4 && /[a-z]s$/.test(t) && !/ss$/.test(t) ? t.replace(/(oe|ae)s$/, "$1").replace(/s$/, "") : t)))];
       const cat = norm(b.categoria);
+      // Sinônimos de loja: o cliente fala "hd pra cftv", o catálogo diz "HDD ... VIGILANCIA".
+      const SINONIMOS: Record<string, string[]> = {
+        cftv: ["cftv", "vigilancia", "seguranca", "dvr", "nvr", "camera"], vigilancia: ["vigilancia", "cftv", "seguranca"], seguranca: ["seguranca", "vigilancia", "cftv"],
+        hd: ["hd", "hdd", "disco"], hdd: ["hdd", "hd"], ram: ["ram", "memoria", "ddr"], memoria: ["memoria", "ram", "ddr"],
+        wifi: ["wifi", "wi-fi", "wireless"], "wi-fi": ["wi-fi", "wifi", "wireless"], wireless: ["wireless", "wifi", "wi-fi"],
+        gpu: ["placa de video", "rtx", "gtx", "radeon", "geforce"], notebook: ["notebook", "laptop"], laptop: ["laptop", "notebook"],
+        pc: ["computador", "desktop", "pc "], computador: ["computador", "desktop"], nobreak: ["nobreak", "ups"], estabilizador: ["estabilizador", "nobreak"],
+        roteador: ["roteador", "router"], camera: ["camera", "cam "], celular: ["celular", "smartphone"], impressora: ["impressora", "multifuncional"],
+      };
+      const bate = (txt: string, t: string) => (SINONIMOS[t] || [t]).some((x) => txt.includes(x));
       let lista = produtos.filter((p) => (!cat || norm(p.categoria) === cat))
-        .map((p) => ({ p, pontos: termos.length ? termos.filter((t: string) => norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku} ${p.descricao}`).includes(t)).length : 1 }))
+        .map((p) => { const txt = norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku} ${p.descricao}`); return { p, pontos: termos.length ? termos.filter((t: string) => bate(txt, t)).length : 1 }; })
         .filter((x) => x.pontos > 0).sort((a, c) => c.pontos - a.pontos || (estoqueDe(c.p) > 0 ? 1 : 0) - (estoqueDe(a.p) > 0 ? 1 : 0));
       const limite = Math.min(20, Math.max(1, n(b.limite) || 8));
       return NextResponse.json({ ok: true, total: lista.length, produtos: lista.slice(0, limite).map((x) => resumoProduto(x.p, origem, ws)) });
