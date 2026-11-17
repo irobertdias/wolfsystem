@@ -188,6 +188,7 @@ export type DadosPedido = {
   prazo_frete?: string;
   aceite?: { em: string; entrega?: string; endereco?: string; cidade?: string; estado?: string; cep?: string; pagamento?: string; observacoes?: string; ip?: string };
   tipo?: "pedido" | "orcamento";
+  recusa?: { em: string; motivo: string; por?: string }; // cliente recusou o orçamento (link ou WhatsApp)
   itens: Item[];
   desconto?: number;
   frete?: number;

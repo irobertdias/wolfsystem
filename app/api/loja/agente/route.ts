@@ -232,25 +232,65 @@ export async function POST(request: NextRequest) {
       const agora = new Date().toISOString();
       const dias = Math.max(1, Math.round(n(loja.validade_orcamento_dias) || 7));
       const validade = new Date(Date.now() + dias * 86400_000).toISOString().slice(0, 10);
-      const numero = String(Date.now()).slice(-6);
+      // Um orçamento aberto por cliente: se já existe um da vendedora (não aprovado nem recusado), ele é ATUALIZADO
+      // (mesmo número e mesmo link). Só cria outro se a IA pedir explicitamente (novo: true).
+      const telBase = tel.replace(/^55(?=\d{10,11}$)/, "");
+      let existente: any = null;
+      if (b.novo !== true) {
+        let q = supabaseServer.from("proposta").select("id,nome,dados_customizados").eq("workspace_id", ws).eq("status_venda", "EM NEGOCIACAO")
+          .in("telefone1", [telBase, "55" + telBase]).eq("dados_customizados->pedido->>tipo", "orcamento");
+        if (n(b.orcamento_id)) q = q.eq("id", n(b.orcamento_id));
+        const { data: abertos } = await q.order("created_at", { ascending: false }).limit(5);
+        existente = (abertos || []).find((x: any) => !x.dados_customizados?.pedido?.aceite && !x.dados_customizados?.pedido?.recusa) || null;
+      }
+      const antigo = existente?.dados_customizados?.pedido || {};
+      const numero = antigo.numero || String(Date.now()).slice(-6);
       const pedido = {
+        ...antigo,
         numero, tipo: "orcamento", itens, desconto: 0, frete, servico_frete: servicoFrete, prazo_frete: prazoFrete, entrega, validade,
-        pagamento: String(b.pagamento || "").slice(0, 60) || undefined,
+        pagamento: String(b.pagamento || "").slice(0, 60) || antigo.pagamento || undefined,
         endereco_entrega: entrega === "entrega" ? [String(b.endereco || "").trim(), String(b.cidade || "").trim(), String(b.uf || "").trim().toUpperCase(), so(b.cep)].filter(Boolean).join(" · ") || undefined : undefined,
-        observacoes: String(b.observacoes || "").slice(0, 500) || undefined,
-        link_token: novoToken(), canal: "whatsapp_ia",
-        historico: [{ em: agora, etapa: "EM NEGOCIACAO", nota: "Orçamento montado pela vendedora IA no WhatsApp", por: "ia_vendas" }],
+        observacoes: String(b.observacoes || "").slice(0, 500) || antigo.observacoes || undefined,
+        link_token: antigo.link_token || novoToken(), canal: "whatsapp_ia",
+        historico: [...(antigo.historico || []), { em: agora, etapa: "EM NEGOCIACAO", nota: existente ? `Orçamento atualizado pela vendedora IA: ${itens.map((i) => `${i.qtd}x ${i.nome}`).join(", ").slice(0, 300)}` : "Orçamento montado pela vendedora IA no WhatsApp", por: "ia_vendas" }],
       };
-      const { data: novo, error } = await supabaseServer.from("proposta").insert([{
-        workspace_id: ws, nome, telefone1: tel.replace(/^55(?=\d{10,11}$)/, ""), cpf: so(c.cpf) || null, email: String(c.email || "").trim() || null,
-        status_venda: "EM NEGOCIACAO", valor_plano: total, plano: itens.map((i) => `${i.qtd}x ${i.nome}`).join(", ").slice(0, 240),
-        operadora: pedido.pagamento || null, data_proposta: agora.slice(0, 10), vendedor: "IA vendas",
-        dados_customizados: { pedido, criado_por: "ia_vendas" },
-      }]).select("id").single();
-      if (error || !novo) throw error || new Error("falha ao gravar");
-      return NextResponse.json({ ok: true, orcamento_id: (novo as any).id, numero, validade, itens: itens.map((i) => ({ nome: i.nome, qtd: i.qtd, preco_texto: brl(i.preco), total_texto: brl(i.qtd * i.preco) })),
+      const nomeFinal = nome !== "Cliente WhatsApp" ? nome : existente?.nome || nome;
+      const linha = {
+        nome: nomeFinal, status_venda: "EM NEGOCIACAO", valor_plano: total, plano: itens.map((i) => `${i.qtd}x ${i.nome}`).join(", ").slice(0, 240),
+        operadora: pedido.pagamento || null, ...(so(c.cpf) ? { cpf: so(c.cpf) } : {}), ...(String(c.email || "").includes("@") ? { email: String(c.email).trim() } : {}),
+      };
+      let id: number;
+      if (existente) {
+        const { error } = await supabaseServer.from("proposta").update({ ...linha, dados_customizados: { ...existente.dados_customizados, pedido }, updated_at: agora }).eq("id", existente.id);
+        if (error) throw error;
+        id = existente.id;
+      } else {
+        const { data: novo, error } = await supabaseServer.from("proposta").insert([{
+          ...linha, workspace_id: ws, telefone1: telBase, data_proposta: agora.slice(0, 10), vendedor: "IA vendas",
+          dados_customizados: { pedido, criado_por: "ia_vendas" },
+        }]).select("id").single();
+        if (error || !novo) throw error || new Error("falha ao gravar");
+        id = (novo as any).id;
+      }
+      return NextResponse.json({ ok: true, orcamento_id: id, atualizado: !!existente, numero, validade, itens: itens.map((i) => ({ nome: i.nome, qtd: i.qtd, preco_texto: brl(i.preco), total_texto: brl(i.qtd * i.preco) })),
         subtotal_texto: brl(subtotal), frete_texto: entrega === "entrega" ? (servicoFrete ? `${brl(frete)} (${servicoFrete}${prazoFrete ? `, ${prazoFrete}` : ""})` : "a calcular com o CEP") : "retirada na loja",
         total_texto: brl(total), link_orcamento: `${origem}/pedido/${pedido.link_token}` });
+    }
+
+    // Cliente recusou o orçamento na conversa: fica como perdido, com o motivo.
+    if (acao === "recusar_orcamento") {
+      const id = n(b.orcamento_id);
+      const motivo = String(b.motivo || "").trim().slice(0, 300) || "não informado";
+      const { data: x } = await supabaseServer.from("proposta").select("id,telefone1,status_venda,dados_customizados").eq("workspace_id", ws).eq("id", id).maybeSingle();
+      if (!x) return NextResponse.json({ ok: false, erro: "Orçamento não encontrado" }, { status: 404 });
+      const tel = so(b.telefone).replace(/^55(?=\d{10,11}$)/, "");
+      if (tel && so((x as any).telefone1).replace(/^55(?=\d{10,11}$)/, "") !== tel) return NextResponse.json({ ok: false, erro: "Este orçamento é de outro cliente" }, { status: 403 });
+      if (!["PENDENTE", "EM NEGOCIACAO"].includes((x as any).status_venda)) return NextResponse.json({ ok: false, erro: `Este orçamento já está como: ${ETAPA[(x as any).status_venda] || (x as any).status_venda}` }, { status: 409 });
+      const agora = new Date().toISOString();
+      const d = (x as any).dados_customizados?.pedido || {};
+      const novoPed = { ...d, recusa: { em: agora, motivo, por: "cliente_whatsapp" }, historico: [...(d.historico || []), { em: agora, etapa: "PERDIDA", nota: `Cliente recusou o orçamento no WhatsApp: ${motivo}`, por: "ia_vendas" }] };
+      await supabaseServer.from("proposta").update({ status_venda: "PERDIDA", dados_customizados: { ...(x as any).dados_customizados, pedido: novoPed }, updated_at: agora }).eq("id", id);
+      return NextResponse.json({ ok: true, orcamento_id: id, numero: d.numero || String(id), status: "recusado" });
     }
 
     // Cliente aprovou o orçamento na conversa: vira pedido aguardando pagamento.
@@ -330,7 +370,7 @@ export async function POST(request: NextRequest) {
       const { data } = await q.order("created_at", { ascending: false }).limit(5);
       return NextResponse.json({ ok: true, pedidos: (data || []).map((x: any) => { const d = x.dados_customizados?.pedido || {}; return {
         pedido_id: x.id, numero: d.numero || String(x.id), data: String(x.created_at).slice(0, 10), itens: x.plano, total: brl(n(x.valor_plano)),
-        etapa: ETAPA[x.status_venda] || x.status_venda, pago: d.pagamento_online?.status === "pago" || ["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE", "FECHADA"].includes(x.status_venda),
+        etapa: d.recusa ? `orçamento recusado (${d.recusa.motivo})` : ETAPA[x.status_venda] || x.status_venda, tipo: d.tipo === "orcamento" ? "orçamento" : "pedido", pago: d.pagamento_online?.status === "pago" || ["EM SEPARACAO", "AGUARDANDO ENTREGA", "ENTREGUE", "FECHADA"].includes(x.status_venda),
         entrega: d.entrega === "entrega" ? `entrega${d.servico_frete ? " " + d.servico_frete : ""}${d.prazo_frete ? ` (${d.prazo_frete})` : ""}` : "retirada na loja",
         rastreio: d.rastreio || null, link_pedido: d.link_token ? `${origem}/pedido/${d.link_token}` : null,
         link_pagamento: d.pagamento_online?.status !== "pago" ? d.pagamento_online?.url || null : null,

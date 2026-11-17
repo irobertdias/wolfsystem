@@ -160,10 +160,10 @@ export default function Pedidos({ dados, alvo, gestor, orcamentos }: any) {
           return (
             <tr key={p.id}>
               <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>#{d.numero || p.id}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{dataBR(p.data_proposta || p.created_at)}</div></td>
-              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div>{d.aprovado_cliente_em && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#047857" }}>✓ aprovado pelo cliente</div>}</td>
+              <td style={{ ...tdStyle, cursor: "pointer" }} onClick={() => abrir(p)}><b>{p.nome}</b><div style={{ fontSize: 12, color: "#94A3B8" }}>{telFmt(p.telefone1)}{d.entrega === "entrega" && p.cidade ? ` · ${p.cidade}` : d.entrega === "retirada" ? " · retirada" : ""}</div>{d.aprovado_cliente_em && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#047857" }}>✓ aprovado pelo cliente</div>}{d.recusa && <div style={{ fontSize: 11.5, fontWeight: 800, color: "#B91C1C", maxWidth: 220 }} title={d.recusa.motivo}>✕ recusado: {d.recusa.motivo}</div>}</td>
               <td style={{ ...tdStyle, cursor: "pointer", maxWidth: 280 }} onClick={() => abrir(p)}><span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 13 } as any}>{p.plano || "—"}</span></td>
               <td style={{ ...tdStyle, textAlign: "right", fontWeight: 800 }}>{brl(totalPedido(d))}<div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>{d.pagamento || ""}</div></td>
-              <td style={tdStyle}><Pill texto={e.label} cor={e.cor} /></td>
+              <td style={tdStyle}><Pill texto={d.recusa && p.status_venda === "PERDIDA" ? "Recusado" : e.label} cor={e.cor} /></td>
               <td style={{ ...tdStyle, textAlign: "right", whiteSpace: "nowrap" }}>
                 {prox && !ENCERRADAS.includes(p.status_venda || "") && <Btn variante="ghost" onClick={() => avancar(p, prox)}>{orcamentos && prox === "AGUARDANDO PAGAMENTO" ? "Virar pedido" : etapaDe(modo, prox).curto} →</Btn>}
               </td>

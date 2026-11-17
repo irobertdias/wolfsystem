@@ -54,8 +54,9 @@ function publico(p: any, loja: any, nomeWs: string) {
     frete_gratis_acima: num(loja.frete?.gratis_acima),
     servico_frete: d.servico_frete || "", prazo_frete: d.prazo_frete || "",
     cor: emp.cor || "", cor2: emp.cor2 || "",
-    status: d.aceite ? "aceito" : vencido ? "expirado" : aberto ? "aberto" : "fechado",
+    status: d.aceite ? "aceito" : d.recusa ? "recusado" : vencido ? "expirado" : aberto ? "aberto" : "fechado",
     aceite: d.aceite || null,
+    recusa: d.recusa ? { em: d.recusa.em, motivo: d.recusa.motivo } : null,
   };
 }
 
@@ -84,6 +85,24 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
     const r = await buscar(token);
     if (!r) return NextResponse.json({ success: false, error: "Orçamento não encontrado" }, { status: 404 });
     const pub = publico(r.p, r.loja, r.nomeWs);
+    if (pub.status === "recusado") return NextResponse.json({ success: false, error: "Este orçamento foi recusado. Fale com a loja para um novo." }, { status: 409 });
+
+    // Recusa do orçamento pelo cliente, com o motivo.
+    if (b.acao === "recusar") {
+      if (pub.status !== "aberto" && pub.status !== "expirado") return NextResponse.json({ success: false, error: "Este orçamento não pode mais ser recusado" }, { status: 409 });
+      const motivo = String(b.motivo ?? "").trim().slice(0, 300);
+      if (motivo.length < 3) return NextResponse.json({ success: false, error: "Conte o motivo da recusa" }, { status: 400 });
+      const agora = new Date().toISOString();
+      const d = r.p.dados_customizados?.pedido || {};
+      const novo = { ...d, recusa: { em: agora, motivo, por: "cliente_link" }, historico: [...(d.historico || []), { em: agora, etapa: "PERDIDA", nota: `Cliente recusou o orçamento pelo link: ${motivo}`, por: "cliente" }] };
+      const { data: ok, error } = await supabaseServer.from("proposta").update({ status_venda: "PERDIDA", dados_customizados: { ...r.p.dados_customizados, pedido: novo }, updated_at: agora })
+        .eq("id", r.p.id).in("status_venda", ABERTOS).select("id");
+      if (error) throw error;
+      if (!ok?.length) return NextResponse.json({ success: false, error: "Este orçamento não pode mais ser recusado" }, { status: 409 });
+      try { const { aposRecusaDoOrcamento } = await import("../../_avisos"); await aposRecusaDoOrcamento(r.p.workspace_id, r.p.id, motivo); } catch {}
+      return NextResponse.json({ success: true, pedido: publico({ ...r.p, status_venda: "PERDIDA", dados_customizados: { ...r.p.dados_customizados, pedido: novo } }, r.loja, r.nomeWs) }, { headers: SEM_CACHE });
+    }
+
     if (pub.status === "aceito") return NextResponse.json({ success: false, error: "Este orçamento já foi aceito" }, { status: 409 });
     if (pub.status === "expirado") return NextResponse.json({ success: false, error: "O prazo deste orçamento expirou. Fale com a loja." }, { status: 410 });
     if (pub.status !== "aberto") return NextResponse.json({ success: false, error: "Este orçamento não pode mais ser aceito" }, { status: 409 });

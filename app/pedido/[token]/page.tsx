@@ -12,9 +12,11 @@ type Pub = {
   subtotal: number; desconto: number; frete: number; entrega: string; pagamento: string; observacoes: string;
   empresa: { nome: string; cnpj: string; ie: string; endereco: string; cidade: string; cep: string; telefone: string; email: string; site: string; logo: string; condicoes: string; cor?: string; cor2?: string };
   formas_pagamento: string[]; taxa_entrega: number; frete_modo: "fixo" | "calculado"; frete_gratis_acima: number; servico_frete: string; prazo_frete: string; cor: string; cor2: string; pagamento_online: null | { gateway: string; status: string; pago_em: string | null };
-  status: "aberto" | "aceito" | "expirado" | "fechado";
+  status: "aberto" | "aceito" | "expirado" | "fechado" | "recusado";
   aceite: null | { em: string; entrega: string; endereco?: string; cidade?: string; pagamento?: string };
+  recusa?: null | { em: string; motivo: string };
 };
+const MOTIVOS = ["Achei mais barato em outro lugar", "Ficou acima do meu orçamento", "Prazo de entrega não atende", "Não era bem o produto que eu queria", "Vou deixar para depois", "Outro motivo"];
 
 const dataBr = (s?: string | null) => (s ? new Date(s.length === 10 ? s + "T12:00:00" : s).toLocaleDateString("pt-BR") : "");
 const COR = "#0F172A";
@@ -24,7 +26,19 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
   const { token } = use(params);
   const [p, setP] = useState<Pub | null>(null);
   const [erro, setErro] = useState("");
-  const [etapa, setEtapa] = useState<"ver" | "aceitar">("ver");
+  const [etapa, setEtapa] = useState<"ver" | "aceitar" | "recusar">("ver");
+  const [motivo, setMotivo] = useState("");
+  const [detalhe, setDetalhe] = useState("");
+  async function recusar() {
+    const texto = [motivo === "Outro motivo" ? "" : motivo, detalhe.trim()].filter(Boolean).join(" — ");
+    setFalha("");
+    if (texto.length < 3) { setFalha("Escolha ou escreva o motivo."); return; }
+    setEnviando(true);
+    const r = await fetch(`/api/loja/publico/${token}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "recusar", motivo: texto }) }).then((x) => x.json()).catch(() => ({ success: false, error: "Sem conexão" }));
+    setEnviando(false);
+    if (!r.success) { setFalha(r.error || "Não foi possível registrar"); return; }
+    setP(r.pedido); setEtapa("ver");
+  }
   const [f, setF] = useState({ entrega: "retirada", cep: "", endereco: "", numero: "", bairro: "", cidade: "", estado: "", pagamento: "", documento: "", observacoes: "" });
   const [enviando, setEnviando] = useState(false);
   const [falha, setFalha] = useState("");
@@ -144,6 +158,13 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
           </div>
         )}
         {p.status === "expirado" && <div style={{ ...box, background: "#FFFBEB", color: "#92400E" }}>O prazo deste orçamento expirou. Fale com a loja para atualizar os valores.</div>}
+        {p.status === "recusado" && p.recusa && (
+          <div style={{ ...box, background: "#FEF2F2", boxShadow: "inset 0 0 0 1.5px #FECACA" }}>
+            <b style={{ fontSize: 16, color: "#991B1B" }}>Orçamento recusado em {new Date(p.recusa.em).toLocaleString("pt-BR")}</b>
+            <div style={{ fontSize: 14, color: "#991B1B", marginTop: 4 }}>Motivo: {p.recusa.motivo}</div>
+            <div style={{ fontSize: 13.5, color: "#7F1D1D", marginTop: 8 }}>Obrigado por avisar! Se quiser outra opção, é só chamar a loja no WhatsApp.</div>
+          </div>
+        )}
 
         {/* itens */}
         <section style={box}>
@@ -168,7 +189,29 @@ export default function PedidoPublico({ params }: { params: Promise<{ token: str
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={() => setEtapa("aceitar")} style={{ flex: "2 1 240px", height: 54, borderRadius: 14, border: 0, background: AC, color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer" }}>Aprovar orçamento</button>
             <button onClick={pdf} style={{ flex: "1 1 160px", height: 54, borderRadius: 14, border: 0, background: "#fff", color: COR, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "inset 0 0 0 1.5px #CBD5E1" }}>Baixar PDF</button>
+            <button onClick={() => { setFalha(""); setEtapa("recusar"); }} style={{ flex: "1 1 100%", height: 44, borderRadius: 14, border: 0, background: "transparent", color: "#B91C1C", fontSize: 14.5, fontWeight: 700, cursor: "pointer" }}>Recusar orçamento</button>
           </div>
+        )}
+
+        {p.status === "aberto" && etapa === "recusar" && (
+          <section style={{ ...box, display: "flex", flexDirection: "column", gap: 12 }}>
+            <h2 style={{ margin: 0, fontSize: 18 }}>Por que você vai recusar?</h2>
+            <p style={{ margin: 0, fontSize: 13.5, color: "#64748B" }}>Sua resposta ajuda a loja a te atender melhor.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {MOTIVOS.map((m) => (
+                <button key={m} onClick={() => setMotivo(m)} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, cursor: "pointer", border: 0, fontSize: 14.5, fontWeight: 600, color: COR, background: motivo === m ? "#FEF2F2" : "#F8FAFC", boxShadow: motivo === m ? "inset 0 0 0 2px #DC2626" : "inset 0 0 0 1px #E2E8F0" }}>{m}</button>
+              ))}
+            </div>
+            <div>
+              <label style={lab}>{motivo === "Outro motivo" ? "Conte o motivo" : "Quer contar mais? (opcional)"}</label>
+              <textarea style={{ ...inp, minHeight: 80, resize: "vertical", fontFamily: "inherit" }} value={detalhe} onChange={(e) => setDetalhe(e.target.value)} maxLength={280} placeholder="Ex.: encontrei por R$ 500 em outra loja" />
+            </div>
+            {falha && <div style={{ background: "#FEF2F2", color: "#B91C1C", borderRadius: 12, padding: "10px 14px", fontWeight: 700, fontSize: 14 }}>{falha}</div>}
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button disabled={enviando} onClick={recusar} style={{ flex: "2 1 220px", height: 52, borderRadius: 14, border: 0, background: "#DC2626", color: "#fff", fontSize: 15.5, fontWeight: 800, cursor: "pointer", opacity: enviando ? 0.6 : 1 }}>{enviando ? "Enviando…" : "Confirmar recusa"}</button>
+              <button onClick={() => setEtapa("ver")} style={{ flex: "1 1 140px", height: 52, borderRadius: 14, border: 0, background: "#F1F5F9", color: "#475569", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Voltar</button>
+            </div>
+          </section>
         )}
         {p.status !== "aberto" && <button onClick={pdf} style={{ height: 50, borderRadius: 14, border: 0, background: "#fff", color: COR, fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "inset 0 0 0 1.5px #CBD5E1" }}>Baixar PDF</button>}
 

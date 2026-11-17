@@ -124,7 +124,26 @@ export async function aposAceiteDoOrcamento(ws: string, pedidoId: number, origem
   return r;
 }
 
-const chaveDaEtapa =(etapa: string, entrega?: string): ChaveAviso | null =>
+/** Cliente recusou o orçamento pelo link: a vendedora agradece e oferece outra opção no WhatsApp. */
+export async function aposRecusaDoOrcamento(ws: string, pedidoId: number, motivo: string) {
+  const { liberado } = await modulosLoja(ws);
+  if (!liberado("ia_vendas")) return { ok: false, motivo: "módulo desligado" };
+  const [{ data: p }, { data: cfg }] = await Promise.all([
+    supabaseServer.from("proposta").select("id,nome,telefone1,dados_customizados").eq("workspace_id", ws).eq("id", pedidoId).maybeSingle(),
+    supabaseServer.from("fin_config").select("config").eq("workspace_id", ws).maybeSingle(),
+  ]);
+  if (!p) return { ok: false, motivo: "pedido não encontrado" };
+  const x: any = p; const d = x.dados_customizados?.pedido || {};
+  const conf = (cfg as any)?.config?.loja?.ia_vendas || {};
+  const nome = String(x.nome || "").split(" ")[0];
+  const oi = nome && !/^cliente$/i.test(nome) ? `${nome}, ` : "";
+  const texto = `Poxa, ${oi}vi que você recusou o orçamento nº ${d.numero || x.id}. Obrigada por me contar o motivo: "${motivo}". 🙏\n\nSe quiser, monto outra opção que caiba melhor pra você. É só me falar aqui! 😊`;
+  const r = await enviarWhatsappLoja(ws, x.telefone1 || "", texto, conf.canal_id);
+  await anotarPedido(pedidoId, r.ok ? "WhatsApp ao cliente após a recusa (oferta de outra opção)" : `Mensagem após a recusa não enviada: ${r.motivo}`);
+  return r;
+}
+
+const chaveDaEtapa = (etapa: string, entrega?: string): ChaveAviso | null =>
   etapa === "EM SEPARACAO" ? "separacao"
   : etapa === "AGUARDANDO ENTREGA" ? (entrega === "retirada" ? "retirada" : "enviado")
   : etapa === "FECHADA" || etapa === "ENTREGUE" ? "entregue" : null;
