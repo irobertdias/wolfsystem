@@ -71,16 +71,15 @@ export async function avisarDono(ws: string, pedidoId: number, situacao: "aguard
       ? `Entrega${d.servico_frete ? ` (${d.servico_frete}${d.prazo_frete ? `, ${d.prazo_frete}` : ""})` : ""}: ${d.endereco_entrega || "-"}\nFrete: ${brl(Number(d.frete) || 0)}`
       : "Retirada na loja";
     const cabeca = situacao === "pago" ? `✅ *PAGAMENTO APROVADO — Pedido nº ${d.numero || x.id}*` : `🛒 *NOVO PEDIDO nº ${d.numero || x.id}* — aguardando pagamento`;
-    const texto = [
-      cabeca, "",
-      `👤 ${x.nome || "-"}${x.telefone1 ? ` · ${x.telefone1}` : ""}${x.cpf ? `\nCPF: ${x.cpf}` : ""}`, "",
-      itens, "",
-      entrega,
-      `Pagamento: ${d.pagamento || x.operadora || "-"}${situacao === "pago" && d.pagamento_online?.metodo ? ` (${d.pagamento_online.metodo})` : ""}`,
-      `*Total: ${brl(Number(x.valor_plano) || 0)}*`,
-      d.canal === "whatsapp_ia" || d.criado_por === "ia_vendas" ? "Fechado pela vendedora IA no WhatsApp." : "",
-      d.link_token ? `\n${origem}/pedido/${d.link_token}` : "",
-    ].filter((l) => l !== "").join("\n").replace(/\n{3,}/g, "\n\n");
+    const blocos = [
+      cabeca,
+      `👤 ${x.nome || "-"}${x.telefone1 ? ` · ${x.telefone1}` : ""}${x.cpf ? `\nCPF: ${x.cpf}` : ""}`,
+      itens,
+      [entrega, `Pagamento: ${d.pagamento || x.operadora || "-"}${situacao === "pago" && d.pagamento_online?.metodo ? ` (${d.pagamento_online.metodo})` : ""}`, `*Total: ${brl(Number(x.valor_plano) || 0)}*`].join("\n"),
+      d.canal === "whatsapp_ia" ? "Fechado pela vendedora IA no WhatsApp." : "",
+      d.link_token ? `${origem}/pedido/${d.link_token}` : "",
+    ];
+    const texto = blocos.filter(Boolean).join("\n\n");
     const r = await enviarWhatsappLoja(ws, dono, texto, conf.canal_id);
     await anotarPedido(pedidoId, r.ok ? `Dono avisado no WhatsApp (${situacao === "pago" ? "pagamento aprovado" : "aguardando pagamento"})` : `Aviso ao dono não enviado: ${r.motivo}`,
       (dd) => (r.ok ? { dono_avisado: { ...(dd.dono_avisado || {}), [situacao]: new Date().toISOString() } } : {}));
