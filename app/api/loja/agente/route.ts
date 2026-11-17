@@ -102,13 +102,16 @@ export async function POST(request: NextRequest) {
 
     if (acao === "catalogo") {
       const VAZIAS = new Set(["de", "da", "do", "das", "dos", "para", "pra", "com", "sem", "um", "uma", "o", "a", "e", "em", "no", "na", "que", "tem", "quero", "preciso"]);
-      const termos = [...new Set(norm(b.busca).replace(/[^a-z0-9.+\-/ ]/g, " ").split(/\s+/)
-        .filter((t: string) => t.length > 1 && !VAZIAS.has(t))
+      const brutos = norm(b.busca).replace(/[^a-z0-9.+\-/ ]/g, " ").split(/\s+/).filter(Boolean);
+      // "4 canais", "8 portas", "2 tb": número + palavra vale muito quando aparece junto no nome.
+      const frases = brutos.flatMap((w: string, i: number) => (/^\d+$/.test(w) && brutos[i + 1] && /^[a-z]{2,}/.test(brutos[i + 1]) ? [`${w} ${brutos[i + 1].slice(0, Math.max(2, brutos[i + 1].length - 2))}`] : []));
+      const termos = [...new Set(brutos
+        .filter((t: string) => (t.length > 1 || /^\d$/.test(t)) && !VAZIAS.has(t))
         .map((t: string) => (t.length > 4 && /[a-z]s$/.test(t) && !/ss$/.test(t) ? t.replace(/(oe|ae)s$/, "$1").replace(/s$/, "") : t)))];
       const cat = norm(b.categoria);
       // Sinônimos de loja: o cliente fala "hd pra cftv", o catálogo diz "HDD ... VIGILANCIA".
       const SINONIMOS: Record<string, string[]> = {
-        cftv: ["cftv", "vigilancia", "seguranca", "dvr", "nvr"], vigilancia: ["vigilancia", "cftv", "seguranca"], seguranca: ["seguranca", "vigilancia", "cftv"],
+        cftv: ["cftv", "vigilancia", "seguranca", "dvr", "nvr"], gravar: ["gravar", "vigilancia", "dvr", "nvr", "gravador"], gravacao: ["gravacao", "vigilancia", "dvr", "nvr"],vigilancia: ["vigilancia", "cftv", "seguranca"], seguranca: ["seguranca", "vigilancia", "cftv"],
         hd: ["hd", "hdd", "disco"], hdd: ["hdd", "hd"], ram: ["ram", "memoria", "ddr"], memoria: ["memoria", "ram", "ddr"],
         wifi: ["wifi", "wi-fi", "wireless"], "wi-fi": ["wi-fi", "wifi", "wireless"], wireless: ["wireless", "wifi", "wi-fi"],
         gpu: ["placa de video", "rtx", "gtx", "radeon", "geforce"], notebook: ["notebook", "laptop"], laptop: ["laptop", "notebook"],
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
         roteador: ["roteador", "router"], camera: ["camera", "cam "], celular: ["celular", "smartphone"], impressora: ["impressora", "multifuncional"],
       };
       // Casa por palavra: termo curto (≤3) só a palavra exata ("hd" ≠ "hdmi"); termo maior pode ser começo de palavra.
-      const palavras = (s: string) => norm(s).split(/[^a-z0-9+]+/).filter(Boolean);
+      const palavras = (s: string) => norm(s).split(/[^a-z0-9]+/).filter(Boolean);
       const bate = (txt: string, toks: string[], t: string) => (SINONIMOS[t] || [t]).some((x) => {
         const y = x.trim();
         if (y.includes(" ")) return txt.includes(y);
@@ -131,7 +134,8 @@ export async function POST(request: NextRequest) {
           const noNome = termos.filter((t: string) => bate(tn, tokN, t)).length;
           // Bônus quando o termo é o TIPO do produto (1ª palavra do nome: HDD, SSD, CAMERA, SWITCH…)
           const tipo = termos.some((t: string) => bate(tokN[0] || "", tokN.slice(0, 1), t)) ? 5 : 0;
-          return { p, pontos: casados ? casados * 10 + noNome + tipo : 0 };
+          const juntos = frases.filter((f: string) => tn.includes(f) || tn.includes(f.replace(" ", ""))).length * 15;
+          return { p, pontos: casados ? casados * 10 + noNome + tipo + juntos : 0 };
         })
         .filter((x) => x.pontos > 0).sort((a, c) => c.pontos - a.pontos || (estoqueDe(c.p) > 0 ? 1 : 0) - (estoqueDe(a.p) > 0 ? 1 : 0));
       const limite = Math.min(20, Math.max(1, n(b.limite) || 8));
