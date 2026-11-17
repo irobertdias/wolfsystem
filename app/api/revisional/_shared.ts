@@ -97,7 +97,7 @@ export function tokenValido(token: string) {
  * (o sistema continua em app.wolfgyn.com.br). O host precisa estar no projeto da Vercel
  * e na lista do proxy.ts (HOSTS_PROPOSTA).
  */
-const SUBDOMINIOS_ATIVOS = false;
+const SUBDOMINIOS_ATIVOS = true;
 export const SUBDOMINIO_PROPOSTA: Record<string, string> = {
   clickconsultoria: "clickconsultoria.wolfgyn.com.br",
   aproveconsultoria: "aproveconsultoria.wolfgyn.com.br",
@@ -105,7 +105,7 @@ export const SUBDOMINIO_PROPOSTA: Record<string, string> = {
 
 /** Link público. Usa o subdomínio do escritório; senão o rev.* (NEXT_PUBLIC_REVISIONAL_URL). */
 export function linkPublico(request: NextRequest, token: string, workspaceId?: string) {
-  // Ligar só depois que os domínios estiverem adicionados no projeto da Vercel (hoje dão 404).
+  // Domínio novo: adicionar no projeto "wolfsystem" da Vercel antes de colocar na lista.
   const proprio = SUBDOMINIOS_ATIVOS && workspaceId ? SUBDOMINIO_PROPOSTA[workspaceId] : "";
   if (proprio) return `https://${proprio}/p/${token}`;
   const base = (process.env.NEXT_PUBLIC_REVISIONAL_URL || "").replace(/\/+$/, "");
