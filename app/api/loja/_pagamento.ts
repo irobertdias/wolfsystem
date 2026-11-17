@@ -138,6 +138,9 @@ export async function confirmarPagamento(ws: string, pedidoId: number, info: { g
   const etapa = ["CANCELADA", "PERDIDA"].includes((p as any).status_venda) ? (p as any).status_venda : proxima;
   await supabaseServer.from("proposta").update({ status_venda: etapa, dados_customizados: { ...(p as any).dados_customizados, pedido: novo }, updated_at: agora }).eq("workspace_id", ws).eq("id", pedidoId);
   // Módulo IA de vendas: avisa o cliente no WhatsApp que o pagamento entrou e o pedido está em separação
-  if (etapa === proxima) { try { const { avisarEtapa } = await import("./_avisos"); await avisarEtapa(ws, pedidoId, "pago"); } catch {} }
+  if (etapa === proxima) {
+    try { const { avisarEtapa } = await import("./_avisos"); await avisarEtapa(ws, pedidoId, "pago"); } catch {}
+    try { const { avisarDono } = await import("./_avisos"); await avisarDono(ws, pedidoId, "pago"); } catch {}
+  }
   return { ok: true };
 }

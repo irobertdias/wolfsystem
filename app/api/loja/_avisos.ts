@@ -40,7 +40,92 @@ export async function enviarWhatsappLoja(ws: string, telefone: string, texto: st
   }
 }
 
-const chaveDaEtapa = (etapa: string, entrega?: string): ChaveAviso | null =>
+const ORIGEM_PADRAO = (process.env.NEXT_PUBLIC_APP_URL || "https://wolfgyn.com.br").replace(/\/+$/, "");
+
+/** Grava um registro no histórico do pedido e mescla campos em dados_customizados.pedido. */
+async function anotarPedido(pedidoId: number, nota: string, extra: (d: any) => any = () => ({})) {
+  const { data: atual } = await supabaseServer.from("proposta").select("dados_customizados").eq("id", pedidoId).maybeSingle();
+  const dd = (atual as any)?.dados_customizados?.pedido || {};
+  const novo = { ...dd, ...extra(dd), historico: [...(dd.historico || []), { em: new Date().toISOString(), nota, por: "ia_vendas" }] };
+  await supabaseServer.from("proposta").update({ dados_customizados: { ...(atual as any)?.dados_customizados, pedido: novo } }).eq("id", pedidoId);
+}
+
+/**
+ * Avisa o dono da loja no WhatsApp (loja.ia_vendas.dono_whatsapp) de um pedido novo
+ * aguardando pagamento ou com pagamento aprovado. Uma vez por situação e pedido.
+ */
+export async function avisarDono(ws: string, pedidoId: number, situacao: "aguardando" | "pago", origem = ORIGEM_PADRAO) {
+  try {
+    const [{ data: p }, { data: cfg }] = await Promise.all([
+      supabaseServer.from("proposta").select("id,nome,telefone1,cpf,valor_plano,operadora,dados_customizados").eq("workspace_id", ws).eq("id", pedidoId).maybeSingle(),
+      supabaseServer.from("fin_config").select("config").eq("workspace_id", ws).maybeSingle(),
+    ]);
+    if (!p) return { ok: false, motivo: "pedido não encontrado" };
+    const conf = (cfg as any)?.config?.loja?.ia_vendas || {};
+    const dono = so(conf.dono_whatsapp);
+    if (dono.length < 10) return { ok: false, motivo: "sem WhatsApp do dono" };
+    const x: any = p; const d = x.dados_customizados?.pedido || {};
+    if (d.dono_avisado?.[situacao]) return { ok: true, motivo: "já avisado" };
+    const itens = (d.itens || []).map((i: any) => `• ${i.qtd}x ${i.nome} — ${brl(Number(i.preco) * Number(i.qtd))}`).join("\n");
+    const entrega = d.entrega === "entrega"
+      ? `Entrega${d.servico_frete ? ` (${d.servico_frete}${d.prazo_frete ? `, ${d.prazo_frete}` : ""})` : ""}: ${d.endereco_entrega || "-"}\nFrete: ${brl(Number(d.frete) || 0)}`
+      : "Retirada na loja";
+    const cabeca = situacao === "pago" ? `✅ *PAGAMENTO APROVADO — Pedido nº ${d.numero || x.id}*` : `🛒 *NOVO PEDIDO nº ${d.numero || x.id}* — aguardando pagamento`;
+    const texto = [
+      cabeca, "",
+      `👤 ${x.nome || "-"}${x.telefone1 ? ` · ${x.telefone1}` : ""}${x.cpf ? `\nCPF: ${x.cpf}` : ""}`, "",
+      itens, "",
+      entrega,
+      `Pagamento: ${d.pagamento || x.operadora || "-"}${situacao === "pago" && d.pagamento_online?.metodo ? ` (${d.pagamento_online.metodo})` : ""}`,
+      `*Total: ${brl(Number(x.valor_plano) || 0)}*`,
+      d.canal === "whatsapp_ia" || d.criado_por === "ia_vendas" ? "Fechado pela vendedora IA no WhatsApp." : "",
+      d.link_token ? `\n${origem}/pedido/${d.link_token}` : "",
+    ].filter((l) => l !== "").join("\n").replace(/\n{3,}/g, "\n\n");
+    const r = await enviarWhatsappLoja(ws, dono, texto, conf.canal_id);
+    await anotarPedido(pedidoId, r.ok ? `Dono avisado no WhatsApp (${situacao === "pago" ? "pagamento aprovado" : "aguardando pagamento"})` : `Aviso ao dono não enviado: ${r.motivo}`,
+      (dd) => (r.ok ? { dono_avisado: { ...(dd.dono_avisado || {}), [situacao]: new Date().toISOString() } } : {}));
+    return r;
+  } catch (e: any) {
+    return { ok: false, motivo: String(e?.message || e).slice(0, 160) };
+  }
+}
+
+/**
+ * Depois que o cliente aceita o orçamento pelo link: a vendedora manda no WhatsApp
+ * as informações de pagamento (link online ou a forma combinada) e avisa o dono.
+ */
+export async function aposAceiteDoOrcamento(ws: string, pedidoId: number, origem = ORIGEM_PADRAO) {
+  const { liberado } = await modulosLoja(ws);
+  if (!liberado("ia_vendas")) return { ok: false, motivo: "módulo desligado" };
+  const [{ data: p }, { data: cfg }] = await Promise.all([
+    supabaseServer.from("proposta").select("id,workspace_id,nome,cpf,email,telefone1,status_venda,valor_plano,dados_customizados").eq("workspace_id", ws).eq("id", pedidoId).maybeSingle(),
+    supabaseServer.from("fin_config").select("config").eq("workspace_id", ws).maybeSingle(),
+  ]);
+  if (!p) return { ok: false, motivo: "pedido não encontrado" };
+  const x: any = p; const d = x.dados_customizados?.pedido || {};
+  const loja = (cfg as any)?.config?.loja || {};
+  const conf = loja.ia_vendas || {};
+  const nome = String(x.nome || "").split(" ")[0] || "";
+  const total = brl(Number(x.valor_plano) || 0);
+  const online = /online/i.test(String(d.pagamento || ""));
+  let texto: string;
+  if (online) {
+    const { linkPagamentoDoPedido } = await import("./_pagamento");
+    const r = await linkPagamentoDoPedido(x, origem).catch((e: any) => ({ url: undefined, erro: String(e?.message || e) }));
+    texto = r.url
+      ? `Oba, ${nome}! 🎉 Recebi a aprovação do orçamento nº ${d.numero || x.id}.\n\nTotal: *${total}*\nPague por aqui (PIX, cartão ou boleto):\n${r.url}\n\nAssim que o pagamento cair, te aviso aqui e o pedido já vai para separação. 📦`
+      : `Oba, ${nome}! 🎉 Recebi a aprovação do orçamento nº ${d.numero || x.id} (total *${total}*). Já vou te passar o pagamento por aqui. 😊`;
+  } else {
+    const retirada = d.entrega !== "entrega";
+    texto = `Oba, ${nome}! 🎉 Recebi a aprovação do orçamento nº ${d.numero || x.id}.\n\nTotal: *${total}*\nPagamento: ${d.pagamento || "a combinar"}${retirada ? `\nVocê paga na retirada, na loja${loja.empresa?.endereco ? ` (${loja.empresa.endereco})` : ""}.` : ""}\n\nQualquer dúvida é só me chamar aqui. 😊`;
+  }
+  const r = await enviarWhatsappLoja(ws, x.telefone1 || "", texto, conf.canal_id);
+  await anotarPedido(pedidoId, r.ok ? "WhatsApp ao cliente: informações de pagamento após o aceite" : `Pagamento não enviado ao cliente: ${r.motivo}`);
+  await avisarDono(ws, pedidoId, "aguardando", origem);
+  return r;
+}
+
+const chaveDaEtapa =(etapa: string, entrega?: string): ChaveAviso | null =>
   etapa === "EM SEPARACAO" ? "separacao"
   : etapa === "AGUARDANDO ENTREGA" ? (entrega === "retirada" ? "retirada" : "enviado")
   : etapa === "FECHADA" || etapa === "ENTREGUE" ? "entregue" : null;

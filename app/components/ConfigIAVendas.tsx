@@ -11,6 +11,7 @@ export type IAVendasConfig = {
   canal_id?: number | null;               // canal usado quando o cliente não tem atendimento
   mensagens?: Partial<Record<"pago" | "separacao" | "enviado" | "retirada" | "entregue", string>>;
   instrucoes?: string;                    // regras extras para a vendedora IA
+  dono_whatsapp?: string;                 // recebe cada pedido novo (aguardando pagamento ou pago)
 };
 
 const PADRAO = {
@@ -34,7 +35,7 @@ export default function ConfigIAVendas({ wsId, valor, onChange }: { wsId: string
   return (
     <Card titulo="Vendedora IA no WhatsApp e avisos do pedido">
       <div style={{ fontSize: 13, color: "#64748B", marginBottom: 10, lineHeight: 1.55 }}>
-        A vendedora IA atende no WhatsApp consultando o sistema da loja: produtos, preços, estoque, frete, fecha o pedido e manda o link de pagamento.
+        A vendedora IA atende no WhatsApp consultando o sistema da loja: produtos, preços, estoque e frete. Ela manda o orçamento, e quando o cliente aprova, envia o pagamento.
         Depois, o cliente recebe um aviso a cada etapa: pago → em separação → enviado → entregue.
       </div>
       <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
@@ -46,6 +47,9 @@ export default function ConfigIAVendas({ wsId, valor, onChange }: { wsId: string
             <option value="">— usar só o canal da conversa do cliente —</option>
             {canais.map((x) => <option key={x.id} value={x.id}>{x.nome} ({x.tipo})</option>)}
           </select>
+        </Field>
+        <Field label="WhatsApp do dono (recebe cada pedido novo: aguardando pagamento e pago)" flex="1 1 260px">
+          <input style={inputSm} inputMode="tel" value={c.dono_whatsapp || ""} onChange={(e) => set({ dono_whatsapp: e.target.value })} placeholder="Ex.: 62 98137-6272" />
         </Field>
       </Row>
       {avisos && (

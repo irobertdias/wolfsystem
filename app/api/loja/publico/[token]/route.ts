@@ -132,6 +132,8 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
     if (error) throw error;
     if (!ok?.length) return NextResponse.json({ success: false, error: "Este orçamento não pode mais ser aceito" }, { status: 409 });
     const atualizado = publico({ ...r.p, status_venda: "AGUARDANDO PAGAMENTO", dados_customizados: { ...r.p.dados_customizados, pedido: novo } }, r.loja, r.nomeWs);
+    // Vendedora IA: manda o pagamento ao cliente no WhatsApp e avisa o dono (não segura a resposta da página se falhar).
+    try { const { aposAceiteDoOrcamento } = await import("../../_avisos"); await aposAceiteDoOrcamento(r.p.workspace_id, r.p.id, request.nextUrl.origin); } catch {}
     return NextResponse.json({ success: true, pedido: atualizado }, { headers: SEM_CACHE });
   } catch {
     return NextResponse.json({ success: false, error: "Serviço temporariamente indisponível" }, { status: 502 });

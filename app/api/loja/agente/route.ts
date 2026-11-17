@@ -5,6 +5,7 @@ import { modulosLoja, lojaComModulos } from "../_modulos";
 import { calcularFrete } from "../_frete";
 import { linkPagamentoDoPedido } from "../_pagamento";
 import { novoToken } from "../../../lib/loja-orcamento";
+import { avisarDono } from "../_avisos";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Ferramentas da Vendedora IA das lojas (módulo "ia_vendas").
@@ -18,6 +19,8 @@ import { novoToken } from "../../../lib/loja-orcamento";
 //   frete           { cep, itens:[{produto_id, variante_id?, qtd}] }
 //   criar_pedido    { cliente:{nome, telefone, cpf?, email?}, itens:[...], entrega:"retirada"|"entrega",
 //                     cep?, endereco?, cidade?, uf?, servico_frete?, pagamento?, observacoes? }
+//   criar_orcamento { cliente:{nome?, telefone}, itens, entrega?, cep?, ... } → link do orçamento para o cliente aprovar
+//   aceitar_orcamento { orcamento_id, telefone, entrega, cep?, endereco?, pagamento, cpf? } → pedido + pagamento
 //   link_pagamento  { pedido_id, documento? }
 //   status_pedido   { pedido_id? , telefone? }
 //   config          {}  → nome da loja, pagamentos, entrega, se tem pagamento online
@@ -98,7 +101,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (acao === "catalogo") {
-      const termos = norm(b.busca).split(/\s+/).filter((t: string) => t.length > 1);
+      const VAZIAS = new Set(["de", "da", "do", "das", "dos", "para", "pra", "com", "sem", "um", "uma", "o", "a", "e", "em", "no", "na", "que", "tem", "quero", "preciso"]);
+      const termos = [...new Set(norm(b.busca).replace(/[^a-z0-9.+\-/ ]/g, " ").split(/\s+/)
+        .filter((t: string) => t.length > 1 && !VAZIAS.has(t))
+        .map((t: string) => (t.length > 4 && /[a-z]s$/.test(t) && !/ss$/.test(t) ? t.replace(/(oe|ae)s$/, "$1").replace(/s$/, "") : t)))];
       const cat = norm(b.categoria);
       let lista = produtos.filter((p) => (!cat || norm(p.categoria) === cat))
         .map((p) => ({ p, pontos: termos.length ? termos.filter((t: string) => norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku} ${p.descricao}`).includes(t)).length : 1 }))
@@ -166,8 +172,109 @@ export async function POST(request: NextRequest) {
       if (pagamento === "Pagamento online") {
         try { const r = await linkPagamentoDoPedido(novo, origem, c.cpf); link_pagamento = r.url; aviso_pagamento = r.erro; } catch (e: any) { aviso_pagamento = String(e?.message || e).slice(0, 160); }
       }
+      await avisarDono(ws, (novo as any).id, "aguardando", origem);
       return NextResponse.json({ ok: true, pedido_id: (novo as any).id, numero, subtotal, frete, total, total_texto: brl(total), servico_frete: servicoFrete, prazo_frete: prazoFrete, pagamento,
         link_pedido: `${origem}/pedido/${pedido.link_token}`, link_pagamento, aviso_pagamento });
+    }
+
+    // Orçamento: a vendedora monta com os preços do catálogo e manda o link para o cliente aprovar.
+    if (acao === "criar_orcamento") {
+      const c = b.cliente || {};
+      const nome = String(c.nome || "").trim().slice(0, 120) || "Cliente WhatsApp";
+      const tel = so(c.telefone);
+      if (tel.length < 10) return NextResponse.json({ ok: false, erro: "Telefone do cliente ausente" }, { status: 400 });
+      const { itens, faltas } = montarItens(b.itens, produtos);
+      if (faltas.length) return NextResponse.json({ ok: false, erro: faltas.join("; ") }, { status: 409 });
+      if (!itens.length) return NextResponse.json({ ok: false, erro: "Orçamento sem itens" }, { status: 400 });
+      const entrega = b.entrega === "entrega" ? "entrega" : "retirada";
+      let frete = 0, servicoFrete: string | undefined, prazoFrete: string | undefined;
+      if (entrega === "entrega" && so(b.cep).length === 8) {
+        const fr = await calcularFrete(loja, String(b.cep), itens);
+        const op = fr.opcoes.find((o) => o.servico === b.servico_frete) || fr.opcoes[0];
+        if (op) { frete = op.valor; servicoFrete = op.servico; prazoFrete = op.prazo; }
+      }
+      const subtotal = itens.reduce((s, i) => s + i.qtd * i.preco, 0);
+      const total = subtotal + frete;
+      const agora = new Date().toISOString();
+      const dias = Math.max(1, Math.round(n(loja.validade_orcamento_dias) || 7));
+      const validade = new Date(Date.now() + dias * 86400_000).toISOString().slice(0, 10);
+      const numero = String(Date.now()).slice(-6);
+      const pedido = {
+        numero, tipo: "orcamento", itens, desconto: 0, frete, servico_frete: servicoFrete, prazo_frete: prazoFrete, entrega, validade,
+        pagamento: String(b.pagamento || "").slice(0, 60) || undefined,
+        endereco_entrega: entrega === "entrega" ? [String(b.endereco || "").trim(), String(b.cidade || "").trim(), String(b.uf || "").trim().toUpperCase(), so(b.cep)].filter(Boolean).join(" · ") || undefined : undefined,
+        observacoes: String(b.observacoes || "").slice(0, 500) || undefined,
+        link_token: novoToken(), canal: "whatsapp_ia",
+        historico: [{ em: agora, etapa: "EM NEGOCIACAO", nota: "Orçamento montado pela vendedora IA no WhatsApp", por: "ia_vendas" }],
+      };
+      const { data: novo, error } = await supabaseServer.from("proposta").insert([{
+        workspace_id: ws, nome, telefone1: tel.replace(/^55(?=\d{10,11}$)/, ""), cpf: so(c.cpf) || null, email: String(c.email || "").trim() || null,
+        status_venda: "EM NEGOCIACAO", valor_plano: total, plano: itens.map((i) => `${i.qtd}x ${i.nome}`).join(", ").slice(0, 240),
+        operadora: pedido.pagamento || null, data_proposta: agora.slice(0, 10), vendedor: "IA vendas",
+        dados_customizados: { pedido, criado_por: "ia_vendas" },
+      }]).select("id").single();
+      if (error || !novo) throw error || new Error("falha ao gravar");
+      return NextResponse.json({ ok: true, orcamento_id: (novo as any).id, numero, validade, itens: itens.map((i) => ({ nome: i.nome, qtd: i.qtd, preco_texto: brl(i.preco), total_texto: brl(i.qtd * i.preco) })),
+        subtotal_texto: brl(subtotal), frete_texto: entrega === "entrega" ? (servicoFrete ? `${brl(frete)} (${servicoFrete}${prazoFrete ? `, ${prazoFrete}` : ""})` : "a calcular com o CEP") : "retirada na loja",
+        total_texto: brl(total), link_orcamento: `${origem}/pedido/${pedido.link_token}` });
+    }
+
+    // Cliente aprovou o orçamento na conversa: vira pedido aguardando pagamento.
+    if (acao === "aceitar_orcamento") {
+      const id = n(b.orcamento_id || b.pedido_id);
+      const { data: x } = await supabaseServer.from("proposta").select("id,workspace_id,nome,cpf,email,telefone1,status_venda,valor_plano,dados_customizados").eq("workspace_id", ws).eq("id", id).maybeSingle();
+      if (!x) return NextResponse.json({ ok: false, erro: "Orçamento não encontrado" }, { status: 404 });
+      const tel = so(b.telefone).replace(/^55(?=\d{10,11}$)/, "");
+      if (tel && so((x as any).telefone1).replace(/^55(?=\d{10,11}$)/, "") !== tel) return NextResponse.json({ ok: false, erro: "Este orçamento é de outro cliente" }, { status: 403 });
+      const d = (x as any).dados_customizados?.pedido || {};
+      if (!["PENDENTE", "EM NEGOCIACAO"].includes((x as any).status_venda) || d.aceite) {
+        return NextResponse.json({ ok: false, erro: `Este orçamento já está como: ${ETAPA[(x as any).status_venda] || (x as any).status_venda}. Use consultar_pedidos.` }, { status: 409 });
+      }
+      const { itens, faltas } = montarItens((d.itens || []).map((i: any) => ({ produto_id: i.produto_id, variante_id: i.variante_id, qtd: i.qtd })), produtos);
+      if (faltas.length) return NextResponse.json({ ok: false, erro: faltas.join("; ") }, { status: 409 });
+      const entrega = (b.entrega || d.entrega) === "entrega" ? "entrega" : "retirada";
+      const endereco = String(b.endereco || "").trim().slice(0, 200), cidade = String(b.cidade || "").trim().slice(0, 80), uf = String(b.uf || "").trim().slice(0, 2).toUpperCase(), cep = so(b.cep);
+      let frete = 0, servicoFrete: string | undefined, prazoFrete: string | undefined;
+      if (entrega === "entrega") {
+        if (cep.length !== 8 && loja.frete?.modo === "calculado") return NextResponse.json({ ok: false, erro: "Informe o CEP para a entrega" }, { status: 400 });
+        if (!endereco) return NextResponse.json({ ok: false, erro: "Informe o endereço de entrega (rua, número, bairro)" }, { status: 400 });
+        const fr = await calcularFrete(loja, cep, itens);
+        const op = fr.opcoes.find((o) => o.servico === (b.servico_frete || d.servico_frete)) || fr.opcoes[0];
+        if (!op) return NextResponse.json({ ok: false, erro: fr.aviso || "Não consegui calcular o frete" }, { status: 400 });
+        frete = op.valor; servicoFrete = op.servico; prazoFrete = op.prazo;
+      }
+      const formas: string[] = loja.formas_pagamento || [];
+      const pagamento = online && norm(b.pagamento).includes("online") ? "Pagamento online"
+        : formas.find((f) => norm(f) === norm(b.pagamento)) || (online ? "Pagamento online" : formas[0] || "");
+      const subtotal = itens.reduce((s, i) => s + i.qtd * i.preco, 0);
+      const total = Math.max(0, subtotal - n(d.desconto) + frete);
+      const agora = new Date().toISOString();
+      const nome = String(b.nome || "").trim().slice(0, 120) || (x as any).nome;
+      const novoPed = {
+        ...d, tipo: "pedido", itens, frete, servico_frete: servicoFrete, prazo_frete: prazoFrete, pagamento, entrega,
+        endereco_entrega: entrega === "entrega" ? [endereco, cidade, uf, cep].filter(Boolean).join(" · ") : undefined,
+        aceite: { em: agora, entrega, endereco, cidade, estado: uf, cep, pagamento, observacoes: "Orçamento aprovado pelo cliente no WhatsApp (vendedora IA)" },
+        aprovado_cliente_em: agora,
+        historico: [...(d.historico || []), { em: agora, etapa: "AGUARDANDO PAGAMENTO", nota: `Cliente aprovou o orçamento no WhatsApp (${entrega === "entrega" ? `entrega ${servicoFrete || ""} ${brl(frete)}` : "retirada"} · ${pagamento})`, por: "ia_vendas" }],
+      };
+      const { data: atual, error } = await supabaseServer.from("proposta").update({
+        nome, status_venda: "AGUARDANDO PAGAMENTO", valor_plano: total, operadora: pagamento,
+        ...(so(b.cpf) ? { cpf: so(b.cpf) } : {}), ...(String(b.email || "").includes("@") ? { email: String(b.email).trim() } : {}),
+        ...(entrega === "entrega" ? { endereco, cidade, estado: uf || null } : {}),
+        dados_customizados: { ...(x as any).dados_customizados, pedido: novoPed }, updated_at: agora,
+      }).eq("id", (x as any).id).in("status_venda", ["PENDENTE", "EM NEGOCIACAO"]).select("id,workspace_id,nome,cpf,email,telefone1,status_venda,valor_plano,dados_customizados").maybeSingle();
+      if (error) throw error;
+      if (!atual) return NextResponse.json({ ok: false, erro: "Este orçamento não pode mais ser aceito" }, { status: 409 });
+      let link_pagamento: string | undefined, aviso_pagamento: string | undefined;
+      if (pagamento === "Pagamento online") {
+        try { const r = await linkPagamentoDoPedido(atual, origem, b.cpf); link_pagamento = r.url; aviso_pagamento = r.erro; } catch (e: any) { aviso_pagamento = String(e?.message || e).slice(0, 160); }
+      }
+      await avisarDono(ws, (atual as any).id, "aguardando", origem);
+      return NextResponse.json({ ok: true, pedido_id: (atual as any).id, numero: d.numero || String((atual as any).id), subtotal_texto: brl(subtotal), frete_texto: entrega === "entrega" ? `${brl(frete)} (${servicoFrete}${prazoFrete ? `, ${prazoFrete}` : ""})` : "retirada na loja",
+        total_texto: brl(total), pagamento, link_pagamento, aviso_pagamento,
+        instrucao_pagamento: pagamento === "Pagamento online" ? (link_pagamento ? "Envie o link de pagamento ao cliente." : "Não consegui gerar o link: ofereça outra forma ou chame um humano.")
+          : entrega === "retirada" ? `O cliente paga (${pagamento}) na retirada, na loja: ${[loja.empresa?.endereco, loja.empresa?.cidade].filter(Boolean).join(" · ")}.`
+          : `Pagamento combinado: ${pagamento}. A loja confirma os dados de pagamento com o cliente.` });
     }
 
     if (acao === "link_pagamento") {
