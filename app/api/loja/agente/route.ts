@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
     if (acao === "config") {
       return NextResponse.json({ ok: true, loja: loja.empresa?.nome || (wsRow as any)?.nome || "", telefone: loja.empresa?.telefone || "", endereco: [loja.empresa?.endereco, loja.empresa?.cidade].filter(Boolean).join(" · "),
         formas_pagamento: loja.formas_pagamento || [], pagamento_online: !!online, frete: loja.frete?.modo === "calculado" ? "calculado pelo CEP (Sedex/PAC)" : `fixo ${brl(n(loja.taxa_entrega))}`,
-        frete_gratis_acima: n(loja.frete?.gratis_acima) || null, categorias: loja.categorias || [], instrucoes: loja.ia_vendas?.instrucoes || "" });
+        frete_gratis_acima: n(loja.frete?.gratis_acima) || null, instrucoes: loja.ia_vendas?.instrucoes || "",
+        categorias: [...new Set(produtos.map((p) => String(p.categoria || "").trim()).filter(Boolean))].sort((a, c) => a.localeCompare(c, "pt-BR")) });
     }
 
     if (acao === "catalogo") {
@@ -123,9 +124,13 @@ export async function POST(request: NextRequest) {
       const bate = (txt: string, toks: string[], t: string) => (SINONIMOS[t] || [t]).some((x) => {
         const y = x.trim();
         if (y.includes(" ")) return txt.includes(y);
+        const nu = y.match(/^(\d+)([a-z]{1,3})$/); // "2tb" também casa com "2 TB"
+        if (nu && txt.includes(`${nu[1]} ${nu[2]}`)) return true;
         return toks.some((k) => k === y || (y.length >= 4 && k.startsWith(y)) || (y.length >= 2 && /^[a-z]+$/.test(y) && k === y + "s") || (/^\d+$/.test(y) && new RegExp(`^${y}[a-z]{1,3}$`).test(k)));
       });
-      let lista = produtos.filter((p) => (!cat || norm(p.categoria) === cat))
+      // Categoria sem nenhum produto (ex.: lista padrão) não pode zerar a busca.
+      const naCategoria = cat ? produtos.filter((p) => norm(p.categoria) === cat) : produtos;
+      let lista = (naCategoria.length ? naCategoria : produtos)
         .map((p) => {
           const txt = norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku}`), toks = palavras(txt);
           const tn = norm(p.nome), tokN = palavras(p.nome);
