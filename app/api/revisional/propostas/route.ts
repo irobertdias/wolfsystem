@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const propostas = (data || []).map((p) => ({
       ...p,
       status: statusEfetivo(p),
-      link: linkPublico(request, p.token),
+      link: linkPublico(request, p.token, acesso.workspaceId),
     }));
     return NextResponse.json({
       success: true,
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }).select("id,numero,token,expira_em").single();
     if (error) throw error;
 
-    return NextResponse.json({ success: true, proposta: { ...data, link: linkPublico(request, token) } }, { headers: SEM_CACHE });
+    return NextResponse.json({ success: true, proposta: { ...data, link: linkPublico(request, token, acesso.workspaceId) } }, { headers: SEM_CACHE });
   } catch (error) {
     const { status, message } = respostaErroAcesso(error);
     return NextResponse.json({ success: false, error: message }, { status });

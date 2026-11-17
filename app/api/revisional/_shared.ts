@@ -92,8 +92,20 @@ export function tokenValido(token: string) {
   return /^[A-Za-z0-9_-]{40,64}$/.test(token);
 }
 
-/** Link público. Em produção usa o subdomínio rev.* (NEXT_PUBLIC_REVISIONAL_URL). */
-export function linkPublico(request: NextRequest, token: string) {
+/**
+ * Subdomínio próprio do escritório, usado só no link da proposta enviado ao cliente
+ * (o sistema continua em app.wolfgyn.com.br). O host precisa estar no projeto da Vercel
+ * e na lista do proxy.ts (HOSTS_PROPOSTA).
+ */
+export const SUBDOMINIO_PROPOSTA: Record<string, string> = {
+  clickconsultoria: "clickconsultoria.wolfgyn.com.br",
+  aproveconsultoria: "aproveconsultoria.wolfgyn.com.br",
+};
+
+/** Link público. Usa o subdomínio do escritório; senão o rev.* (NEXT_PUBLIC_REVISIONAL_URL). */
+export function linkPublico(request: NextRequest, token: string, workspaceId?: string) {
+  const proprio = workspaceId ? SUBDOMINIO_PROPOSTA[workspaceId] : "";
+  if (proprio) return `https://${proprio}/p/${token}`;
   const base = (process.env.NEXT_PUBLIC_REVISIONAL_URL || "").replace(/\/+$/, "");
   if (base) return `${base}/p/${token}`;
   const host = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
