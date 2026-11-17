@@ -108,16 +108,31 @@ export async function POST(request: NextRequest) {
       const cat = norm(b.categoria);
       // Sinônimos de loja: o cliente fala "hd pra cftv", o catálogo diz "HDD ... VIGILANCIA".
       const SINONIMOS: Record<string, string[]> = {
-        cftv: ["cftv", "vigilancia", "seguranca", "dvr", "nvr", "camera"], vigilancia: ["vigilancia", "cftv", "seguranca"], seguranca: ["seguranca", "vigilancia", "cftv"],
+        cftv: ["cftv", "vigilancia", "seguranca", "dvr", "nvr"], vigilancia: ["vigilancia", "cftv", "seguranca"], seguranca: ["seguranca", "vigilancia", "cftv"],
         hd: ["hd", "hdd", "disco"], hdd: ["hdd", "hd"], ram: ["ram", "memoria", "ddr"], memoria: ["memoria", "ram", "ddr"],
         wifi: ["wifi", "wi-fi", "wireless"], "wi-fi": ["wi-fi", "wifi", "wireless"], wireless: ["wireless", "wifi", "wi-fi"],
         gpu: ["placa de video", "rtx", "gtx", "radeon", "geforce"], notebook: ["notebook", "laptop"], laptop: ["laptop", "notebook"],
         pc: ["computador", "desktop", "pc "], computador: ["computador", "desktop"], nobreak: ["nobreak", "ups"], estabilizador: ["estabilizador", "nobreak"],
         roteador: ["roteador", "router"], camera: ["camera", "cam "], celular: ["celular", "smartphone"], impressora: ["impressora", "multifuncional"],
       };
-      const bate = (txt: string, t: string) => (SINONIMOS[t] || [t]).some((x) => txt.includes(x));
+      // Casa por palavra: termo curto (≤3) só a palavra exata ("hd" ≠ "hdmi"); termo maior pode ser começo de palavra.
+      const palavras = (s: string) => norm(s).split(/[^a-z0-9+]+/).filter(Boolean);
+      const bate = (txt: string, toks: string[], t: string) => (SINONIMOS[t] || [t]).some((x) => {
+        const y = x.trim();
+        if (y.includes(" ")) return txt.includes(y);
+        return toks.some((k) => k === y || (y.length >= 4 && k.startsWith(y)) || (y.length >= 2 && /^[a-z]+$/.test(y) && k === y + "s") || (/^\d+$/.test(y) && new RegExp(`^${y}[a-z]{1,3}$`).test(k)));
+      });
       let lista = produtos.filter((p) => (!cat || norm(p.categoria) === cat))
-        .map((p) => { const txt = norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku} ${p.descricao}`); return { p, pontos: termos.length ? termos.filter((t: string) => bate(txt, t)).length : 1 }; })
+        .map((p) => {
+          const txt = norm(`${p.nome} ${p.marca} ${p.modelo} ${p.categoria} ${p.sku}`), toks = palavras(txt);
+          const tn = norm(p.nome), tokN = palavras(p.nome);
+          if (!termos.length) return { p, pontos: 1 };
+          const casados = termos.filter((t: string) => bate(txt, toks, t)).length;
+          const noNome = termos.filter((t: string) => bate(tn, tokN, t)).length;
+          // Bônus quando o termo é o TIPO do produto (1ª palavra do nome: HDD, SSD, CAMERA, SWITCH…)
+          const tipo = termos.some((t: string) => bate(tokN[0] || "", tokN.slice(0, 1), t)) ? 5 : 0;
+          return { p, pontos: casados ? casados * 10 + noNome + tipo : 0 };
+        })
         .filter((x) => x.pontos > 0).sort((a, c) => c.pontos - a.pontos || (estoqueDe(c.p) > 0 ? 1 : 0) - (estoqueDe(a.p) > 0 ? 1 : 0));
       const limite = Math.min(20, Math.max(1, n(b.limite) || 8));
       return NextResponse.json({ ok: true, total: lista.length, produtos: lista.slice(0, limite).map((x) => resumoProduto(x.p, origem, ws)) });
