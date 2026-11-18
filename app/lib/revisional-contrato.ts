@@ -217,7 +217,8 @@ export function aplicarModelo(modelo: string, vars: Record<string, string>) {
  * descricao: quando usar (aparece no popup). padrao: vem marcado ao gerar.
  * tipo: só entra no "Enviar todos" quando a proposta é desse tipo (ex.: notificação de veículo).
  */
-export type ModeloContrato = { nome: string; texto: string; descricao?: string; padrao?: boolean; tipo?: "veiculo" | "imovel" | "emprestimo" };
+export type TipoModelo = "veiculo" | "imovel" | "emprestimo";
+export type ModeloContrato = { nome: string; texto: string; descricao?: string; padrao?: boolean; tipo?: TipoModelo | TipoModelo[] };
 
 /** Lista de modelos do workspace: os nomeados; senão o único texto salvo; senão o padrão do sistema. */
 export function modelosDoWorkspace(cfg: { modelos_contrato?: ModeloContrato[]; modelo_contrato?: string } | null | undefined): ModeloContrato[] {
@@ -235,7 +236,8 @@ export const QUEBRA_PAGINA = "[[NOVA_PAGINA]]";
  * sem tipo conhecido, entram todos.
  */
 export function juntarModelos(modelos: ModeloContrato[], tipo?: string) {
-  const usar = modelos.filter((m) => !m.tipo || !tipo || m.tipo === tipo);
+  const serve = (m: ModeloContrato) => !m.tipo || !tipo || (Array.isArray(m.tipo) ? m.tipo.includes(tipo as TipoModelo) : m.tipo === tipo);
+  const usar = modelos.filter(serve);
   return (usar.length ? usar : modelos).map((m) => m.texto.trim()).join(`\n\n${QUEBRA_PAGINA}\n\n`);
 }
 

@@ -247,7 +247,7 @@ export default function ContratosPage() {
         // 3 ou mais documentos: opção de mandar todos juntos num envio só (cada um numa página)
         if (modelos.length > 2) alternativas.push({
           nome: "Enviar todos os documentos", todos: true,
-          descricao: "Todos num envio só, cada documento numa página. A notificação extrajudicial vai só a do tipo da proposta.",
+          descricao: "Todos num envio só, cada documento numa página. Contrato e notificação extrajudicial vão só os do tipo da proposta.",
           conteudo: preencher(juntarModelos(modelos, p.tipo)),
         });
         await abrirNovoContrato({
