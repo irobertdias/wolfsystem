@@ -21,10 +21,12 @@ export function proxy(request: NextRequest) {
   }
 
   // Subdomínio do escritório (ex.: clickconsultoria.wolfgyn.com.br): serve só o link
-  // da proposta (/p/<token>) e as APIs que essa página chama. O resto vai para o app.
+  // da proposta (/p/<token>), o da assinatura (/assinar/<token>) e as APIs. O resto vai para o app.
+  // A lista de subdomínios da assinatura fica no servidor (assinatura-wolf-envelopes.js).
   if (HOSTS_PROPOSTA.has(host.split(":")[0])) {
     if (pathname.startsWith("/p/")) return NextResponse.rewrite(new URL(`/revisional${pathname}`, request.url));
-    if (pathname.startsWith("/api/") || pathname.startsWith("/revisional/p/")) return NextResponse.next();
+    // link de assinatura do contrato também sai no subdomínio do escritório
+    if (pathname.startsWith("/api/") || pathname.startsWith("/revisional/p/") || pathname.startsWith("/assinar/")) return NextResponse.next();
     return NextResponse.redirect(new URL(pathname === "/" ? "/" : pathname + request.nextUrl.search, "https://app.wolfgyn.com.br"));
   }
 
