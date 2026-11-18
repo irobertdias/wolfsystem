@@ -44,7 +44,7 @@ export default function ConfigRevisionalSection({ dados }: any) {
       modelo_contrato: modelos[0]?.texto.trim() && modelos[0].texto.trim() !== MODELO_PADRAO.trim() ? modelos[0].texto : "",
       // com mais de um modelo (ou nome próprio), guarda a lista com os nomes
       modelos_contrato: modelos.length > 1 || (modelos[0] && modelos[0].nome.trim() !== NOME_PADRAO)
-        ? modelos.filter((m) => m.texto.trim()).map((m, i) => ({ nome: m.nome.trim() || `Modelo ${i + 1}`, texto: m.texto }))
+        ? modelos.filter((m) => m.texto.trim()).map((m, i) => ({ ...m, nome: m.nome.trim() || `Modelo ${i + 1}`, texto: m.texto }))
         : [],
     };
     const { error } = await salvarConfig(wsId, novo);

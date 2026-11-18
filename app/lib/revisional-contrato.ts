@@ -2,6 +2,8 @@
 // O texto do contrato vem do modelo do workspace (Configurações do CRM financeiro)
 // ou do MODELO_PADRAO abaixo; os marcadores {assim} são trocados pelos dados.
 
+import { reaisPorExtenso } from "./extenso";
+
 type PropostaRev = {
   id: string;
   numero: string;
@@ -89,11 +91,17 @@ export const CAMPOS_MODELO: { chave: string; desc: string; grupo: "Empresa" | "C
   { chave: "parcela_corrigida", desc: "Parcela corrigida pela análise", grupo: "Contrato" },
   { chave: "beneficio_estimado", desc: "Benefício estimado na análise", grupo: "Contrato" },
   { chave: "cliente_estado_civil", desc: "Estado civil (o vendedor completa)", grupo: "Cliente" },
+  { chave: "cliente_nacionalidade", desc: "Nacionalidade (o vendedor completa)", grupo: "Cliente" },
+  { chave: "cliente_profissao", desc: "Profissão (o vendedor completa)", grupo: "Cliente" },
+  { chave: "cliente_rg", desc: "Nº do RG (o vendedor completa)", grupo: "Cliente" },
   { chave: "cliente_endereco", desc: "Endereço completo (o vendedor completa)", grupo: "Cliente" },
   { chave: "cliente_cep", desc: "CEP (o vendedor completa)", grupo: "Cliente" },
   { chave: "honorarios_valor", desc: "Valor fechado dos honorários, ex.: R$ 1.500,00 (o vendedor completa)", grupo: "Honorários" },
   { chave: "honorarios_valor_extenso", desc: "Valor por extenso, ex.: mil e quinhentos reais (o vendedor completa)", grupo: "Honorários" },
   { chave: "forma_pagamento", desc: "Forma de pagamento combinada (o vendedor completa)", grupo: "Honorários" },
+  { chave: "cartao_bandeira", desc: "Bandeira do cartão de crédito (o vendedor completa)", grupo: "Honorários" },
+  { chave: "cartao_final", desc: "4 últimos números do cartão (o vendedor completa)", grupo: "Honorários" },
+  { chave: "parcela_atual_extenso", desc: "Parcela atual por extenso", grupo: "Contrato" },
   { chave: "parcela_balao", desc: "Parcela balão do contrato (ou \"não há\")", grupo: "Contrato" },
   { chave: "parcela_balao_corrigida", desc: "Parcela balão corrigida pela análise (ou \"não há\")", grupo: "Contrato" },
   { chave: "intencao_quitacao", desc: "Se o cliente quer quitar o contrato: sim ou não", grupo: "Contrato" },
@@ -183,6 +191,7 @@ export function variaveisDaProposta(
     prazo: n(d.prazo) ? String(n(d.prazo)) : "",
     parcelas_pagas: d.pagas !== undefined && d.pagas !== null ? String(n(d.pagas)) : "",
     parcela_atual: n(d.parcela_atual) ? brl(d.parcela_atual) : "",
+    parcela_atual_extenso: n(d.parcela_atual) ? reaisPorExtenso(n(d.parcela_atual)) : "",
     parcela_corrigida: n(p.resultado?.parcela_corrigida) ? brl(p.resultado?.parcela_corrigida) : "",
     beneficio_estimado: brl(beneficioDaProposta(p)),
     parcela_balao: d.tem_balao && n(d.valor_balao) > 0 ? brl(d.valor_balao) : "não há",
@@ -203,19 +212,38 @@ export function aplicarModelo(modelo: string, vars: Record<string, string>) {
   return modelo.replace(/\{([a-z_]+)\}/g, (m, k) => (vars[k] ? vars[k] : m));
 }
 
-/** Modelo nomeado (o workspace pode ter vários, ex.: "Minuta Contratual Veicular" e "Minuta Contratual"). */
-export type ModeloContrato = { nome: string; texto: string };
+/**
+ * Modelo nomeado (o workspace pode ter vários, ex.: "Minuta Contratual Veicular" e "Minuta Contratual").
+ * descricao: quando usar (aparece no popup). padrao: vem marcado ao gerar.
+ * tipo: só entra no "Enviar todos" quando a proposta é desse tipo (ex.: notificação de veículo).
+ */
+export type ModeloContrato = { nome: string; texto: string; descricao?: string; padrao?: boolean; tipo?: "veiculo" | "imovel" | "emprestimo" };
 
 /** Lista de modelos do workspace: os nomeados; senão o único texto salvo; senão o padrão do sistema. */
 export function modelosDoWorkspace(cfg: { modelos_contrato?: ModeloContrato[]; modelo_contrato?: string } | null | undefined): ModeloContrato[] {
   const lista = (cfg?.modelos_contrato || []).filter((m) => m && String(m.texto || "").trim());
-  if (lista.length) return lista.map((m) => ({ nome: String(m.nome || "").trim() || "Modelo", texto: m.texto }));
+  if (lista.length) return lista.map((m) => ({ ...m, nome: String(m.nome || "").trim() || "Modelo", texto: m.texto }));
   return [{ nome: "Contrato de prestação de serviços", texto: (cfg?.modelo_contrato || "").trim() || MODELO_PADRAO }];
 }
 
-/** Modelo sugerido para a proposta: veículo → o que fala de veículo; demais → o que não fala. */
+/** Linha que separa documentos num envio só: o PDF começa uma página nova nela. */
+export const QUEBRA_PAGINA = "[[NOVA_PAGINA]]";
+
+/**
+ * "Enviar todos": junta os modelos num documento só, cada um numa página.
+ * Modelos com tipo (ex.: notificação de veículo) entram só se combinarem com a proposta;
+ * sem tipo conhecido, entram todos.
+ */
+export function juntarModelos(modelos: ModeloContrato[], tipo?: string) {
+  const usar = modelos.filter((m) => !m.tipo || !tipo || m.tipo === tipo);
+  return (usar.length ? usar : modelos).map((m) => m.texto.trim()).join(`\n\n${QUEBRA_PAGINA}\n\n`);
+}
+
+/** Modelo sugerido para a proposta: o marcado como padrão; senão veículo → o que fala de veículo; demais → o que não fala. */
 export function modeloSugerido(modelos: ModeloContrato[], tipo?: string) {
   if (modelos.length < 2) return 0;
+  const padrao = modelos.findIndex((m) => m.padrao);
+  if (padrao >= 0) return padrao;
   const veic = (m: ModeloContrato) => /ve[ií]cul/i.test(m.nome) || /\{veiculo_/.test(m.texto);
   const i = modelos.findIndex((m) => (tipo === "veiculo" ? veic(m) : !veic(m)));
   return i >= 0 ? i : 0;

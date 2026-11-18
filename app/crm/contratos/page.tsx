@@ -10,7 +10,7 @@ import { empresaDoContrato, representantePadrao, formatarCnpj, type EmpresaContr
 
 import { opcoesAssinatura, type OpcoesAssinatura } from "../../lib/assinatura-opcoes";
 import VisualizadorContrato from "./VisualizadorContrato";
-import { textoContratoRevisional, aplicarModelo, modelosDoWorkspace, modeloSugerido } from "../../lib/revisional-contrato";
+import { textoContratoRevisional, aplicarModelo, modelosDoWorkspace, modeloSugerido, juntarModelos } from "../../lib/revisional-contrato";
 import { reaisPorExtenso } from "../../lib/extenso";
 
 // Caixinhas do popup "Dados do contrato" (marcadores que o vendedor completa).
@@ -27,7 +27,17 @@ const CAMPO_DADO: Record<string, { rotulo: string; placeholder?: string; opcoes?
   honorarios_valor: { rotulo: "Valor dos honorários" },
   honorarios_valor_extenso: { rotulo: "Valor por extenso", largo: true },
   forma_pagamento: { rotulo: "Forma de pagamento", placeholder: "Ex.: à vista via Pix", largo: true, sugestoes: ["À vista via Pix", "À vista no boleto bancário", "Cartão de crédito em até 12 vezes", "Entrada via Pix e o restante no boleto", "Parcelado no boleto bancário"] },
+  cliente_nacionalidade: { rotulo: "Nacionalidade", placeholder: "brasileiro(a)", sugestoes: ["brasileiro(a)", "brasileira", "brasileiro"] },
+  cliente_profissao: { rotulo: "Profissão", placeholder: "Ex.: motorista" },
+  cliente_rg: { rotulo: "Nº do RG", placeholder: "Só o número" },
+  cartao_bandeira: { rotulo: "Bandeira do cartão", opcoes: ["Visa", "Mastercard", "Elo", "Hipercard", "American Express", "Outra"] },
+  cartao_final: { rotulo: "Final do cartão (4 números)", placeholder: "1234" },
+  prazo: { rotulo: "Nº de parcelas do financiamento", placeholder: "Ex.: 48" },
+  parcela_atual: { rotulo: "Valor da parcela do financiamento" },
+  parcela_atual_extenso: { rotulo: "Parcela por extenso", largo: true },
 };
+// Campos em R$: digita o valor e o extenso se preenche sozinho.
+const CAMPO_MOEDA: Record<string, string> = { honorarios_valor: "honorarios_valor_extenso", parcela_atual: "parcela_atual_extenso" };
 import { lerPdfAssinado, nomePdfAssinado } from "../../lib/contrato-pdf";
 
 import { IconeEmoji } from "../../components/a2/Icone";
@@ -226,16 +236,20 @@ export default function ContratosPage() {
         // o workspace pode ter vários modelos (ex.: veicular e geral): sugere pelo tipo e o vendedor troca no popup
         const modelos = modelosDoWorkspace(cfgRev);
         const idx = modeloSugerido(modelos, p.tipo);
-        const alternativas = modelos.map(m => ({
-          nome: m.nome,
-          conteudo: textoContratoRevisional(p, {
-            modelo: m.texto,
-            honorarios_exito: cfgRev.honorarios_exito ?? 30,
-            honorarios_entrada: cfgRev.honorarios_entrada ?? 0,
-            empresa_nome: lista.config?.empresa_nome || "",
-            empresa_cnpj: lista.config?.empresa_cnpj || "",
-          }),
-        }));
+        const preencher = (texto: string) => textoContratoRevisional(p, {
+          modelo: texto,
+          honorarios_exito: cfgRev.honorarios_exito ?? 30,
+          honorarios_entrada: cfgRev.honorarios_entrada ?? 0,
+          empresa_nome: lista.config?.empresa_nome || "",
+          empresa_cnpj: lista.config?.empresa_cnpj || "",
+        });
+        const alternativas: { nome: string; conteudo: string; descricao?: string; todos?: boolean }[] = modelos.map(m => ({ nome: m.nome, descricao: m.descricao, conteudo: preencher(m.texto) }));
+        // 3 ou mais documentos: opção de mandar todos juntos num envio só (cada um numa página)
+        if (modelos.length > 2) alternativas.push({
+          nome: "Enviar todos os documentos", todos: true,
+          descricao: "Todos num envio só, cada documento numa página. A notificação extrajudicial vai só a do tipo da proposta.",
+          conteudo: preencher(juntarModelos(modelos, p.tipo)),
+        });
         await abrirNovoContrato({
           origem: crmId ? "crm" : "avulso",
           proposta_id: crmId ? String(crmId) : "",
@@ -263,7 +277,7 @@ export default function ContratosPage() {
   const propostaRevisionalRef = useRef<string>("");
   const revisionalTratada = useRef(false);
 
-  async function abrirNovoContrato(preenchido?: Partial<FormContrato>, escolha?: { alternativas: { nome: string; conteudo: string }[]; idx: number }) {
+  async function abrirNovoContrato(preenchido?: Partial<FormContrato>, escolha?: EscolhaModelo) {
     setErro(""); setEditando(null);
     try {
       const response = await requisicao(`/api/contratos/clientes?workspaceId=${encodeURIComponent(workspaceId)}`);
@@ -305,9 +319,9 @@ export default function ContratosPage() {
   }
 
   // ─── Popup "Dados do contrato": caixinhas para os marcadores que faltam ───
-  type EscolhaModelo = { alternativas: { nome: string; conteudo: string }[]; idx: number };
-  const [dadosPend, setDadosPend] = useState<null | { form: FormContrato; chaves: string[]; valores: Record<string, string>; valorNum: number; erro: string; escolha?: EscolhaModelo }>(null);
-  function abrirDadosPendentes(formOriginal: FormContrato, escolha?: EscolhaModelo, anterior?: { valores: Record<string, string>; valorNum: number }) {
+  type EscolhaModelo = { alternativas: { nome: string; conteudo: string; descricao?: string; todos?: boolean }[]; idx: number };
+  const [dadosPend, setDadosPend] = useState<null | { form: FormContrato; chaves: string[]; valores: Record<string, string>; nums: Record<string, number>; erro: string; escolha?: EscolhaModelo }>(null);
+  function abrirDadosPendentes(formOriginal: FormContrato, escolha?: EscolhaModelo, anterior?: { valores: Record<string, string>; nums: Record<string, number> }) {
     // o que o formulário já sabe entra sozinho (nome, CPF, telefone, data)
     const dig = (s: string) => String(s || "").replace(/\D/g, "");
     const cpf = dig(formOriginal.cpf);
@@ -319,7 +333,7 @@ export default function ContratosPage() {
       data_hoje: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
     }) };
     const chaves = [...new Set((form.conteudo.match(/\{([a-z_]+)\}/g) || []).map(m => m.slice(1, -1)))].filter(k => k !== "cliente_email");
-    setDadosPend({ form, chaves, valores: anterior?.valores || { cliente_email: form.email || "" }, valorNum: anterior?.valorNum || 0, erro: "", escolha });
+    setDadosPend({ form, chaves, valores: anterior?.valores || { cliente_email: form.email || "" }, nums: anterior?.nums || {}, erro: "", escolha });
     setCriando(false);
   }
   // troca o modelo no popup mantendo o que já foi digitado
@@ -327,12 +341,13 @@ export default function ContratosPage() {
     if (!dadosPend?.escolha) return;
     const alt = dadosPend.escolha.alternativas[idx];
     if (!alt) return;
-    abrirDadosPendentes({ ...dadosPend.form, conteudo: alt.conteudo, titulo: alt.nome }, { ...dadosPend.escolha, idx }, { valores: dadosPend.valores, valorNum: dadosPend.valorNum });
+    abrirDadosPendentes({ ...dadosPend.form, conteudo: alt.conteudo, titulo: alt.todos ? "Contrato e documentos" : alt.nome }, { ...dadosPend.escolha, idx }, { valores: dadosPend.valores, nums: dadosPend.nums });
   }
   function confirmarDadosPendentes() {
     if (!dadosPend) return;
     const v = { ...dadosPend.valores };
-    if (dadosPend.chaves.includes("honorarios_valor")) v.honorarios_valor = dadosPend.valorNum > 0 ? dadosPend.valorNum.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "";
+    for (const k of Object.keys(CAMPO_MOEDA)) if (dadosPend.chaves.includes(k)) v[k] = (dadosPend.nums[k] || 0) > 0 ? dadosPend.nums[k].toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "";
+    if (dadosPend.chaves.includes("cartao_final") && !/^\d{4}$/.test(String(v.cartao_final || "").trim())) { setDadosPend({ ...dadosPend, erro: "Final do cartão: informe os 4 últimos números" }); return; }
     const faltando = [...dadosPend.chaves, "cliente_email"].filter(k => !String(v[k] || "").trim()).map(k => CAMPO_DADO[k]?.rotulo || k);
     if (faltando.length) { setDadosPend({ ...dadosPend, erro: `Preencha: ${faltando.join(", ")}` }); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.cliente_email.trim())) { setDadosPend({ ...dadosPend, erro: "E-mail do cliente inválido" }); return; }
@@ -684,7 +699,7 @@ export default function ContratosPage() {
 
       {dadosPend && (() => {
         const set = (k: string, val: string) => setDadosPend(d => d && ({ ...d, erro: "", valores: { ...d.valores, [k]: val } }));
-        const ordem = ["cliente_email", "cliente_estado_civil", "cliente_cep", "cliente_endereco", "banco", "numero_contrato_banco", "veiculo_modelo", "veiculo_ano", "veiculo_placa", "honorarios_valor", "honorarios_valor_extenso", "forma_pagamento"];
+        const ordem = ["cliente_email", "cliente_nacionalidade", "cliente_estado_civil", "cliente_profissao", "cliente_rg", "cliente_cep", "cliente_endereco", "banco", "numero_contrato_banco", "veiculo_modelo", "veiculo_ano", "veiculo_placa", "prazo", "parcela_atual", "parcela_atual_extenso", "honorarios_valor", "honorarios_valor_extenso", "forma_pagamento", "cartao_bandeira", "cartao_final"];
         const campos = ["cliente_email", ...dadosPend.chaves].sort((a, b) => (ordem.indexOf(a) + 1 || 99) - (ordem.indexOf(b) + 1 || 99));
         const inp: React.CSSProperties = { width: "100%", boxSizing: "border-box", height: 44, borderRadius: 12, border: "1px solid #E6ECEA", background: "#F7FAF9", padding: "0 12px", fontSize: 14, fontWeight: 600, color: "#0F172A", outline: "none" };
         return (
@@ -697,15 +712,16 @@ export default function ContratosPage() {
               </div>
               {dadosPend.escolha && (
                 <div style={{ padding: "14px 24px 0" }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#475569", marginBottom: 6 }}>Modelo do contrato</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: "#475569", marginBottom: 6 }}>{dadosPend.escolha.alternativas.length > 2 ? "Qual documento enviar" : "Modelo do contrato"}</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {dadosPend.escolha.alternativas.map((a, i) => {
                       const sel = i === dadosPend.escolha!.idx;
                       return (
                         <button key={i} type="button" onClick={() => trocarModeloPendente(i)}
-                          style={{ flex: "1 1 200px", minHeight: 44, borderRadius: 12, cursor: "pointer", padding: "8px 14px", fontSize: 14, fontWeight: 800, textAlign: "left",
-                            border: sel ? "2px solid var(--w-600)" : "1px solid #E6ECEA", background: sel ? "var(--w-50)" : "#fff", color: sel ? "var(--w-700)" : "#475569" }}>
+                          style={{ flex: a.todos ? "1 1 100%" : "1 1 200px", minHeight: 44, borderRadius: 12, cursor: "pointer", padding: "8px 14px", fontSize: 14, fontWeight: 800, textAlign: "left",
+                            border: sel ? "2px solid var(--w-600)" : a.todos ? "1.5px dashed var(--w-400, #34d399)" : "1px solid #E6ECEA", background: sel ? "var(--w-50)" : "#fff", color: sel ? "var(--w-700)" : "#475569" }}>
                           {sel ? "● " : "○ "}{a.nome}
+                          {a.descricao && <span style={{ display: "block", marginTop: 3, fontSize: 12, fontWeight: 500, color: sel ? "var(--w-700)" : "#94a3b8", lineHeight: 1.35 }}>{a.descricao}</span>}
                         </button>
                       );
                     })}
@@ -719,12 +735,12 @@ export default function ContratosPage() {
                   return (
                     <label key={k} style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#475569", gridColumn: def.largo ? "1 / -1" : undefined }}>
                       {def.rotulo}
-                      {k === "honorarios_valor" ? (
+                      {CAMPO_MOEDA[k] ? (
                         <input inputMode="numeric" style={inp} placeholder="R$ 0,00"
-                          value={dadosPend.valorNum ? dadosPend.valorNum.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}
+                          value={dadosPend.nums[k] ? dadosPend.nums[k].toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : ""}
                           onChange={e => {
                             const n = Number(e.target.value.replace(/\D/g, "") || 0) / 100;
-                            setDadosPend(d => d && ({ ...d, erro: "", valorNum: n, valores: { ...d.valores, honorarios_valor_extenso: n > 0 ? reaisPorExtenso(n) : "" } }));
+                            setDadosPend(d => d && ({ ...d, erro: "", nums: { ...d.nums, [k]: n }, valores: { ...d.valores, [CAMPO_MOEDA[k]]: n > 0 ? reaisPorExtenso(n) : "" } }));
                           }} />
                       ) : def.opcoes ? (
                         <select style={inp} value={val} onChange={e => set(k, e.target.value)}>
@@ -739,7 +755,7 @@ export default function ContratosPage() {
                           {def.sugestoes && <datalist id={`sug-${k}`}>{def.sugestoes.map(s => <option key={s} value={s} />)}</datalist>}
                         </>
                       )}
-                      {k === "honorarios_valor_extenso" && <small style={{ fontWeight: 500, color: "#94a3b8" }}>Preenchido sozinho a partir do valor; ajuste se precisar.</small>}
+                      {Object.values(CAMPO_MOEDA).includes(k) && <small style={{ fontWeight: 500, color: "#94a3b8" }}>Preenchido sozinho a partir do valor; ajuste se precisar.</small>}
                     </label>
                   );
                 })}
