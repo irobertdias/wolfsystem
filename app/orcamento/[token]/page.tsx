@@ -16,7 +16,7 @@ type Orcamento = {
   expira_em: string;
   criado_em: string;
   aceito_em: string | null;
-  servicos: { empresa: string; emissor: string; nota: string } | null;
+  servicos: { empresa: string; emissor: string; nota: string; faq: { p: string; r: string }[]; meses_desconto: number } | null;
   pagamento: DadosPagamento | null;
   implantacao: Implantacao | null;
   implantacao_enviada: boolean;
@@ -199,9 +199,12 @@ export default function OrcamentoPage() {
   const primeiro = orc.cliente_nome.trim().split(/\s+/)[0] || "";
   const sv = orc.servicos;
   const marca = sv?.empresa || "Wolf System";
-  const nomeUnico = sv ? "Implantação" : "Configuração inicial";
+  const nomeUnico = sv ? "Implantação e configuração" : "Configuração inicial";
   const servicosItens = (orc.itens || []).filter((i) => i.tipo === "personalizado" || i.tipo === "modulo");
   const aceito = orc.status === "aceito";
+  // desconto da mensalidade só nos primeiros meses (orçamento de serviços)
+  const meses = sv?.meses_desconto || 0;
+  const nosMeses = meses ? ` nos ${meses} primeiros meses` : "";
   const mostrarForm = aceito && (!orc.implantacao_enviada || editando);
   const tot = calcularOrcamento(orc.itens || []);
   const comPrecos = (orc.itens || []).some((i) => i.tipo);
@@ -250,8 +253,8 @@ export default function OrcamentoPage() {
               ))}
             </div>
             <div className="mt-6 grid grid-cols-2 gap-2 sm:max-w-md">
-              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur"><div className="text-[11.5px]r text-emerald-100">Agora</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div><div className="text-[11px] text-emerald-100">{sv ? "implantação, uma vez" : "configuração inicial"}</div></div>
-              <div className="rounded-2xl bg-white px-4 py-3 text-emerald-800"><div className="text-[11.5px]r text-emerald-600">Mensalidade</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.mensalidade)}</div><div className="text-[11px] text-emerald-600">{sv ? "quando os serviços entram no ar" : "a partir do mês seguinte"}</div></div>
+              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur"><div className="text-[11.5px]r text-emerald-100">Agora</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div><div className="text-[11px] text-emerald-100">{sv ? "implantação e configuração" : "configuração inicial"}</div></div>
+              <div className="rounded-2xl bg-white px-4 py-3 text-emerald-800"><div className="text-[11.5px]r text-emerald-600">Mensalidade</div><div className="text-[20px] font-black tabular-nums">{brlOrc(orc.mensalidade)}</div><div className="text-[11px] text-emerald-600">{sv ? (meses ? `nos ${meses} primeiros meses, depois ${brlOrc(tot.mensalTabela)}` : "a partir do mês que vem") : "a partir do mês seguinte"}</div></div>
             </div>
           </div>
         </div>
@@ -274,7 +277,7 @@ export default function OrcamentoPage() {
           {aceito && orc.pagamento && (
             <div id="pagamento">
               <Card>
-                <Titulo n="1" sub={sv ? "Pague a implantação para começarmos." : "Pague a configuração inicial para começarmos a implantação."}>Dados para pagamento</Titulo>
+                <Titulo n="1" sub={sv ? "Agora você paga só a implantação e configuração. A mensalidade começa no mês que vem." : "Pague a configuração inicial para começarmos a implantação."}>Dados para pagamento</Titulo>
                 <div className="rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 p-5 text-white">
                   <div className="text-[11px]r text-emerald-100">Valor a pagar agora</div>
                   <div className="text-[34px] font-black tabular-nums">{brlOrc(orc.configuracao)}</div>
@@ -289,7 +292,7 @@ export default function OrcamentoPage() {
                     <div key={k} className="flex justify-between p-4 text-[14px]"><span className="text-slate-500">{k}</span><b>{v}</b></div>
                   ))}
                 </div>
-                <p className="mt-3 text-[12px] text-slate-500">A mensalidade de <b>{brlOrc(orc.mensalidade)}</b> começa a ser cobrada {sv ? "quando os serviços entram no ar" : "a partir do mês seguinte"}.</p>
+                <p className="mt-3 text-[12px] text-slate-500">A mensalidade de <b>{brlOrc(orc.mensalidade)}</b> começa a ser cobrada {sv ? `a partir do mês que vem${meses && tot.mensalTabela > orc.mensalidade ? ` e vale${nosMeses}; depois, ${brlOrc(tot.mensalTabela)}` : ""}` : "a partir do mês seguinte"}.</p>
               </Card>
             </div>
           )}
@@ -405,7 +408,7 @@ export default function OrcamentoPage() {
                   <div key={`${l.tipo}-${l.id}-${l.nome}`} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <div className="min-w-0">
                       <div className="font-semibold text-slate-700">{l.nome}{(l.qtd || 1) > 1 && <span className="font-normal text-slate-400"> × {l.qtd}</span>}</div>
-                      <div className="text-[11px] text-slate-400">{l.cobranca === "unico" ? "pagamento único" : "por mês"}{l.desconto ? ` · ${pctOrc(l.desconto)} de desconto` : ""}</div>
+                      <div className="text-[11px] text-slate-400">{l.cobranca === "unico" ? "pagamento único" : "por mês"}{l.desconto ? ` · ${pctOrc(l.desconto)} de desconto${l.cobranca === "unico" ? "" : nosMeses}` : ""}</div>
                     </div>
                     <div className="shrink-0 text-right">
                       {l.desconto ? <div className="text-[11px] text-slate-400 line-through tabular-nums">{brlOrc(l.bruto)}</div> : null}
@@ -417,19 +420,40 @@ export default function OrcamentoPage() {
             )}
             {comPrecos && tot.mensalDesconto + tot.unicoDesconto > 0 && (
               <div className="mb-3 rounded-2xl bg-amber-50 px-4 py-3 text-[13px] text-amber-900 ring-1 ring-amber-200">
-                Você economiza <b>{brlOrc(tot.mensalDesconto)} por mês</b>{tot.unicoDesconto > 0 ? <> e <b>{brlOrc(tot.unicoDesconto)}</b> na {sv ? "implantação" : "configuração"}</> : null} {sv ? "contratando os dois juntos" : "em relação à tabela"}.
+                Você economiza <b>{brlOrc(tot.mensalDesconto)} por mês{nosMeses}</b>{tot.unicoDesconto > 0 ? <> e <b>{brlOrc(tot.unicoDesconto)}</b> na {sv ? "implantação" : "configuração"}</> : null}{sv ? "" : " em relação à tabela"}.
               </div>
             )}
             <div className="divide-y divide-slate-100 text-[14px]">
               <div className="flex justify-between py-3"><span className="text-slate-600">{nomeUnico} <span className="text-slate-400">(pagamento único, na contratação)</span></span><b className="tabular-nums">{brlOrc(orc.configuracao)}</b></div>
-              <div className="flex justify-between py-3"><span className="text-slate-600">Mensalidade <span className="text-slate-400">({sv ? "quando os serviços entram no ar" : "a partir do mês seguinte"})</span></span><b className="tabular-nums">{brlOrc(orc.mensalidade)}/mês</b></div>
+              <div className="flex justify-between py-3"><span className="text-slate-600">Mensalidade <span className="text-slate-400">({sv ? (meses ? `do 1º ao ${meses}º mês, começando no mês que vem` : "a partir do mês que vem") : "a partir do mês seguinte"})</span></span><b className="tabular-nums">{brlOrc(orc.mensalidade)}/mês</b></div>
+              {meses > 0 && tot.mensalTabela > orc.mensalidade && (
+                <div className="flex justify-between py-3"><span className="text-slate-600">Mensalidade <span className="text-slate-400">(a partir do {meses + 1}º mês)</span></span><b className="tabular-nums">{brlOrc(tot.mensalTabela)}/mês</b></div>
+              )}
             </div>
             <div className="mt-2 flex items-center justify-between rounded-2xl bg-emerald-50 px-4 py-3 text-emerald-800">
-              <span className="text-[13px] font-bold">Pagamento agora (somente a {sv ? "implantação" : "configuração"})</span>
+              <span className="text-[13px] font-bold">Pagamento agora (somente a {sv ? "implantação e configuração" : "configuração"})</span>
               <span className="text-[18px] font-black tabular-nums">{brlOrc(orc.configuracao)}</span>
             </div>
             {sv?.nota && <p className="mt-3 whitespace-pre-line text-[12.5px] leading-relaxed text-slate-500">{sv.nota}</p>}
           </Card>
+
+          {/* dúvidas frequentes (orçamento de serviços) */}
+          {sv && sv.faq.length > 0 && (
+            <Card>
+              <Titulo n={aceito ? "5" : "3"} sub="Toque na pergunta para ver a resposta.">Dúvidas frequentes</Titulo>
+              <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200">
+                {sv.faq.map((f) => (
+                  <details key={f.p} className="group px-4 py-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-[14px] font-semibold text-slate-700 [&::-webkit-details-marker]:hidden">
+                      {f.p}
+                      <span className="shrink-0 text-[18px] leading-none text-emerald-600 transition group-open:rotate-45">+</span>
+                    </summary>
+                    <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-slate-600">{f.r}</p>
+                  </details>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <p className="px-1 text-center text-[11px] text-slate-400">Orçamento {orc.numero} · emitido em {new Date(orc.criado_em).toLocaleDateString("pt-BR")} · {sv ? [marca, sv.emissor].filter(Boolean).join(" · ") : "Wolf System"}</p>
         </div>

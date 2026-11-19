@@ -220,12 +220,19 @@ export type DadosPagamento = {
   modelo?: "servicos";
   emissor?: string;   // pessoa que assina o orçamento
   nota?: string;      // condições curtas mostradas no investimento
+  faq?: { p: string; r: string }[]; // dúvidas frequentes mostradas no orçamento
+  meses_desconto?: number;          // desconto da mensalidade só nos N primeiros meses (0 = sempre)
 };
 
 /** Parte pública do modelo de serviços: aparece antes do aceite (os dados bancários não). */
 export function modeloServicos(p: Partial<DadosPagamento> | null | undefined) {
   if (p?.modelo !== "servicos") return null;
-  return { empresa: String(p.favorecido || ""), emissor: String(p.emissor || ""), nota: String(p.nota || "") };
+  const faq = (Array.isArray(p.faq) ? p.faq : [])
+    .map((f) => ({ p: String(f?.p ?? "").trim().slice(0, 200), r: String(f?.r ?? "").trim().slice(0, 1200) }))
+    .filter((f) => f.p && f.r)
+    .slice(0, 20);
+  const meses = Math.max(0, Math.min(24, Math.round(Number(p.meses_desconto) || 0)));
+  return { empresa: String(p.favorecido || ""), emissor: String(p.emissor || ""), nota: String(p.nota || ""), faq, meses_desconto: meses };
 }
 
 export const PAGAMENTO_PADRAO: DadosPagamento = {
