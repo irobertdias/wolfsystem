@@ -231,8 +231,8 @@ export default function ContratosPage() {
         }
         propostaRevisionalRef.current = id;
         // modelo do contrato e honorários salvos nas Configurações do CRM financeiro
-        const { data: fin } = await supabase.from("fin_config").select("config").eq("workspace_id", workspaceId).maybeSingle();
-        const cfgRev = (fin as any)?.config?.revisional || {};
+        // vem pela API (lista.crm): pelo navegador o banco só libera fin_config para dono/administrador
+        const cfgRev = lista.crm || {};
         // o workspace pode ter vários modelos (ex.: veicular e geral): sugere pelo tipo e o vendedor troca no popup
         const modelos = modelosDoWorkspace(cfgRev);
         const idx = modeloSugerido(modelos, p.tipo);

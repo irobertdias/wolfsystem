@@ -99,6 +99,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
     percentual_imovel: 35, percentual_veiculo: 35, taxa_veiculo: 1.5, metodo_veiculo: "percentual",
   });
   const [podeConfigurar, setPodeConfigurar] = useState(false);
+  const [podeExcluir, setPodeExcluir] = useState(false);
   const [editando, setEditando] = useState<PropostaLista | null>(null);
   const [propostas, setPropostas] = useState<PropostaLista[]>([]);
   const [usuarioNome, setUsuarioNome] = useState("");
@@ -111,6 +112,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
       setPropostas(d.propostas);
       setConfig(d.config);
       setPodeConfigurar(d.podeConfigurar);
+      setPodeExcluir(!!d.podeExcluir);
       setUsuarioNome((n) => n || d.usuario?.nome || "");
       setErroAcesso("");
     } catch (e: any) {
@@ -221,7 +223,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
                 </div>
               ))}
             </div>
-            <ListaPropostas propostas={propostas} config={config} podeExcluir={podeConfigurar} onMudou={() => void carregar()}
+            <ListaPropostas propostas={propostas} config={config} podeExcluir={podeExcluir} onMudou={() => void carregar()}
               onEditar={(p) => { setEditando(p); setAba("nova"); window.scrollTo({ top: 0 }); }} />
           </>
         )}

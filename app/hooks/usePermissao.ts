@@ -88,6 +88,8 @@ export type Permissoes = {
   // ⚖️ REVISIONAL — simular/enviar propostas e ver as de todos
   revisional_acessar: boolean;
   revisional_todas: boolean;
+  revisional_config: boolean;
+  revisional_excluir: boolean;
   // 💰 FINANCEIRO — acesso + telas (granular)
   financeiro_acessar: boolean;
   fin_dashboard: boolean;
@@ -202,6 +204,8 @@ const PERMISSOES_DONO: Permissoes = {
   rh_config: true,
   revisional_acessar: true,
   revisional_todas: true,
+  revisional_config: true,
+  revisional_excluir: true,
   financeiro_acessar: true,
   fin_dashboard: true,
   fin_indicadores: true,
@@ -319,6 +323,8 @@ const PERMISSOES_ATENDENTE: Permissoes = {
   rh_config: false,
   revisional_acessar: false,
   revisional_todas: false,
+  revisional_config: false,
+  revisional_excluir: false,
   financeiro_acessar: false,
   fin_dashboard: false,
   fin_indicadores: false,

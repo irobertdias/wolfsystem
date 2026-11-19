@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../../_auth";
-import { SEM_CACHE, exigirRevisional, lerConfig } from "../../_shared";
+import { SEM_CACHE, exigirRevisional, lerConfig, podeExcluirRevisional } from "../../_shared";
 import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 import {
   calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, normalizarDados, tipoRevisional, validarDados,
@@ -66,8 +66,8 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ success: false, error: "Proposta inválida" }, { status: 400 });
     const acesso = await autenticarWorkspace(request, request.nextUrl.searchParams.get("workspace") || "");
     await exigirRevisional(acesso);
-    if (!(acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador)) {
-      return NextResponse.json({ success: false, error: "Só o dono ou um administrador pode excluir propostas" }, { status: 403 });
+    if (!podeExcluirRevisional(acesso)) {
+      return NextResponse.json({ success: false, error: "Sem permissão para excluir propostas" }, { status: 403 });
     }
     const { data, error } = await supabaseServer.from("revisional_propostas")
       .delete().eq("id", id).eq("workspace_id", acesso.workspaceId).select("id");

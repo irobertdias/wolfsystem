@@ -60,7 +60,9 @@ export default function RevisionalLayolt() {
   const dados = useRevisional();
 
   const gestor = isSuperAdmin || isDono || perfil === "Administrador";
-  const temAcesso = gestor || !!(permissoes as any).crm_acessar || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || !!permissoes.dashboard;
+  // Configurações (taxas, honorários, modelos de documentos): gestor ou permissão do grupo
+  const podeConfig = gestor || !!(permissoes as any).revisional_config;
+  const temAcesso = gestor || !!(permissoes as any).revisional_acessar || !!(permissoes as any).crm_acessar || !!permissoes.vendas_proprio || !!permissoes.vendas_equipe || !!permissoes.dashboard;
 
   const [aba, setAba] = useState("painel");
   const [alvo, setAlvo] = useState<{ contratoId?: number; novo?: boolean; etapa?: string; t?: number }>({});
@@ -83,7 +85,7 @@ export default function RevisionalLayolt() {
   };
 
   const gruposVisiveis = GRUPOS
-    .map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soGestor || gestor) }))
+    .map((g) => ({ ...g, itens: g.itens.filter((i) => !i.soGestor || podeConfig) }))
     .filter((g) => g.itens.length > 0);
 
   if (loading) return <div style={{ padding: 48, textAlign: "center", color: "#94A3B8" }}>Carregando…</div>;
@@ -100,7 +102,7 @@ export default function RevisionalLayolt() {
     );
   }
 
-  const abaValida = SECTIONS[aba] && (aba !== "config" || gestor) ? aba : "painel";
+  const abaValida = SECTIONS[aba] && (aba !== "config" || podeConfig) ? aba : "painel";
   const Comp = SECTIONS[abaValida];
 
   const botao = (i: Item) => {

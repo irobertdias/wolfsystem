@@ -53,6 +53,8 @@ export const CATEGORIAS_PERMISSAO_WOLF: CategoriaPermissao[] = [
     permissoes: [
       { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
       { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
+      { key: "revisional_config", label: "Alterar taxas, honorários, marca e modelos de documentos" },
+      { key: "revisional_excluir", label: "Excluir propostas" },
     ],
   },
   {

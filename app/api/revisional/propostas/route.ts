@@ -4,7 +4,10 @@ import {
   calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, normalizarDados, tipoRevisional, validarDados,
   type TipoRevisional,
 } from "../../../lib/revisional";
-import { SEM_CACHE, exigirRevisional, lerConfig, linkPublico, novoNumero, novoToken, statusEfetivo } from "../_shared";
+import {
+  SEM_CACHE, exigirRevisional, lerConfig, lerConfigCrm, linkPublico, novoNumero, novoToken, podeConfigurarRevisional,
+  podeExcluirRevisional, statusEfetivo,
+} from "../_shared";
 
 function veTodas(acesso: AcessoWolf) {
   return acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador
@@ -25,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (!veTodas(acesso)) query = query.eq("consultor_email", acesso.email);
     const { data, error } = await query;
     if (error) throw error;
-    const config = await lerConfig(acesso.workspaceId);
+    const [config, crm] = await Promise.all([lerConfig(acesso.workspaceId), lerConfigCrm(acesso.workspaceId)]);
     const propostas = (data || []).map((p) => ({
       ...p,
       status: statusEfetivo(p),
@@ -35,7 +38,11 @@ export async function GET(request: NextRequest) {
       success: true,
       propostas,
       config,
-      podeConfigurar: acesso.isSuperAdmin || acesso.isDono || acesso.isAdministrador,
+      // honorários e modelos de documentos (fin_config é lido aqui no servidor:
+      // pelo navegador o banco só libera para o dono/administrador)
+      crm,
+      podeConfigurar: podeConfigurarRevisional(acesso),
+      podeExcluir: podeExcluirRevisional(acesso),
       usuario: { email: acesso.email, nome: String(acesso.user.user_metadata?.nome || acesso.user.user_metadata?.full_name || "") },
     }, { headers: SEM_CACHE });
   } catch (error) {

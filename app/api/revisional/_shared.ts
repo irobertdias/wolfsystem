@@ -24,6 +24,18 @@ export async function exigirRevisional(acesso: AcessoWolf) {
   exigirPermissao(acesso, "revisional_acessar");
 }
 
+const ehGestor = (a: AcessoWolf) => a.isSuperAdmin || a.isDono || a.isAdministrador || a.perfil === "Administrador";
+/** Taxas, honorários, marca e modelos de documentos: gestor ou permissão "revisional_config". */
+export const podeConfigurarRevisional = (a: AcessoWolf) => ehGestor(a) || a.permissoes.revisional_config === true;
+/** Excluir propostas: gestor ou permissão "revisional_excluir". */
+export const podeExcluirRevisional = (a: AcessoWolf) => ehGestor(a) || a.permissoes.revisional_excluir === true;
+
+/** Configuração do CRM revisional (honorários, modalidades, modelos de documentos) em fin_config.config.revisional. */
+export async function lerConfigCrm(workspaceId: string): Promise<Record<string, any>> {
+  const { data } = await supabaseServer.from("fin_config").select("config").eq("workspace_id", workspaceId).maybeSingle();
+  return ((data as any)?.config?.revisional as Record<string, any>) || {};
+}
+
 export type ConfigRevisional = {
   workspace_id: string;
   empresa_nome: string;

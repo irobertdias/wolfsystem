@@ -256,12 +256,12 @@ export function useRevisional() {
       supabase.from("proposta")
         .select("id,created_at,updated_at,data_proposta,nome,cpf,telefone1,email,cidade,estado,operadora,plano,status_venda,vendedor,dados_customizados")
         .eq("workspace_id", wsId).order("created_at", { ascending: false }).limit(2000),
-      supabase.from("fin_config").select("config").eq("workspace_id", wsId).maybeSingle(),
+      lerConfigCrm(wsId),
     ]);
     if (p.error) setErro(p.error.message); else setErro("");
     const todos = (p.data as Contrato[]) || [];
     setContratos(verTodos ? todos : await filtrarMeus(todos));
-    const salvo = (c.data as any)?.config?.revisional || {};
+    const salvo = c || {};
     setCfg({
       ...CONFIG_PADRAO,
       ...salvo,
@@ -275,11 +275,33 @@ export function useRevisional() {
   return { wsId, contratos, cfg, carregando, erro, carregar };
 }
 
-export async function salvarConfig(wsId: string, cfg: ConfigRevisional) {
-  const { data } = await supabase.from("fin_config").select("config").eq("workspace_id", wsId).maybeSingle();
-  const config = { ...((data as any)?.config || {}), revisional: cfg };
-  if (data) return supabase.from("fin_config").update({ config }).eq("workspace_id", wsId);
-  return supabase.from("fin_config").insert({ workspace_id: wsId, regime: "simples", config });
+// fin_config passa pela API: direto do navegador o banco só libera para o
+// dono/administrador, e quem tem a permissão do grupo também precisa ler/salvar.
+async function cabecalhoAuth(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
+async function lerConfigCrm(wsId: string): Promise<Record<string, any>> {
+  try {
+    const r = await fetch(`/api/revisional/config-crm?workspace=${encodeURIComponent(wsId)}`, { cache: "no-store", headers: await cabecalhoAuth() });
+    const d = await r.json();
+    return d?.success ? (d.config || {}) : {};
+  } catch { return {}; }
+}
+
+export async function salvarConfig(wsId: string, cfg: ConfigRevisional): Promise<{ error: { message: string } | null }> {
+  try {
+    const r = await fetch("/api/revisional/config-crm", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...(await cabecalhoAuth()) },
+      body: JSON.stringify({ workspace: wsId, config: cfg }),
+    });
+    const d = await r.json().catch(() => ({}));
+    return d?.success ? { error: null } : { error: { message: d?.error || `Erro ${r.status}` } };
+  } catch (e: any) {
+    return { error: { message: e?.message || "Falha de conexão" } };
+  }
 }
 
 export async function salvarContrato(wsId: string, campos: Partial<Contrato>, d: DadosRevisional, id?: number, dadosAtuais?: any) {

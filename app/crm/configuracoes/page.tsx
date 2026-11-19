@@ -199,6 +199,8 @@ const CATEGORIAS_PERMISSAO = [
   { nome: "Revisional", cor: "#059669", permissoes: [
     { key: "revisional_acessar", label: "Acessar o Revisional (simular e enviar propostas)" },
     { key: "revisional_todas", label: "Ver propostas de todos os consultores" },
+    { key: "revisional_config", label: "Alterar taxas, honorários, marca e modelos de documentos" },
+    { key: "revisional_excluir", label: "Excluir propostas" },
   ]},
   { nome: "Chatbot", cor: "#14B8A6", permissoes: [
     { key: "chatbot_acessar", label: "Acessar o Chatbot" },
