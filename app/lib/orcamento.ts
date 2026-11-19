@@ -214,7 +214,19 @@ export const ITENS_PADRAO: ItemOrcamento[] = [
   ...MODULOS.filter((m) => ["crm", "chatbot", "revisional"].includes(m.id)).map(({ id, nome, sub, cor, linhas }) => ({ id, nome, sub, cor, linhas })),
 ];
 
-export type DadosPagamento = { tipo: string; chave: string; favorecido: string; banco: string; cnpj: string };
+export type DadosPagamento = {
+  tipo: string; chave: string; favorecido: string; banco: string; cnpj: string;
+  // orçamento de serviços (tráfego, IA etc.) em nome de quem emite, sem a plataforma Wolf
+  modelo?: "servicos";
+  emissor?: string;   // pessoa que assina o orçamento
+  nota?: string;      // condições curtas mostradas no investimento
+};
+
+/** Parte pública do modelo de serviços: aparece antes do aceite (os dados bancários não). */
+export function modeloServicos(p: Partial<DadosPagamento> | null | undefined) {
+  if (p?.modelo !== "servicos") return null;
+  return { empresa: String(p.favorecido || ""), emissor: String(p.emissor || ""), nota: String(p.nota || "") };
+}
 
 export const PAGAMENTO_PADRAO: DadosPagamento = {
   tipo: "PIX (chave CNPJ)",
@@ -236,6 +248,8 @@ export type Implantacao = {
   usuarios: UsuarioImplantacao[];
   pagamento_realizado: boolean;
   observacoes: string;
+  instagram?: string;   // modelo de serviços
+  produtos?: string;    // modelo de serviços: produtos, preços e links de pagamento
 };
 
 export const PERFIS = ["Administrador", "Supervisor", "Atendente"] as const;
@@ -267,10 +281,12 @@ export function normalizarImplantacao(b: Record<string, any>, maxUsuarios: numbe
     usuarios,
     pagamento_realizado: b.pagamento_realizado === true,
     observacoes: limpar(b.observacoes, 1500),
+    instagram: limpar(b.instagram, 80),
+    produtos: limpar(b.produtos, 3000),
   };
 }
 
-export function validarImplantacao(i: Implantacao): string[] {
+export function validarImplantacao(i: Implantacao, servicos = false): string[] {
   const e: string[] = [];
   const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
   if (!i.razao_social) e.push("Informe a razão social ou nome da empresa");
@@ -278,6 +294,11 @@ export function validarImplantacao(i: Implantacao): string[] {
   if (!i.responsavel) e.push("Informe o responsável");
   if (!emailOk(i.email)) e.push("Informe um e-mail válido do responsável");
   if (i.telefone.length < 10) e.push("Informe o telefone do responsável com DDD");
+  if (servicos) {
+    if (i.whatsapp_atendimento.length < 10) e.push("Informe o WhatsApp que a IA vai atender, com DDD");
+    if (!i.produtos) e.push("Conte quais produtos você vende e os preços");
+    return e;
+  }
   if (!i.usuarios.length) e.push("Cadastre pelo menos um usuário");
   i.usuarios.forEach((u, k) => {
     if (!u.nome) e.push(`Usuário ${k + 1}: informe o nome`);

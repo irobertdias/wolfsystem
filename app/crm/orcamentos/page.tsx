@@ -522,6 +522,8 @@ export default function OrcamentosPage() {
                     {[["Razão social", imp.razao_social], ["CNPJ/CPF", imp.cnpj], ["Responsável", imp.responsavel], ["E-mail", imp.email], ["Telefone", imp.telefone], ["WhatsApps do atendimento", (imp.whatsapps?.length ? imp.whatsapps : [imp.whatsapp_atendimento]).filter(Boolean).join(", ")], ["Pagamento", imp.pagamento_realizado ? "Cliente informou que pagou" : "Ainda não informado"]].map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-3 border-b border-[#F1F5F4] py-2 last:border-0"><span className="text-[#64748B]">{k}</span><b className="text-right">{v || "-"}</b></div>
                     ))}
+                    {imp.instagram && <div className="mt-2 rounded-xl bg-[#F7FAF9] p-3 text-[#475569]"><b className="text-[#64748B]">Instagram:</b> {imp.instagram}</div>}
+                    {imp.produtos && <div className="mt-2 whitespace-pre-line rounded-xl bg-[#F7FAF9] p-3 text-[#475569]"><b className="text-[#64748B]">Produtos e preços:</b> {imp.produtos}</div>}
                     {imp.observacoes && <div className="mt-2 rounded-xl bg-[#F7FAF9] p-3 text-[#475569]"><b className="text-[#64748B]">Observações:</b> {imp.observacoes}</div>}
                   </div>
                   <div className="min-w-0">
