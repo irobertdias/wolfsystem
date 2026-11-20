@@ -69,7 +69,7 @@ export default function Site() {
         <div style={{ ...container, minHeight: 72, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20 }}>
           <a href="#inicio" style={{ display: "flex", alignItems: "center", gap: 11, textDecoration: "none", color: "#0F172A" }}>
             <Logo />
-            <div><strong style={{ fontSize: 17 }}>Wolf System</strong><small style={{ display: "block", color: "#64748b", fontSize: 11.5, fontWeight: 700 }}>Negócios em movimento</small></div>
+            <div><strong style={{ fontSize: 17 }}>Wolf System</strong><small style={{ display: "block", color: "#64748b", fontSize: 11.5, fontWeight: 700 }}>Uma empresa do grupo Abc Company</small></div>
           </a>
           {!mobile && <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
             <Nav href="#plataforma">Plataforma</Nav><Nav href="#sistema">Por dentro</Nav><Nav href="#planos">Planos</Nav><Nav href="#orcamento">Monte seu plano</Nav><Nav href="#faq">Dúvidas</Nav>
@@ -216,11 +216,11 @@ export default function Site() {
 
       <footer style={{ background: "white", borderTop: "1px solid #E6ECEA", padding: "46px 24px 24px" }}>
         <div style={{ ...container, display: "grid", gridTemplateColumns: mobile ? "1fr" : "1.4fr 1fr 1fr", gap: 32 }}>
-          <div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Logo /><strong>Wolf System</strong></div><p style={{ color: "#64748b", fontSize: 13, maxWidth: 390, lineHeight: 1.6 }}>CRM, atendimento, automação e inteligência artificial para empresas que querem vender com processo.</p></div>
+          <div><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Logo /><strong>Wolf System</strong></div><p style={{ color: "#64748b", fontSize: 13, maxWidth: 390, lineHeight: 1.6 }}>CRM, atendimento, automação e inteligência artificial para empresas que querem vender com processo.</p><a href="https://www.abccompany.com.br" target="_blank" rel="noopener" style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4, padding: "6px 12px", borderRadius: 999, background: "#F5F3FF", border: "1px solid #DDD6FE", color: "#6D28D9", fontSize: 12.5, fontWeight: 800, textDecoration: "none" }}>Uma empresa do grupo Abc Company ↗</a></div>
           <div><strong style={footerTitle}>Navegação</strong><FooterLink href="#plataforma">Plataforma</FooterLink><FooterLink href="#planos">Planos</FooterLink><FooterLink href="#orcamento">Monte seu plano</FooterLink><FooterLink href="https://app.wolfgyn.com.br/login">Acessar sistema</FooterLink></div>
           <div><strong style={footerTitle}>Legal e contato</strong><FooterLink href="/privacidade">Privacidade</FooterLink><FooterLink href="/termos">Termos de uso</FooterLink><FooterLink href="/excluir-dados">Excluir meus dados</FooterLink><span style={{ color: "#64748b", fontSize: 12 }}>comercial@wolfgyn.com.br</span></div>
         </div>
-        <div style={{ ...container, borderTop: "1px solid #F1F5F4", marginTop: 34, paddingTop: 20, color: "#94a3b8", fontSize: 12, lineHeight: 1.6 }}>2026 Wolf System — ABC CALL E SERVIÇOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96. Todos os direitos reservados. Em conformidade com a LGPD.</div>
+        <div style={{ ...container, borderTop: "1px solid #F1F5F4", marginTop: 34, paddingTop: 20, color: "#94a3b8", fontSize: 12, lineHeight: 1.6 }}>2026 Wolf System, uma empresa do grupo Abc Company — ABC CALL E SERVIÇOS DIGITAIS LTDA — CNPJ 62.007.374/0001-96. Todos os direitos reservados. Em conformidade com a LGPD.</div>
       </footer>
     </main>
   );
