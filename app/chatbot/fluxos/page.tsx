@@ -2351,7 +2351,7 @@ export default function FluxosPage() {
   const [mousePos,setMousePos]       = useState({x:0,y:0});
   const [showNovo,setShowNovo]     = useState(false);
   const [criando,setCriando]       = useState(false);
-  const [form,setForm]             = useState({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
+  const [form,setForm]             = useState({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:"",modelo:"vendedora"});
   const [scale,setScale]           = useState(1);
   const [offset,setOffset]         = useState({x:80,y:80});
   const scaleRef  = useRef(1);
@@ -2539,15 +2539,22 @@ export default function FluxosPage() {
       const username = wsId || await getWsUsername();
       if(!username){alert("Workspace não encontrado! Faça login novamente.");return;}
       const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
+      // Modelo "Vendedora IA pronta": Início → Vendedor IA → Nicho (Vendedora IA) + Transferir, já ligados.
+      const pronto = form.modelo==="vendedora";
+      const ia:No = {id:uid(),tipo:"assistente_universal",x:520,y:230,dados:{...defaultD("assistente_universal"),motor:"agente",modelo:"gpt-4.1",modelo_reserva:"gpt-4.1-mini"},saidas:[...B.assistente_universal.saidas]};
+      const nicho:No = {id:uid(),tipo:"nicho_atendimento",x:860,y:250,dados:defaultD("nicho_atendimento"),saidas:[...B.nicho_atendimento.saidas]};
+      const humano:No = {id:uid(),tipo:"transferir",x:1180,y:420,dados:{...defaultD("transferir"),modo:"equipe",mensagem:"{{handoff_mensagem}}"},saidas:[...B.transferir.saidas]};
       const payload = {nome:form.nome.trim(),descricao:form.descricao,ativo:false,
         trigger_tipo:form.trigger_tipo,trigger_valor:form.trigger_valor,
-        nos:[ini],conexoes:[],workspace_id:username};
+        nos:pronto?[ini,ia,nicho,humano]:[ini],
+        conexoes:pronto?[{id:uid(),de:ini.id,saidaIndex:0,para:ia.id},{id:uid(),de:ia.id,saidaIndex:0,para:nicho.id}]:[],workspace_id:username};
       const {data,error} = await supabase.from("fluxos").insert([payload]).select().single();
       if(error){alert("Erro: "+error.message);return;}
       setWsId(username); await load(username); await fetchFilas(username); await fetchAtendentes(username);
       abrirEditor({...payload, id:data.id} as Fluxo);
       setShowNovo(false);
-      setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:""});
+      setForm({nome:"",descricao:"",trigger_tipo:"qualquer_mensagem",trigger_valor:"",modelo:"vendedora"});
+      if(pronto)setTimeout(()=>alert("Vendedora IA criada! Preencha: 1) bloco Vendedor IA: nome, empresa e chave da OpenAI; 2) bloco Nicho: ramo, empresa e catálogo; 3) bloco Transferir: fila. Depois salve e ative."),300);
     } finally { setCriando(false); }
   }
 
@@ -2900,6 +2907,12 @@ export default function FluxosPage() {
                   <h2 style={{color:"#0F172A",fontSize:18,fontWeight:"700",margin:0}}>Novo Fluxo</h2>
                 </div>
                 <button onClick={()=>setShowNovo(false)} style={{background:"#F1F5F4",border:"none",color:"#64748B",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}><Icone nome="x" tamanho={16} /></button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                {([["vendedora","✨ Vendedora IA pronta","IA que vende, tira dúvidas e fecha pedidos"],["branco","📄 Em branco","Monte bloco a bloco"]] as const).map(([k,t2,s2])=>(
+                  <button key={k} type="button" onClick={()=>setForm({...form,modelo:k})} style={{textAlign:"left",padding:"10px 12px",borderRadius:10,cursor:"pointer",border:form.modelo===k?"2px solid var(--w-600)":"1px solid #E6ECEA",background:form.modelo===k?"#ecfdf5":"#fff"}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{t2}</div><div style={{fontSize:11,color:"#64748B"}}>{s2}</div>
+                  </button>))}
               </div>
               <div><label style={{...LS,fontSize:11}}>Nome *</label>
                 <input autoFocus placeholder="Ex: Fluxo de Vendas" value={form.nome}
