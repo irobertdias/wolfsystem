@@ -884,14 +884,23 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
         {VarPill("Salvar resposta em", "variavel", "ex: avaliacao")}
       </>;
     case "input_pagamento":
-      // 🆕 v18: aviso de feature parcial — backend ainda não tem integração com gateway
+      // Mercado Pago com o token do próprio cliente: gera o link (Pix/cartão), espera e confere sozinho.
       return <>
-        <p style={{color:"#C2410C",fontSize:11,margin:"0 0 6px",lineHeight:1.4}}>
-          ⚠️ <b>Em desenvolvimento</b> — sem integração com gateway de pagamento (Pix/Stripe/Mercado Pago).
-          As saídas "Aprovado/Recusado" não disparam ainda. Use com cautela.
+        <p style={{color:"#065f46",background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:8,padding:"8px 10px",fontSize:11.5,margin:"0 0 8px",lineHeight:1.5}}>
+          💳 Gera um link do <b>Mercado Pago</b> (Pix e cartão), manda ao cliente e confere o pagamento sozinho a cada minuto.
+          Saída <b>Aprovado</b> quando pagar; <b>Recusado</b> se recusar, desistir ou não pagar depois das tentativas.
+          Variáveis: {"{{pagamento_link}}"}, {"{{pagamento_valor}}"}, {"{{pagamento_status}}"}.
         </p>
-        {F("Valor (R$)","valor","number","0")}
-        {F("Descrição","descricao")}
+        <label style={LS}>Access token do Mercado Pago <AjudaCampo texto="Mercado Pago → Seu negócio → Configurações → Credenciais de produção → Access Token (começa com APP_USR-). O dinheiro cai na conta dona do token." /></label>
+        <input type="password" autoComplete="new-password" value={d.access_token||""} onChange={e=>u({access_token:e.target.value})} placeholder="APP_USR-..." style={{...IS,marginBottom:8}}/>
+        {TVar("Valor (R$ ou variável)","valor","ex.: 149,90 ou {{pedido_total_numero}}",40)}
+        {TVar("Descrição (aparece no checkout)","descricao","Pedido {{nome}}",40)}
+        {TVar("Mensagem com o link","mensagem","💳 Para finalizar, pague *{{pagamento_valor}}* por este link:\n{{pagamento_link}}",80)}
+        {TVar("Mensagem quando aprovado","mensagem_aprovado","✅ Pagamento aprovado! Obrigado. 💚",50)}
+        {TVar("Mensagem enquanto não pagou (quando o cliente responde)","mensagem_aguardando","Ainda não identifiquei o pagamento. O link continua valendo: {{pagamento_link}}",60)}
+        {TVar("Mensagem se não pagar (opcional)","mensagem_recusado","",40)}
+        {F("Respostas do cliente antes de desistir","tentativas","number","4")}
+        {F("Validade do link (horas)","validade_horas","number","48")}
       </>;
     case "input_selecao_imagem":
       // 🆕 v18: case implementado — antes caía no default ("Sem propriedades.") e o bloco ficava inútil.
@@ -2541,7 +2550,7 @@ export default function FluxosPage() {
       const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
       // Modelo "Vendedora IA pronta": Início → Vendedor IA → Nicho (Vendedora IA) + Transferir, já ligados.
       const pronto = form.modelo==="vendedora";
-      const ia:No = {id:uid(),tipo:"assistente_universal",x:520,y:230,dados:{...defaultD("assistente_universal"),motor:"agente",modelo:"gpt-4.1",modelo_reserva:"gpt-4.1-mini"},saidas:[...B.assistente_universal.saidas]};
+      const ia:No = {id:uid(),tipo:"assistente_universal",x:520,y:230,dados:{...defaultD("assistente_universal"),motor:"agente",modelo:"gpt-4.1",modelo_reserva:"gpt-4.1-mini",lembretes_inteligentes:{ativo:true,minutos:[20,120,480,1440,2880],silencio_inicio:21,silencio_fim:8}},saidas:[...B.assistente_universal.saidas]};
       const nicho:No = {id:uid(),tipo:"nicho_atendimento",x:860,y:250,dados:defaultD("nicho_atendimento"),saidas:[...B.nicho_atendimento.saidas]};
       const humano:No = {id:uid(),tipo:"transferir",x:1180,y:420,dados:{...defaultD("transferir"),modo:"equipe",mensagem:"{{handoff_mensagem}}"},saidas:[...B.transferir.saidas]};
       const payload = {nome:form.nome.trim(),descricao:form.descricao,ativo:false,

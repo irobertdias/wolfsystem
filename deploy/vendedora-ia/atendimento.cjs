@@ -142,6 +142,7 @@ function instrucoes(a, n, s, catalogoInfo) {
     '- Depois de registrar, passe os próximos passos que a ferramenta devolver (link de pagamento, agendamento, prazo). Nunca diga que o pagamento foi aprovado.',
     '- Preço, estoque, horários, prazos e condições SÓ do catálogo e das informações da empresa. Se não estiver lá, diga que vai confirmar com a equipe (chamar_humano se o cliente precisar disso para decidir).',
     '- Curiosos, spam ou quem não tem interesse real: respostas curtas; se insistir sem objetivo, despeça-se e chame encerrar.',
+    '- Se o cliente pedir para ser chamado depois, responda que tudo bem e que as informações dele ficam salvas para continuar quando ele voltar. Não diga que é incapaz de agendar.',
     '',
     `CATÁLOGO: ${catalogoInfo}`,
     coleta.length ? `DADOS A COLETAR (variável → o que é${coleta.some((c) => c.obrigatorio !== false) ? '; * = obrigatório para registrar' : ''}):\n${coleta.map((c) => `- ${c.variavel}${c.obrigatorio !== false ? '*' : ''} → ${c.rotulo || c.variavel}${c.pergunta ? ` (pergunta sugerida: "${c.pergunta}")` : ''}${c.tipo && c.tipo !== 'texto' ? ` [${c.tipo}]` : ''}`).join('\n')}` : 'DADOS A COLETAR: nome do cliente (salve em "nome").',
@@ -196,8 +197,19 @@ module.exports = function criar({ ctx, log }) {
     const salvar = async () => { vars[KEY] = JSON.stringify(s); await ctx.salvarSessaoFluxo(meta.workspaceId, meta.canalId, meta.numero, f.id, no.id, vars, true, 'nicho_atendimento'); };
 
     const novo = String(texto || '').trim();
+    // Lembretes de retorno (agendador universal, ligado no bloco Vendedor IA): ele guarda o estado
+    // em __universal_v1. Aqui só registramos a resposta do cliente e entendemos "me chama amanhã".
+    const lemb = ler(vars.__universal_v1);
+    const marcarLembretes = (patch) => { Object.assign(lemb, patch); vars.__universal_v1 = JSON.stringify(lemb); };
+    let respostaAgenda = null;
+    if (novo) { try { respostaAgenda = require('../universal-v1/lembretes-universais.cjs').receber(lemb, novo, a); marcarLembretes({}); } catch (e) { log(meta.numero, 'lembretes: ' + e.message); } }
     if (novo) s.pendentes = [...s.pendentes, novo].slice(-15);
     if (!s.pendentes.length) return { aguardarInput: true };
+    if (respostaAgenda) {
+      await enviar(respostaAgenda);
+      s.historico = [...s.historico, { role: 'user', content: s.pendentes.join('\n').slice(0, 3000) }, { role: 'assistant', content: respostaAgenda }].slice(-40);
+      s.pendentes = []; await salvar(); return { aguardarInput: true };
+    }
     await salvar();
     if (!a.apiKey) { log(meta.numero, 'sem chave da IA no bloco Assistente'); return { aguardarInput: true }; }
 
@@ -265,6 +277,7 @@ module.exports = function criar({ ctx, log }) {
                 r = { ok: false, precisa_confirmacao: true, aviso: 'Ainda NÃO registrado. Mande ao cliente o resumo (itens, valores, dados) e pergunte se está tudo certo. Quando ele confirmar, chame registrar_pedido de novo com os mesmos dados.' };
               } else {
                 s.registrado = chave;
+                if (n.lembretes_apos_pedido !== true) marcarLembretes({ pronto: true }); // não cutucar quem já fechou
                 const lista = (x.itens || []).map((i) => `${i.qtd || 1}x ${i.nome}${i.preco != null ? ' ' + brl(i.preco) : ''}`).join('; ');
                 const links = [...new Set((x.itens || []).map((i) => itens.find((p) => sem(p.nome) === sem(i.nome))?.link).filter(Boolean))];
                 Object.assign(vars, { pedido_itens: lista, pedido_total: x.total != null ? brl(x.total) : '', pedido_total_numero: x.total ?? '', pedido_resumo: x.resumo || '', cliente_whatsapp: so(meta.numero), cliente_idioma: s.lang || 'pt' });
@@ -315,7 +328,7 @@ module.exports = function criar({ ctx, log }) {
         return { proximoNoId: transferir?.id || null };
       }
       if (saida.encerrar) {
-        s.encerrado = true; await salvar();
+        s.encerrado = true; marcarLembretes({ encerrado: true }); await salvar();
         try { await require('../universal-v1/finalizar-conversa.cjs').finalizarConversa(ctx.supabase, meta.workspaceId, meta.canalId, meta.numero); } catch (e) { log(meta.numero, 'finalizar: ' + e.message); }
         return { parar: true };
       }
