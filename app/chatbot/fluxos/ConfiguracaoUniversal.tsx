@@ -1,5 +1,7 @@
 "use client";
-import { PERFIS_UNIVERSAIS, PROMPT_TELECOM_NIO, configurarNicho, perfilUniversal, coletaInicial } from '../../lib/atendimento-universal';
+import { PERFIS_UNIVERSAIS, PROMPT_TELECOM_NIO, configurarNicho, perfilUniversal, coletaInicial, nichoUniversalInicial } from '../../lib/atendimento-universal';
+import { vendedoraInicial } from '../../lib/vendedora-ia';
+import VendedoraIAConfig from './VendedoraIAConfig';
 import ConclusaoUniversal from './ConclusaoUniversal';
 import AjudaCampo from '../../components/AjudaCampo';
 import VeroConfiguracao from './VeroConfiguracao';
@@ -8,6 +10,11 @@ type Props={tipo:'assistente_universal'|'nicho_atendimento'|'concluir_venda_univ
 const input={width:'100%',padding:10,border:'1px solid #cbd5e1',borderRadius:8,fontSize:12,boxSizing:'border-box' as const};
 export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u,workspaceId,campos,variaveis,status}:Props){
  if(tipo==='concluir_venda_universal')return <ConclusaoUniversal dados={d} onChange={u} workspaceId={workspaceId} campos={campos} variaveis={variaveis} status={status}/>;
+ const ehVendedora=d.integracao==='vendedora_ia';
+ const modo=tipo==='nicho_atendimento'&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+  {([[true,'✨ Vendedora IA','Recomendado · qualquer ramo, configura em minutos'],[false,'⚙️ Avançado','Integrações específicas (Claro, Vero, Loja, pós-venda)']] as const).map(([v,t,s])=><button key={t} type="button" onClick={()=>{if(v===ehVendedora)return;if(!confirm(v?'Usar a Vendedora IA neste bloco? A configuração avançada atual será substituída.':'Voltar para o modo avançado? A configuração da Vendedora IA será substituída.'))return;u(v?vendedoraInicial():{...nichoUniversalInicial()});}} style={{textAlign:'left',padding:'10px 12px',borderRadius:10,cursor:'pointer',border:v===ehVendedora?'2px solid #0F766E':'1px solid #cbd5e1',background:v===ehVendedora?'#ecfdf5':'#fff'}}><div style={{fontSize:12.5,fontWeight:800,color:'#0f172a'}}>{t}</div><div style={{fontSize:11,color:'#64748b'}}>{s}</div></button>)}
+ </div>;
+ if(tipo==='nicho_atendimento'&&ehVendedora)return <div style={{display:'grid',gap:14}}>{modo}<VendedoraIAConfig dados={d} onChange={u}/></div>;
  const campo=(label:string,chave:string,multilinha=false)=><label style={{display:'grid',gap:5,fontSize:12,color:'#334155'}}>{label}<AjudaCampo texto={'Personalize '+label.toLowerCase()+'. Esta configuração é usada apenas pelo assistente deste fluxo.'} exemplo={chave==='apresentacao'?'Olá! Sou a Ana, assistente virtual da sua empresa. Vou ajudar você por aqui.':chave==='fontes'?'Use um bloco Requisição HTTP antes da IA e informe a variável do catálogo abaixo.':undefined}/>{multilinha?<textarea style={input} rows={4} value={d[chave]||''} onChange={e=>u({[chave]:e.target.value})}/>:<input style={input} value={d[chave]||''} onChange={e=>u({[chave]:e.target.value})}/>}</label>;
  const perfil=perfilUniversal(d.nicho);
  return <div style={{display:'grid',gap:14}}>
@@ -30,6 +37,7 @@ export default function ConfiguracaoUniversal({tipo,dados:d,onChange:u,workspace
    <div style={{padding:12,background:'var(--w-50)',borderRadius:8,fontSize:12,lineHeight:1.7}}><strong>Documentos: receber, extrair e conferir</strong><p>O original deve ser salvo antes da leitura. Falha de OCR ou baixa confiança significa leitura inconclusiva, nunca documento inválido. Sem inventar dados ou afirmar identidade validada.</p><p style={{marginBottom:0}}>Os arquivos e as pendências seguem para a equipe responsável. A leitura não aprova identidade, crédito, cobertura ou contrato.</p></div>
    <div style={{borderTop:'1px solid #e2e8f0',paddingTop:12,fontSize:12,lineHeight:1.7}}><strong>Prévia da abertura</strong><p>{d.apresentacao||`Olá! Sou ${d.nome||'[nome do assistente]'}, assistente virtual da ${d.empresa||'[empresa]'}. Vou ajudar você por aqui. Como posso te ajudar hoje?`}</p></div>
   </>:<>
+   {modo}
    <label style={{display:'grid',gap:5,fontSize:12}}>Nicho deste atendimento<select style={input} value={d.nicho||''} onChange={e=>u(configurarNicho(e.target.value))}><option value="">Selecione um nicho</option>{Object.entries(PERFIS_UNIVERSAIS).map(([id,p])=><option key={id} value={id}>{p.nome}</option>)}</select></label>
    {perfil&&<>
     <label style={{display:'grid',gap:6,fontSize:12,color:'#334155'}}><strong>Prompt da vendedora · usado no atendimento</strong><textarea style={{...input,minHeight:360,lineHeight:1.6}} rows={20} value={d.prompt||(d.nicho==='telecom'?PROMPT_TELECOM_NIO:'')} onChange={e=>u({prompt:e.target.value})}/><small>Salve o fluxo para aplicar as alterações. No motor Agente IA, este texto é a instrução principal da vendedora: jeito de falar, regras de endereço, explicação dos planos, objeções e desistência. Consulta, catálogo, validação dos dados, resumo e conclusão continuam conferidos pelo sistema.</small></label>

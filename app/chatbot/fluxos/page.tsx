@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { useModulos } from "../../hooks/useModulos";
 import AjudaCampo from '../../components/AjudaCampo';
 import ConfiguracaoUniversal from './ConfiguracaoUniversal';
+import { vendedoraInicial } from '../../lib/vendedora-ia';
 import { assistenteUniversalInicial, nichoUniversalInicial, conclusaoUniversalInicial, validarEstruturaUniversal, universalExecutavel } from '../../lib/atendimento-universal';
 import { carregarVertical } from "../../hooks/useWorkspace";
 import { CAMPOS_FIXOS, montarCamposUnificados, type ConfigCampoPadrao, type CampoCustom, type CampoUnificado } from "../../lib/campos_proposta_definicao";
@@ -149,7 +150,7 @@ async function getWsUsername(): Promise<string|null> {
 
 function defaultD(tipo: TipoNo): Record<string,any> {
   if(tipo==='assistente_universal')return assistenteUniversalInicial();
-  if(tipo==='nicho_atendimento')return nichoUniversalInicial();
+  if(tipo==='nicho_atendimento')return vendedoraInicial();
   if(tipo==='concluir_venda_universal')return conclusaoUniversalInicial();
   const m: Partial<Record<TipoNo,Record<string,any>>> = {
     texto:{texto:"Digite sua mensagem aqui..."},
