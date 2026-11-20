@@ -142,6 +142,7 @@ function instrucoes(a, n, s, catalogoInfo) {
     '- Quando o cliente decidir, colete os dados da lista DADOS A COLETAR, um por vez, aproveitando o que ele já disse (salvar_dados). Depois mande o resumo e peça confirmação. Confirmado: registrar_pedido.',
     '- Se um dado da lista não se aplica ao item escolhido (ex.: cor de um produto que não tem opções de cor na descrição), salve "padrão" e siga, sem perguntar. NUNCA invente opções (cores, tamanhos, sabores, horários) que não estejam na descrição do item ou nas informações da empresa.',
     '- Depois de registrar, passe os próximos passos que a ferramenta devolver (link de pagamento, agendamento, prazo). Nunca diga que o pagamento foi aprovado.',
+    '- Não ofereça nem prometa nada que não esteja nas informações da empresa (rastreio, brinde, desconto, frete grátis, garantia estendida...).',
     '- Preço, estoque, horários, prazos e condições SÓ do catálogo e das informações da empresa. Se não estiver lá, diga que vai confirmar com a equipe (chamar_humano se o cliente precisar disso para decidir).',
     '- Curiosos, spam ou quem não tem interesse real: respostas curtas; se insistir sem objetivo, despeça-se e chame encerrar.',
     '- Se o cliente pedir para ser chamado depois, responda que tudo bem e que as informações dele ficam salvas para continuar quando ele voltar. Não diga que é incapaz de agendar.',
@@ -188,6 +189,47 @@ module.exports = function criar({ ctx, log }) {
     return require('../bko-roteamento.js').enviar(s.client, so(meta.numero), media, { caption: legenda || undefined });
   }
 
+  /** Aviso ao dono quando a cobrança do pedido é paga. */
+  async function avisarPago(meta, a, n, s, nome) {
+    const txt = `💰 *PAGAMENTO APROVADO* · ${a.empresa || ''}\n${brl(s.cobranca.valor)} · ${s.cobranca.gateway}\n📝 ${(s.pedidos || []).at(-1) || ''}\n📱 +${so(meta.numero)}${nome ? ' · ' + nome : ''}`;
+    for (const dono of String(n.aviso_whatsapp || '').split(/[,;\s]+/).map(so).filter((d) => d.length >= 10)) { try { await enviarPara(meta, dono, txt); } catch (e) { log(meta.numero, 'aviso de pago: ' + e.message); } }
+    if (/^https:\/\//.test(n.webhook_url || '')) fetch(n.webhook_url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ evento: 'pagamento_aprovado', workspace: meta.workspaceId, whatsapp: so(meta.numero), valor: s.cobranca.valor, gateway: s.cobranca.gateway, dados: s.dados }), signal: AbortSignal.timeout(15000) }).catch(() => {});
+  }
+
+  // Checagem automática das cobranças da Vendedora IA (a cada minuto). Recriada a cada recarga do arquivo.
+  if (ctx.__vendedoraCobrancas) clearInterval(ctx.__vendedoraCobrancas);
+  let conferindo = false;
+  ctx.__vendedoraCobrancas = setInterval(async () => {
+    if (conferindo || !ctx.supabase) return; conferindo = true;
+    try {
+      const q = await ctx.supabase.from('fluxo_sessoes').select('*').eq('status', 'ativo').eq('tipo_input_aguardado', 'nicho_atendimento').limit(500);
+      if (q.error) throw q.error;
+      const fluxos = new Map();
+      for (const row of q.data || []) {
+        const bruto = row.variaveis?.[KEY]; if (!bruto || !String(bruto).includes('"cobranca"')) continue;
+        const s = ler(bruto); if (s.cobranca?.status !== 'pendente' || Date.now() - Date.parse(s.cobranca.criado) > 3 * 86400_000) continue;
+        if (!fluxos.has(row.fluxo_id)) { const f = await ctx.supabase.from('fluxos').select('id,nos').eq('id', row.fluxo_id).limit(1); fluxos.set(row.fluxo_id, f.data?.[0]); }
+        const f = fluxos.get(row.fluxo_id), n = f?.nos?.find((z) => z.id === row.no_atual)?.dados, a = f?.nos?.find((z) => z.tipo === 'assistente_universal')?.dados || {};
+        if (!n?.gateway_token) continue;
+        try {
+          const st = await require(path.join(__dirname, '../blocos-extra/blocos.cjs')).situacao({ gateway: s.cobranca.gateway, token: n.gateway_token, id: s.cobranca.id, ref: s.cobranca.ref });
+          if (st.status !== 'aprovado') continue;
+          s.cobranca.status = 'aprovado'; s.cobranca.em = new Date().toISOString();
+          const vars = { ...row.variaveis, [KEY]: JSON.stringify(s), pagamento_status: 'aprovado' };
+          const up = await ctx.supabase.from('fluxo_sessoes').update({ variaveis: vars, updated_at: new Date().toISOString() }).eq('id', row.id).eq('updated_at', row.updated_at).eq('status', 'ativo').select('id');
+          if (up.error || !up.data?.length) continue; // a conversa mudou agora: confere na próxima mensagem
+          const meta = { workspaceId: row.workspace_id, canalId: row.canal_id, numero: row.numero };
+          const msg = n.mensagem_pago || { en: '✅ Payment received! Thank you. 💚 We will take care of your order now.', es: '✅ ¡Pago recibido! Gracias. 💚 Ya nos encargamos de tu pedido.' }[s.lang] || '✅ Pagamento aprovado! Obrigado. 💚 Já vamos cuidar do seu pedido.';
+          try { await enviarPara(meta, row.numero, msg); await ctx.salvarMensagem?.(row.workspace_id, row.canal_id, null, row.numero, msg, 'bot', 'BOT', null); } catch (e) { log(row.numero, 'aviso ao cliente: ' + e.message); }
+          await avisarPago(meta, a, n, s, null);
+          log(row.numero, `pagamento aprovado (${s.cobranca.gateway})`);
+        } catch (e) { log(row.numero, 'checar cobrança: ' + e.message); }
+      }
+    } catch (e) { console.error('[VendedoraIA] cobranças:', e.message); }
+    finally { conferindo = false; }
+  }, 60000);
+  ctx.__vendedoraCobrancas.unref?.();
+
   return async function processar(f, no, vars, texto, input, enviar, meta) {
     if ((await ctx.verificarBloqueioManualBot?.(meta.workspaceId, meta.canalId, meta.numero))?.bloqueado) return { parar: true };
     const at = await ctx.supabase.from('atendimentos').select('status,nome').eq('workspace_id', meta.workspaceId).eq('canal_id', meta.canalId).eq('numero', meta.numero).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -216,6 +258,10 @@ module.exports = function criar({ ctx, log }) {
     if (!a.apiKey) { log(meta.numero, 'sem chave da IA no bloco Assistente'); return { aguardarInput: true }; }
 
     const bruto = s.pendentes.join('\n');
+    // Cobrança pendente: confere agora (o cliente pode estar dizendo "paguei").
+    if (s.cobranca?.status === 'pendente' && n.gateway_token) {
+      try { const st = await require(path.join(__dirname, '../blocos-extra/blocos.cjs')).situacao({ gateway: s.cobranca.gateway, token: n.gateway_token, id: s.cobranca.id, ref: s.cobranca.ref }); if (st.status !== 'pendente') { s.cobranca.status = st.status; s.cobranca.em = new Date().toISOString(); if (st.status === 'aprovado') { vars.pagamento_status = 'aprovado'; await avisarPago(meta, a, n, s, nomeContato); } } } catch (e) { log(meta.numero, 'conferir cobrança: ' + e.message); }
+    }
     try {
       let entrada = bruto, imagens = [];
       try { const m = await require('../claro-prime-v2/midia.cjs').preparar(bruto, { dir: ctx.AUDIOS_DIR, apiKey: a.apiKey }); entrada = m.texto || bruto; imagens = m.imagens || []; } catch (e) { log(meta.numero, 'mídia: ' + e.message); }
@@ -230,6 +276,7 @@ module.exports = function criar({ ctx, log }) {
         Object.keys(s.dados).length ? `Dados já salvos: ${JSON.stringify(s.dados)}` : '',
         s.vistos?.length ? `Itens já mostrados: ${s.vistos.join(' | ')}` : '',
         s.pedidos?.length ? `Pedidos já registrados nesta conversa: ${s.pedidos.join(' | ')}` : '',
+        s.cobranca ? `Cobrança do pedido: ${brl(s.cobranca.valor)} · ${s.cobranca.status === 'aprovado' ? 'PAGAMENTO APROVADO (confirmado pelo gateway)' : 'aguardando pagamento — link: ' + s.cobranca.link + '. Se o cliente disser que pagou, diga que a confirmação chega sozinha em instantes; nunca confirme antes.'}` : '',
         nomeContato && !s.dados.nome ? `Nome no WhatsApp do cliente: ${nomeContato} (confirme antes de usar como nome completo).` : '',
       ].filter(Boolean).join('\n');
       const conteudo = imagens.length ? [{ type: 'text', text: entrada }, ...imagens.slice(0, 3).map((u) => ({ type: 'image_url', image_url: { url: u } }))] : entrada;
@@ -297,7 +344,19 @@ module.exports = function criar({ ctx, log }) {
                   fetch(n.planilha_registro_url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, redirect: 'follow', body: JSON.stringify({ acao: 'append', aba: n.planilha_registro_aba || '', dados: JSON.stringify(linha), linha }), signal: AbortSignal.timeout(20000) }).catch((e) => log(meta.numero, 'planilha: ' + e.message));
                 }
                 saida.seguir = !!(f.conexoes || []).find((c) => c.de === no.id && Number(c.saidaIndex || 0) === 0 && f.nos.find((z) => z.id === c.para && z.tipo !== 'transferir'));
-                r = { ok: true, proximos_passos: { link_pagamento: links[0] || n.link_pagamento || null, formas_pagamento: n.formas_pagamento || null, link_agendamento: n.link_agendamento || null, mensagem_empresa: n.mensagem_pos_pedido || null }, aviso: 'Confirme o registro ao cliente e passe os próximos passos.' };
+                // Cobrança automática no gateway do cliente (valor exato do pedido).
+                let cobranca = null;
+                if (String(n.gateway_token || '').trim() && Number(x.total) > 0) {
+                  try {
+                    const ref = `wolf-${meta.workspaceId}-${so(meta.numero)}-${Date.now().toString(36)}`;
+                    const ex = require(path.join(__dirname, '../blocos-extra/blocos.cjs'));
+                    const c = await ex.cobrar({ gateway: n.gateway || undefined, token: n.gateway_token, valor: Number(x.total), descricao: `${a.empresa || 'Pedido'}: ${(x.resumo || lista).slice(0, 90)}`, ref, horas: 48 });
+                    cobranca = s.cobranca = { ref, id: c.id, link: c.link, gateway: n.gateway || ex.gatewayDoToken(n.gateway_token), valor: Number(x.total), status: 'pendente', criado: new Date().toISOString() };
+                    vars.pagamento_link = c.link; vars.pagamento_status = 'pendente';
+                    log(meta.numero, `cobrança ${cobranca.gateway} ${brl(x.total)} criada`);
+                  } catch (e) { log(meta.numero, 'cobrança falhou: ' + e.message); }
+                }
+                r = { ok: true, proximos_passos: { link_pagamento: cobranca?.link || links[0] || n.link_pagamento || null, pagamento_confirmado_automaticamente: !!cobranca, formas_pagamento: n.formas_pagamento || null, link_agendamento: n.link_agendamento || null, mensagem_empresa: n.mensagem_pos_pedido || null }, aviso: 'Confirme o registro ao cliente e passe os próximos passos.' };
                 log(meta.numero, `pedido registrado: ${x.resumo || lista}`);
               }
             } else if (fn === 'chamar_humano') {

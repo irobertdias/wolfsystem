@@ -80,6 +80,7 @@ export function problemasVendedora(d: Record<string, any>): string[] {
   if (d.catalogo_fonte === "manual" && (d.catalogo || []).some((i: any) => !String(i.nome || "").trim())) p.push("Há item do catálogo sem nome.");
   for (const c of d.coleta || []) if (c.variavel && !/^[a-zA-Z_][\w]{0,60}$/.test(c.variavel)) p.push(`Nome de variável inválido: "${c.variavel}" (use letras, números e _).`);
   if (d.webhook_url && !/^https:\/\//.test(d.webhook_url)) p.push("O webhook precisa começar com https://.");
+  if (d.gateway && !String(d.gateway_token || "").trim()) p.push("Cole o token do gateway de pagamento (Vendedora IA → passo 5) ou desligue a cobrança automática.");
   if (d.planilha_registro_url && !/^https:\/\/script\.google\.com\//.test(d.planilha_registro_url)) p.push("A planilha de registro precisa ser a URL do Apps Script (https://script.google.com/...).");
   return p;
 }

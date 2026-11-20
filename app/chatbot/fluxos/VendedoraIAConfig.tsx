@@ -118,6 +118,21 @@ export default function VendedoraIAConfig({ dados: d, onChange: u }: Props) {
 
       <section style={caixa}>
         {titulo(5, "Pagamento e agendamento", "O que a vendedora manda depois que o cliente confirma.")}
+        <div style={{ display: "grid", gap: 8, padding: 10, borderRadius: 10, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+          <strong style={{ fontSize: 12 }}>💳 Cobrança automática (recomendado)</strong>
+          <span style={{ fontSize: 11.5, color: "#475569" }}>Com o gateway ligado, a vendedora gera o link com o <b>valor exato do pedido</b>, confere o pagamento sozinha a cada minuto e avisa você e o cliente quando cair.</span>
+          <select style={input} value={d.gateway || ""} onChange={(e) => u({ gateway: e.target.value })}>
+            <option value="">Sem cobrança automática</option>
+            <option value="mercadopago">Mercado Pago (Pix e cartão)</option>
+            <option value="asaas">Asaas (Pix, boleto e cartão)</option>
+            <option value="stripe">Stripe (cartão)</option>
+          </select>
+          {d.gateway && <label style={{ display: "grid", gap: 5, fontSize: 12, color: "#334155" }}>
+            <span>Token do gateway <AjudaCampo texto={({ mercadopago: "Mercado Pago → Seu negócio → Configurações → Credenciais de produção → Access Token (APP_USR-…).", asaas: "Asaas → Integrações → API → chave de API ($aact_…).", stripe: "Stripe → Developers → API keys → Secret key (sk_live_… ou sk_test_…)." } as Record<string, string>)[d.gateway] + " O dinheiro cai direto na sua conta."} /></span>
+            <input type="password" autoComplete="new-password" style={input} value={d.gateway_token || ""} placeholder={({ mercadopago: "APP_USR-...", asaas: "$aact_...", stripe: "sk_live_..." } as Record<string, string>)[d.gateway]} onChange={(e) => u({ gateway_token: e.target.value })} />
+          </label>}
+          {d.gateway && campo("Mensagem ao cliente quando o pagamento cair (opcional)", "mensagem_pago", { ph: "✅ Pagamento aprovado! Obrigado. Já vamos cuidar do seu pedido." })}
+        </div>
         {campo("Formas de pagamento", "formas_pagamento", { ph: "Pix, cartão em até 3x, dinheiro na entrega" })}
         {campo("Link de pagamento geral (opcional)", "link_pagamento", { ph: "https://mpago.la/…", ajuda: "Usado quando o item do catálogo não tem link próprio." })}
         {campo("Link de agendamento (opcional)", "link_agendamento", { ph: "https://calendly.com/…" })}

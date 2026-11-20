@@ -887,12 +887,22 @@ function PainelProps({ noSel, updateNo, excluirNo, setNos, filasBanco, atendente
       // Mercado Pago com o token do próprio cliente: gera o link (Pix/cartão), espera e confere sozinho.
       return <>
         <p style={{color:"#065f46",background:"#ecfdf5",border:"1px solid #a7f3d0",borderRadius:8,padding:"8px 10px",fontSize:11.5,margin:"0 0 8px",lineHeight:1.5}}>
-          💳 Gera um link do <b>Mercado Pago</b> (Pix e cartão), manda ao cliente e confere o pagamento sozinho a cada minuto.
+          💳 Gera o link de pagamento no gateway escolhido (Mercado Pago, Asaas ou Stripe), manda ao cliente e confere o pagamento sozinho a cada minuto.
           Saída <b>Aprovado</b> quando pagar; <b>Recusado</b> se recusar, desistir ou não pagar depois das tentativas.
           Variáveis: {"{{pagamento_link}}"}, {"{{pagamento_valor}}"}, {"{{pagamento_status}}"}.
         </p>
-        <label style={LS}>Access token do Mercado Pago <AjudaCampo texto="Mercado Pago → Seu negócio → Configurações → Credenciais de produção → Access Token (começa com APP_USR-). O dinheiro cai na conta dona do token." /></label>
-        <input type="password" autoComplete="new-password" value={d.access_token||""} onChange={e=>u({access_token:e.target.value})} placeholder="APP_USR-..." style={{...IS,marginBottom:8}}/>
+        <label style={LS}>Gateway de pagamento</label>
+        <select value={d.gateway||"mercadopago"} onChange={e=>u({gateway:e.target.value})} style={{...IS,marginBottom:8}}>
+          <option value="mercadopago">Mercado Pago (Pix e cartão)</option>
+          <option value="asaas">Asaas (Pix, boleto e cartão)</option>
+          <option value="stripe">Stripe (cartão)</option>
+        </select>
+        <label style={LS}>Token do {({mercadopago:"Mercado Pago",asaas:"Asaas",stripe:"Stripe"} as Record<string,string>)[d.gateway||"mercadopago"]} <AjudaCampo texto={({
+          mercadopago:"Mercado Pago → Seu negócio → Configurações → Credenciais de produção → Access Token (começa com APP_USR-).",
+          asaas:"Asaas → Integrações → API → Gerar chave de API (começa com $aact_). Chave de sandbox também funciona para testar.",
+          stripe:"Stripe → Developers → API keys → Secret key (começa com sk_live_ ou sk_test_ para testar).",
+        } as Record<string,string>)[d.gateway||"mercadopago"]+" O dinheiro cai direto na conta dona do token."} /></label>
+        <input type="password" autoComplete="new-password" value={d.access_token||""} onChange={e=>u({access_token:e.target.value})} placeholder={({mercadopago:"APP_USR-...",asaas:"$aact_...",stripe:"sk_live_..."} as Record<string,string>)[d.gateway||"mercadopago"]} style={{...IS,marginBottom:8}}/>
         {TVar("Valor (R$ ou variável)","valor","ex.: 149,90 ou {{pedido_total_numero}}",40)}
         {TVar("Descrição (aparece no checkout)","descricao","Pedido {{nome}}",40)}
         {TVar("Mensagem com o link","mensagem","💳 Para finalizar, pague *{{pagamento_valor}}* por este link:\n{{pagamento_link}}",80)}

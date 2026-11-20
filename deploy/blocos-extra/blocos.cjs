@@ -11,19 +11,17 @@ const so = (v) => String(v || '').replace(/\D/g, '');
 const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const numero = (v) => { if (typeof v === 'number') return v; const n = Number(String(v || '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.')); return Number.isFinite(n) ? n : NaN; };
 
-async function mp(token, metodo, caminho, corpo) {
-  const r = await fetch('https://api.mercadopago.com' + caminho, { method: metodo, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: corpo ? JSON.stringify(corpo) : undefined, signal: AbortSignal.timeout(20000) });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw Object.assign(new Error(j?.message || 'Mercado Pago ' + r.status), { status: r.status });
-  return j;
-}
-/** Situação do pagamento pela referência: 'aprovado' | 'recusado' | 'pendente'. */
-async function situacao(token, ref) {
-  const j = await mp(token, 'GET', `/v1/payments/search?external_reference=${encodeURIComponent(ref)}&sort=date_created&criteria=desc&limit=10`);
-  const lista = j.results || [];
-  if (lista.some((p) => p.status === 'approved')) return { status: 'aprovado', pagamento: lista.find((p) => p.status === 'approved') };
-  if (lista.length && lista.every((p) => ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(p.status))) return { status: 'recusado', pagamento: lista[0] };
-  return { status: 'pendente' };
+const path = require('node:path');
+/** Gateways (Mercado Pago, Asaas, Stripe), relido a cada uso para seguir o arquivo atualizado. */
+const gw = () => { const a = path.join(__dirname, 'gateways.cjs'); delete require.cache[a]; return require(a); };
+/** Gateway pelo formato do token (Asaas: $aact_…, Stripe: sk_/rk_…, senão Mercado Pago). */
+const gatewayDoToken = (t) => (/^\$?aact_/.test(String(t).trim()) ? 'asaas' : /^(sk|rk)_/.test(String(t).trim()) ? 'stripe' : 'mercadopago');
+/** Situação de uma cobrança: 'aprovado' | 'recusado' | 'pendente'.
+ *  Formato curto (token, ref) usado pela checagem automática: ref = "wolf-…" (Mercado Pago) ou "wolf-…|id" (Asaas/Stripe). */
+async function situacao(a, b) {
+  if (typeof a !== 'string') return gw().situacao(a);
+  const [ref, id] = String(b || '').split('|');
+  return gw().situacao({ gateway: gatewayDoToken(a), token: a, ref, id: id || ref });
 }
 const DESISTIU = /\b(cancel|desist|n[aã]o vou (mais )?pagar|n[aã]o quero mais|deixa (pra|para) l[aá])/i;
 
@@ -33,21 +31,19 @@ async function pagamento({ fluxo, no, d, variaveis, mensagemCliente, processarIn
   const salvar = () => { variaveis[chave] = JSON.stringify(est); };
   const saida = (i) => ({ proximoNoId: proximoNo(fluxo, no.id, i)?.id || null });
   const token = String(d.access_token || '').trim();
+  const gateway = d.gateway || gatewayDoToken(token);
 
   if (!processarInput || !est.ref) {
     const valor = numero(substituirVariaveis(String(d.valor ?? ''), variaveis));
-    if (!token) { console.error('[Pagamento] bloco sem access token do Mercado Pago'); await fnEnviar(substituirVariaveis(d.mensagem_erro || 'Não consegui gerar o pagamento agora. Um atendente vai te ajudar. 🙏', variaveis)); return saida(1); }
+    if (!token) { console.error('[Pagamento] bloco sem token do gateway'); await fnEnviar(substituirVariaveis(d.mensagem_erro || 'Não consegui gerar o pagamento agora. Um atendente vai te ajudar. 🙏', variaveis)); return saida(1); }
     if (!(valor > 0)) { console.error('[Pagamento] valor inválido:', d.valor); await fnEnviar(substituirVariaveis(d.mensagem_erro || 'Não consegui gerar o pagamento agora. Um atendente vai te ajudar. 🙏', variaveis)); return saida(1); }
     const descricao = substituirVariaveis(String(d.descricao || 'Pagamento'), variaveis).slice(0, 120) || 'Pagamento';
     est.ref = `wolf-${ctx?.workspaceId || 'ws'}-${so(ctx?.numero)}-${Date.now().toString(36)}`;
-    est.valor = valor; est.tentativas = 0; est.criado = new Date().toISOString();
+    est.valor = valor; est.tentativas = 0; est.criado = new Date().toISOString(); est.gateway = gateway;
     try {
-      const pref = await mp(token, 'POST', '/checkout/preferences', {
-        items: [{ title: descricao, quantity: 1, unit_price: Math.round(valor * 100) / 100, currency_id: 'BRL' }],
-        external_reference: est.ref, statement_descriptor: String(d.nome_fatura || '').slice(0, 13) || undefined,
-        date_of_expiration: new Date(Date.now() + Math.max(1, Number(d.validade_horas) || 48) * 3600_000).toISOString(),
-      });
-      est.link = pref.init_point;
+      const c = await gw().criar({ gateway, token, valor, descricao, ref: est.ref, horas: Math.max(1, Number(d.validade_horas) || 48) });
+      est.link = c.link; est.id = c.id;
+      if (gateway !== 'mercadopago') est.ref = `${est.ref}|${c.id}`; // a checagem automática acha o id por aqui
     } catch (e) {
       console.error('[Pagamento] criar link:', e.message);
       await fnEnviar(substituirVariaveis(d.mensagem_erro || 'Não consegui gerar o pagamento agora. Um atendente vai te ajudar. 🙏', variaveis));
@@ -63,9 +59,9 @@ async function pagamento({ fluxo, no, d, variaveis, mensagemCliente, processarIn
 
   // Cliente respondeu (ou checagem automática): confere no Mercado Pago.
   let s = { status: 'pendente' };
-  try { s = await situacao(token, est.ref); } catch (e) { console.error('[Pagamento] consultar:', e.message); }
+  try { s = await situacao({ gateway: est.gateway || gateway, token, id: est.id, ref: String(est.ref).split('|')[0] }); } catch (e) { console.error('[Pagamento] consultar:', e.message); }
   if (s.status === 'aprovado') {
-    variaveis.pagamento_status = 'aprovado'; variaveis.pagamento_id = String(s.pagamento?.id || ''); variaveis.pagamento_metodo = String(s.pagamento?.payment_type_id || '');
+    variaveis.pagamento_status = 'aprovado'; variaveis.pagamento_id = String(s.pagamento_id || ''); variaveis.pagamento_metodo = String(s.metodo || '');
     est.aprovado = new Date().toISOString(); salvar();
     const ok = substituirVariaveis(d.mensagem_aprovado || '✅ Pagamento de {{pagamento_valor}} aprovado! Obrigado. 💚', variaveis);
     if (ok) await fnEnviar(ok);
@@ -118,4 +114,7 @@ function executarNo(fluxo, no, variaveis, mensagemCliente, processarInput, fnEnv
   return no.tipo === 'input_pagamento' ? pagamento(args) : invalido(args);
 }
 
-module.exports = { executarNo, mensagemInvalida, situacao, substituirVariaveis };
+/** Cria cobrança (usado pela Vendedora IA). */
+const cobrar = (o) => gw().criar({ ...o, gateway: o.gateway || gatewayDoToken(o.token) });
+
+module.exports = { executarNo, mensagemInvalida, situacao, substituirVariaveis, cobrar, gatewayDoToken };
