@@ -1,4 +1,6 @@
 import { problemasVendedora } from "./vendedora-ia";
+/** Integrações em que a IA do próprio nicho conduz o atendimento (sem nicho padrão nem bloco Concluir venda). */
+export const INTEGRACOES_PROPRIAS: (string | undefined)[] = ["loja_sistema", "vendedora_ia", "abc_ia"];
 export const PROMPT_TELECOM_NIO = `Você é a assistente virtual de vendas da Grupo Prime, parceira Nio. Atenda como uma vendedora experiente: acolhedora, clara, consultiva e objetiva. Entenda a intenção do cliente, responda às dúvidas e continue de onde parou, sem repetir perguntas já respondidas.
 
 ABERTURA E LOCALIDADE
@@ -100,14 +102,16 @@ export function validarEstruturaUniversal(nos: {id:string;tipo:string;dados:Reco
     if(lembretes?.ativo===true&&(!Array.isArray(lembretes.minutos)||lembretes.minutos.length!==5||!lembretes.minutos.every((v:any,i:number)=>Number.isFinite(Number(v))&&Number(v)>0&&(!i||Number(v)>Number(lembretes.minutos[i-1])))))problemas.push('Configure os cinco horários crescentes dos lembretes inteligentes.');
     for(const k of ['silencio_inicio','silencio_fim'])if(lembretes?.[k]!==undefined&&lembretes[k]!==''&&!(Number.isInteger(Number(lembretes[k]))&&Number(lembretes[k])>=0&&Number(lembretes[k])<=23))problemas.push('O horário sem lembretes deve usar horas de 0 a 23.');
     const destinos=arestas.filter(a=>a.de===no.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
-    const vendedora=destinos.length===1&&destinos[0]?.dados?.integracao==='vendedora_ia';
-    if(no.dados.motor==='agente'&&destinos.length===1&&!['claro_prime','configuravel','loja_sistema','vendedora_ia',undefined,''].includes(destinos[0]?.dados?.integracao))problemas.push('O motor Agente IA funciona com as integrações "Base Claro" ou "Catálogo e coleta configuráveis".');
+    const integracao=destinos.length===1?destinos[0]?.dados?.integracao:undefined;
+    const vendedora=integracao==='vendedora_ia';
+    // Integrações com atendimento próprio (a IA delas conduz a venda): não usam nicho padrão nem Concluir venda.
+    const propria=INTEGRACOES_PROPRIAS.includes(integracao);
+    if(no.dados.motor==='agente'&&destinos.length===1&&!['claro_prime','configuravel',...INTEGRACOES_PROPRIAS,undefined,''].includes(integracao))problemas.push('O motor Agente IA funciona com as integrações "Base Claro" ou "Catálogo e coleta configuráveis".');
     if(destinos.length!==1||destinos[0]?.tipo!=='nicho_atendimento')problemas.push('Conecte o assistente a um único bloco Nicho de atendimento.');
     else if(vendedora)problemas.push(...problemasVendedora(destinos[0]!.dados));
-    else if(!perfilUniversal(destinos[0].dados.nicho))problemas.push('Escolha um nicho válido para o assistente.');
-    if(vendedora&&!String(no.dados.apiKey||'').trim())problemas.push('Cole a chave da OpenAI no bloco Vendedor IA · Universal.');
-    // Vendedora da loja e Vendedora IA não exigem o bloco Concluir venda (a saída é opcional).
-    if(destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'&&!['loja_sistema','vendedora_ia'].includes(destinos[0]?.dados?.integracao)){
+    else if(!propria&&!perfilUniversal(destinos[0].dados.nicho))problemas.push('Escolha um nicho válido para o assistente.');
+    if((vendedora||integracao==='abc_ia')&&!String(no.dados.apiKey||'').trim())problemas.push('Cole a chave da OpenAI no bloco Vendedor IA · Universal.');
+    if(destinos.length===1&&destinos[0]?.tipo==='nicho_atendimento'&&!propria){
       const finais=arestas.filter(a=>a.de===destinos[0]!.id&&a.saidaIndex===0).map(a=>nos.find(n=>n.id===a.para));
       if(finais.length!==1||finais[0]?.tipo!=='concluir_venda_universal')problemas.push('Conecte o nicho ao bloco Concluir venda · CRM + WhatsApp.');
     }
