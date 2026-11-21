@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const {data:filas,error:ef}=await supabaseServer.from('filas').select('id,nome,conexao').eq('workspace_id',a.workspaceId).order('nome');if(ef)throw ef;
     let servidor_pronto=false,waba_pronto=false;
     try {const r=await fetch(`${process.env.WHATSAPP_URL||process.env.NEXT_PUBLIC_WHATSAPP_URL||'https://api.wolfgyn.com.br'}/bko/health`,{headers:{'x-wolf-internal-secret':segredoInternoWolf()},cache:'no-store',signal:AbortSignal.timeout(4000)});if(r.ok){const j=await r.json();servidor_pronto=j.versao>=4&&(fluxoId===27||j.vero_fluxo===28);waba_pronto=!!(j.waba_assinatura&&j.waba_versao);}}catch{}
-    return NextResponse.json({success:true,config,canais,filas,fluxo_ativo:f.ativo||!!piloto?.ativo,servidor_pronto,waba_pronto,envios:(envios||[]).map(p=>({id:p.id,status:p.status_venda,estado:p.dados_customizados?.bko_pendente,erro:p.dados_customizados?.bko_erro||'',referencia:p.dados_customizados?.bko_ref||''}))});
+    return NextResponse.json({success:true,config,canais,filas,fluxo_ativo:f.ativo||!!piloto?.ativo,servidor_pronto,waba_pronto,envios:(envios||[]).map(p=>({id:p.id,numero_pedido:p.dados_customizados?.universal_variaveis?.numero_pedido||p.dados_customizados?.numero_pedido||null,status:p.status_venda,estado:p.dados_customizados?.bko_pendente,erro:p.dados_customizados?.bko_erro||'',referencia:p.dados_customizados?.bko_ref||''}))});
   }catch(e){return erro(e);}
 }
 export async function PATCH(request: NextRequest) {

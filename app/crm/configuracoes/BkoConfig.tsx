@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import AjudaCampo from '../../components/AjudaCampo';
 import type { ConfigBko } from '../../lib/bko-grupoprime';
 type Canal={id:number;nome:string;tipo:string;status:string};
-type Envio={id:number;status:string;estado:string;erro:string;referencia:string};
+type Envio={id:number;numero_pedido?:string|null;status:string;estado:string;erro:string;referencia:string};
 export default function BkoConfig({workspaceId}:{workspaceId:string}) {
   const fluxoId=27;
   const [versao,setVersao]=useState('');
@@ -55,6 +55,6 @@ export default function BkoConfig({workspaceId}:{workspaceId:string}) {
       <strong>Como o BKO responde</strong><br/>Use “Responder” na mensagem da venda e envie: CPF REPROVADO, APROVADO, GERADA, AGUARDANDO INSTALAÇÃO, INSTALADA, SEM DISPONIBILIDADE ou CANCELADA.<br/>
       Também é possível escrever a referência BKO da venda junto do status. Para agendar, acrescente em linhas separadas: DATA: DD/MM/AAAA e PERIODO: MANHÃ ou TARDE.<br/>“APROVADO” atualiza para APROVADA. Retornos sem venda identificada ou enviados por outros números não alteram o CRM.
     </div>
-    {!!envios.length&&<div style={{marginTop:18}}><h3 style={{fontSize:14}}>Últimos encaminhamentos</h3>{envios.map(e=><div key={e.id} style={{borderTop:'1px solid #e2e8f0',padding:'10px 0',fontSize:13}}>Venda #{e.id} · {e.status} · BKO: {e.estado}{e.erro&&<p style={{color:'#b91c1c'}}>{e.erro}</p>}{e.estado==='REVISAR'&&<p>O sistema retoma automaticamente as partes ainda não enviadas. Entregas sem confirmação permanecem em verificação para evitar duplicatas.</p>}</div>)}</div>}
+    {!!envios.length&&<div style={{marginTop:18}}><h3 style={{fontSize:14}}>Últimos encaminhamentos</h3>{envios.map(e=><div key={e.id} style={{borderTop:'1px solid #e2e8f0',padding:'10px 0',fontSize:13}}>Venda #{e.numero_pedido||e.id} · {e.status} · BKO: {e.estado}{e.erro&&<p style={{color:'#b91c1c'}}>{e.erro}</p>}{e.estado==='REVISAR'&&<p>O sistema retoma automaticamente as partes ainda não enviadas. Entregas sem confirmação permanecem em verificação para evitar duplicatas.</p>}</div>)}</div>}
   </section>;
 }

@@ -17,6 +17,10 @@ import {
 } from "../../../lib/campos_proposta_definicao";
 
 import Icone, { IconeEmoji } from "../../../components/a2/Icone";
+
+/** Código do pedido criado pela IA (ex.: 063IAVEND); vendas sem código mostram o ID. */
+const codigoPedido = (p: { id: number | string; dados_customizados?: Record<string, any> | null }) =>
+  p.dados_customizados?.universal_variaveis?.numero_pedido || p.dados_customizados?.numero_pedido || p.id;
 // ═══════════════════════════════════════════════════════════════════════════
 // 💰 VENDAS — Wolf CRM (multi-tenant)
 // ───────────────────────────────────────────────────────────────────────────
@@ -1486,7 +1490,7 @@ export default function Vendas() {
             style={{ ...cardStyle, width: "100%", maxWidth: 920, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
             <div style={{ padding: "18px 24px", borderBottom: "1px solid #E6ECEA", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#ffffff", gap: 12 }}>
               <div>
-                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 800, margin: 0 }}>Venda #{propostaVisualizando.id}</h2>
+                <h2 style={{ color: "#0f172a", fontSize: 18, fontWeight: 800, margin: 0 }}>Venda #{codigoPedido(propostaVisualizando)}</h2>
                 <p style={{ color: "#64748B", fontSize: 14, margin: "6px 0 0" }}>{propostaVisualizando.nome || "Sem nome"} · {nomeVendedor(propostaVisualizando.vendedor)}</p>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>

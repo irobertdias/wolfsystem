@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const vendas = (data || []).map(p => {
       const c = ler(p.dados_customizados), u = c.universal_entrega;
       const entregas = u ? [u] : Object.entries(ler(c.bko_envio).destinatarios || {}).map(([numero, meta]) => ({ ...meta as object, numero, canal_id: ler(c.bko_envio).canal_id }));
-      return { ...p, dados_customizados: undefined, estado_envio: c.bko_pendente, erro: c.bko_erro || '', referencia: c.bko_ref || '',
+      return { ...p, dados_customizados: undefined, numero_pedido: c.universal_variaveis?.numero_pedido || c.numero_pedido || null, estado_envio: c.bko_pendente, erro: c.bko_erro || '', referencia: c.bko_ref || '',
         entregas: entregas.map((e: any) => ({ numero: e.numero, canal_id: e.canal_id, concluido: !!e.concluido, partes: (e.partes || []).map((m: any) => ({ tipo: m.tipo, texto: m.texto || m.conteudo || '', nome: m.arquivo?.nome || m.nome || '', arquivo: m.arquivo?.url || '', estado: m.estado, id: m.id || '', ack: m.ack, em: m.enviado_em || m.confirmado_em || '' })) })),
         retornos: c.bko_retornos || [], acoes: c.universal_acoes || [] };
     });
