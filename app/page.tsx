@@ -6,7 +6,7 @@ import { conversaoLead } from "./lib/conversoes";
 import { PLANOS_WOLF, PRECO_USUARIO_EXTRA, PRECO_WHATSAPP_EXTRA, brlCurto } from "./lib/precos-wolf";
 
 import { IconeEmoji } from "./components/a2/Icone";
-const WHATSAPP = "https://wa.me/5562981519991?text=";
+const WHATSAPP = "https://wa.me/556284126661?text=";
 const CADASTRO = "https://app.wolfgyn.com.br/login/register";
 
 // Telas reais do sistema (workspace de demonstração, dados fictícios).

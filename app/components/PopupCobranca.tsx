@@ -24,8 +24,8 @@ import { useAcessoTeste } from "./AcessoTeste";
 const CONTATO = {
   pix_cnpj: "62.007.374/0001-96",
   razao_social: "ABC Call e Serviços",
-  whatsapp_display: "(62) 98151-9991",
-  whatsapp_numero: "5562981519991",
+  whatsapp_display: "(62) 8412-6661",
+  whatsapp_numero: "556284126661",
   email: "contato@abccompany.com.br",
 };
 

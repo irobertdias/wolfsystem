@@ -259,7 +259,7 @@ export function ModuloBloqueado({ modulo }: { modulo: ModuloKey }) {
   const solicitarLiberacao = () => {
     const msg = `Olá! Gostaria de solicitar a liberação do módulo *${info.nome}* na minha conta Wolf System.`;
     // Ajuste o número abaixo pro seu WhatsApp comercial
-    const numeroComercial = "5562981519991";
+    const numeroComercial = "556284126661";
     window.open(`https://wa.me/${numeroComercial}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

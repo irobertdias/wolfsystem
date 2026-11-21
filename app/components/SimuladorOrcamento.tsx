@@ -38,7 +38,7 @@ const MODULOS: (Modulo & { ref?: string })[] = [
   })),
   ...Object.entries(CONTRATOS_SITE).map(([id, c]) => ({ id, nome: c.nome, descricao: `${c.sub}. Preço especial para quem contrata o CRM Wolf.`, mensalidade: c.preco, implantacao: 0 })),
 ];
-const WHATSAPP = "5562981519991";
+const WHATSAPP = "556284126661";
 const PRECO_USUARIO_EXTRA = USUARIO_EXTRA_TABELA;
 const PRECO_CANAL_EXTRA = PRECO_WHATSAPP_EXTRA;
 const moeda = (valor: number) =>

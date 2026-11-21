@@ -1249,7 +1249,7 @@ export default function DisparosPage() {
             </div>
           ) : (
             <textarea value={numerosTexto} onChange={e => { setNumerosTexto(e.target.value); if (tipoDisparo === "waba") setContatosWaba([]); }}
-              placeholder={tipoDisparo === "webjs" ? "5562981519991\n5562987654321" : "5562981519991\n5562987654321\n\nOu importe CSV com colunas pra preencher variáveis por contato."}
+              placeholder={tipoDisparo === "webjs" ? "5562999998888\n5562987654321" : "5562999998888\n5562987654321\n\nOu importe CSV com colunas pra preencher variáveis por contato."}
               rows={8} style={{ ...IS, fontFamily: "monospace", resize: "vertical", minHeight: 160 }} />
           )}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
@@ -1266,7 +1266,7 @@ export default function DisparosPage() {
           </div>
           {tipoDisparo === "waba" && varsTemplate.length > 0 && (
             <p style={{ color: "#94A3B8", fontSize: 12, margin: "8px 0 0" }}>
-              💡 <b>Formato CSV:</b> <code style={{ background: "#F1F5F4", color: "#0F172A", padding: "1px 5px", borderRadius: 4 }}>numero,valor_var1,valor_var2,...</code> — ex: <code style={{ background: "#F1F5F4", color: "#0F172A", padding: "1px 5px", borderRadius: 4 }}>5562981519991,João,Pedido#1234</code>
+              💡 <b>Formato CSV:</b> <code style={{ background: "#F1F5F4", color: "#0F172A", padding: "1px 5px", borderRadius: 4 }}>numero,valor_var1,valor_var2,...</code> — ex: <code style={{ background: "#F1F5F4", color: "#0F172A", padding: "1px 5px", borderRadius: 4 }}>5562999998888,João,Pedido#1234</code>
             </p>
           )}
         </div>

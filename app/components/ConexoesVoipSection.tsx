@@ -605,7 +605,7 @@ export default function ConexoesVoipSection() {
                   {/* Config comum */}
                   <div>
                     <label style={{ color: "#64748B", fontSize: 12.5, display: "block", marginBottom: 6, fontWeight: 700 }}>Bina (opcional)</label>
-                    <input value={numeroBina} onChange={e => setNumeroBina(e.target.value)} placeholder="+5562981519991" style={IS} />
+                    <input value={numeroBina} onChange={e => setNumeroBina(e.target.value)} placeholder="+5562999998888" style={IS} />
                     <p style={{ color: "#94A3B8", fontSize: 12, margin: "4px 0 0" }}>Número alternativo que aparece no celular de quem recebe. Se vazio, usa o DID.</p>
                   </div>
 
