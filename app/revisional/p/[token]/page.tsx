@@ -231,7 +231,7 @@ export default function PropostaRevisionalPage() {
   const msgZap = encodeURIComponent(`Olá! Aceitei a proposta de análise contratual nº ${proposta.numero}.`);
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
   if (proposta.status === "expirada") {
-    return <TelaExpirada numero={proposta.numero} expiraEm={proposta.expira_em} whatsapp={zap} cor={proposta.marca?.cor}
+    return <TelaExpirada titulo="Proposta expirada" numero={proposta.numero} expiraEm={proposta.expira_em} whatsapp={zap} cor={proposta.marca?.cor}
       contato={proposta.consultor_nome ? `${proposta.consultor_nome}${proposta.empresa?.nome ? ` (${proposta.empresa.nome})` : ""}` : (proposta.empresa?.nome || "seu consultor")} />;
   }
 

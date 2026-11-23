@@ -473,7 +473,7 @@ export default function OrcamentosPage() {
             `${o.usuarios_incluidos} usuários`,
             tot.whatsapps ? `${tot.whatsapps} WhatsApp${tot.whatsapps > 1 ? "s" : ""}` : "",
             o.numero,
-            o.aceito_em ? `aceito em ${new Date(o.aceito_em).toLocaleDateString("pt-BR")}` : ehAguardando(o) ? `válido até ${expira.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}` : "",
+            o.aceito_em ? `aceito em ${new Date(o.aceito_em).toLocaleDateString("pt-BR")}` : ehAguardando(o) ? `válido até ${expira.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : "",
             ehAguardando(o) && !o.visualizacoes ? "ainda não aberto" : "",
           ].filter(Boolean).join(" · ");
           return (

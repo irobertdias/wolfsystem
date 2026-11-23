@@ -202,7 +202,7 @@ export default function OrcamentoPage() {
   const primeiro = orc.cliente_nome.trim().split(/\s+/)[0] || "";
   const sv = orc.servicos;
   const marca = sv?.empresa || "Wolf System";
-  if (orc.status === "expirado") return <TelaExpirada numero={orc.numero} expiraEm={orc.expira_em} contato={sv ? (sv.emissor || marca) : "a Wolf System"} />;
+  if (orc.status === "expirado") return <TelaExpirada titulo="Orçamento expirado" numero={orc.numero} expiraEm={orc.expira_em} contato={sv ? (sv.emissor || marca) : "a Wolf System"} />;
   const nomeUnico = sv ? "Implantação e configuração" : "Configuração inicial";
   const servicosItens = (orc.itens || []).filter((i) => i.tipo === "personalizado" || i.tipo === "modulo");
   const aceito = orc.status === "aceito";

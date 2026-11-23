@@ -1,5 +1,6 @@
 /** Tela cheia mostrada ao cliente quando o link da proposta/orçamento venceu. */
-export default function TelaExpirada({ numero, expiraEm, contato, whatsapp, cor = "#DC2626" }: {
+export default function TelaExpirada({ titulo, numero, expiraEm, contato, whatsapp, cor = "#DC2626" }: {
+  titulo: string;
   numero?: string;
   expiraEm: string;
   contato: string;
@@ -14,7 +15,7 @@ export default function TelaExpirada({ numero, expiraEm, contato, whatsapp, cor 
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full ring-8" style={{ background: cor, boxShadow: `0 0 60px ${cor}66`, ["--tw-ring-color" as any]: `${cor}33` }}>
           <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
         </div>
-        <h1 className="mt-7 text-[30px] font-black uppercase leading-[1.1] tracking-tight sm:text-[38px]">Proposta ou orçamento expirado</h1>
+        <h1 className="mt-7 text-[30px] font-black uppercase leading-[1.1] tracking-tight sm:text-[38px]">{titulo}</h1>
         <p className="mt-4 text-[14px] text-slate-300">
           {numero ? <>O link <b className="font-mono text-white">{numero}</b> venceu</> : "Este link venceu"} em {new Date(expiraEm).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}.
         </p>
