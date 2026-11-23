@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos } from "../../_auth";
+import { autenticarContratos, exigirPermissaoContratos, respostaErroContratos, supabaseContratos } from "../../_auth";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
@@ -22,7 +22,17 @@ export async function GET(
       request,
       request.nextUrl.searchParams.get("workspaceId") || ""
     );
-    exigirPermissaoContratos(acesso, "contratos_baixar");
+    // Admin/dono (ou grupo com "contratos_baixar") baixa todos; os demais baixam os contratos que eles mesmos enviaram.
+    // Para todos, o PDF só sai depois que todas as partes assinarem.
+    const { data: sessao, error: erroSessao } = await supabaseContratos.from("assinatura_wolf_sessoes")
+      .select("criado_por,status").eq("workspace_id", acesso.workspaceId).eq("id", id).maybeSingle();
+    if (erroSessao) throw erroSessao;
+    if (!sessao) return NextResponse.json({ success: false, error: "Contrato não encontrado" }, { status: 404 });
+    const dono = String(sessao.criado_por || "").trim().toLowerCase() === String(acesso.email || "").trim().toLowerCase();
+    if (!dono) exigirPermissaoContratos(acesso, "contratos_baixar");
+    if (sessao.status !== "concluida") {
+      return NextResponse.json({ success: false, error: "O contrato só pode ser baixado depois que todas as partes assinarem." }, { status: 409 });
+    }
     const segredo = process.env.WOLF_SIGNATURE_PROXY_SECRET || "";
     if (segredo.length < 32) throw new Error("Proxy seguro da assinatura não configurado");
 
