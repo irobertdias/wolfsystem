@@ -16,7 +16,7 @@ type Orc = {
 };
 type Personalizado = { nome: string; sub: string; linhas: string; preco: string; cobranca: Cobranca };
 type Rascunho = {
-  cliente_nome: string; cliente_telefone: string; validade_horas: string;
+  cliente_nome: string; cliente_telefone: string; validade_minutos: string;
   base: string;                       // "avulso" ou id do plano
   usuarios: string; whatsapps: string;
   modulos: string[];                  // módulos marcados (fora os do plano)
@@ -61,7 +61,7 @@ function Etapa({ n, titulo, extra }: { n: number; titulo: string; extra?: React.
   );
 }
 const VAZIO: Rascunho = {
-  cliente_nome: "", cliente_telefone: "", validade_horas: "24", base: "avulso", usuarios: "10", whatsapps: "1",
+  cliente_nome: "", cliente_telefone: "", validade_minutos: "1440", base: "avulso", usuarios: "10", whatsapps: "1",
   modulos: ["crm", "chatbot", "revisional"], personalizados: [], configuracao: String(CONFIGURACAO_PADRAO), descontos: {},
 };
 
@@ -191,7 +191,7 @@ function Editor({ inicial, editando, onSalvar, onCancelar }: { inicial: Rascunho
       <div className="grid gap-3.5 sm:grid-cols-4">
         <label className="sm:col-span-2"><span className={rot}>Cliente</span><input className={inputCls} value={r.cliente_nome} onChange={(e) => setR({ ...r, cliente_nome: e.target.value })} /></label>
         <label><span className={rot}>WhatsApp do cliente</span><input className={inputCls} value={r.cliente_telefone} onChange={(e) => setR({ ...r, cliente_telefone: e.target.value })} /></label>
-        {!editando && <label><span className={rot}>Validade (horas)</span><input className={inputCls} value={r.validade_horas} onChange={(e) => setR({ ...r, validade_horas: e.target.value })} /></label>}
+        {!editando && <label><span className={rot}>Validade (minutos)</span><input className={inputCls} inputMode="numeric" value={r.validade_minutos} onChange={(e) => setR({ ...r, validade_minutos: e.target.value.replace(/\D/g, "") })} /></label>}
       </div>
 
       {/* base */}
@@ -360,7 +360,7 @@ export default function OrcamentosPage() {
 
   async function criar(itens: ItemOrcamento[], r: Rascunho) {
     try {
-      await api("/api/orcamentos", { method: "POST", body: JSON.stringify({ cliente_nome: r.cliente_nome, cliente_telefone: r.cliente_telefone, validade_horas: r.validade_horas, itens }) });
+      await api("/api/orcamentos", { method: "POST", body: JSON.stringify({ cliente_nome: r.cliente_nome, cliente_telefone: r.cliente_telefone, validade_minutos: r.validade_minutos, itens }) });
       setChaveNovo((k) => k + 1); setNovoAberto(false); setFiltro("todos"); await carregar();
     } catch (e: any) { alert(e.message); throw e; }
   }
@@ -501,7 +501,7 @@ export default function OrcamentosPage() {
                 <div className="flex flex-wrap items-center gap-1.5">
                   <button title="Copiar link" onClick={() => navigator.clipboard.writeText(o.link)} className={botaoIcone}><Icone nome="copiar" tamanho={16} /></button>
                   <a title="Abrir como o cliente" href={o.link} target="_blank" rel="noreferrer" className={botaoIcone}><Icone nome="olho" tamanho={16} /></a>
-                  {o.status !== "aceito" && <button onClick={() => acao(o.id, "renovar")} className={botaoClaro}><Icone nome="atualizar" tamanho={14} />Renovar 24h</button>}
+                  {o.status !== "aceito" && <button onClick={() => acao(o.id, "renovar")} className={botaoClaro}><Icone nome="atualizar" tamanho={14} />Renovar 1440 min</button>}
                   {podeEditar && <button onClick={() => setEditando(editando === o.id ? "" : o.id)} className={botaoClaro}><Icone nome="editar" tamanho={14} />{editando === o.id ? "Fechar edição" : "Editar"}</button>}
                   {ehAguardando(o) && <button title="Cancelar orçamento" onClick={() => acao(o.id, "cancelar")} className={`${botaoIcone} hover:!bg-[#FEF2F2] hover:!text-[#B91C1C]`}><Icone nome="x" tamanho={16} /></button>}
                   {imp

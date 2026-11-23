@@ -7,6 +7,7 @@ import { baixarPdfProposta } from "../../../lib/revisional-pdf";
 import { varsMarca, type MarcaRevisional } from "../../../lib/revisional-marca";
 
 import Icone, { IconeEmoji } from "../../../components/a2/Icone";
+import TelaExpirada from "../../../components/TelaExpirada";
 type Proposta = {
   numero: string;
   tipo: "imovel" | "veiculo" | "emprestimo";
@@ -79,7 +80,7 @@ function Contador({ expiraEm, deslocamento, onExpirar }: { expiraEm: string; des
         </div>
       </div>
       <div className="flex items-center gap-1 font-mono">
-        {[[p(h), "h"], [p(m), "min"], [p(s), "s"]].map(([v, u], i) => (
+        {(h > 0 ? [[p(h), "h"], [p(m), "min"], [p(s), "s"]] : [[p(m), "min"], [p(s), "s"]]).map(([v, u], i) => (
           <div key={u} className="flex items-center gap-1">
             {i > 0 && <span className="text-amber-400">:</span>}
             <div className="min-w-[42px] rounded-xl bg-white px-1.5 py-1 text-center shadow-sm ring-1 ring-amber-200">
@@ -229,6 +230,10 @@ export default function PropostaRevisionalPage() {
   const zap = (proposta.empresa?.whatsapp || "").replace(/\D/g, "");
   const msgZap = encodeURIComponent(`Olá! Aceitei a proposta de análise contratual nº ${proposta.numero}.`);
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
+  if (proposta.status === "expirada") {
+    return <TelaExpirada numero={proposta.numero} expiraEm={proposta.expira_em} whatsapp={zap} cor={proposta.marca?.cor}
+      contato={proposta.consultor_nome ? `${proposta.consultor_nome}${proposta.empresa?.nome ? ` (${proposta.empresa.nome})` : ""}` : (proposta.empresa?.nome || "seu consultor")} />;
+  }
 
   // Marca do escritório: troca a escala verde da página pelas cores dele.
   const varsCor = varsMarca(proposta.marca);

@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
     const b = await request.json().catch(() => ({}));
     const cliente = String(b.cliente_nome || "").trim().slice(0, 160);
     const { itens, mensalidade, configuracao, usuarios_incluidos: usuarios } = valores(b);
-    const horas = Math.min(720, Math.max(1, Math.round(Number(b.validade_horas) || 24)));
+    // validade em minutos (1 min a 30 dias); "validade_horas" antigo ainda é aceito
+    const minutos = Math.min(43200, Math.max(1, Math.round(Number(b.validade_minutos) || Number(b.validade_horas) * 60 || 1440)));
     if (!cliente) return NextResponse.json({ success: false, error: "Informe o nome do cliente" }, { status: 400 });
     if (!(mensalidade >= 0) || !(configuracao >= 0)) return NextResponse.json({ success: false, error: "Valores inválidos" }, { status: 400 });
 
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       mensalidade,
       configuracao,
       pagamento: { ...PAGAMENTO_PADRAO, ...(b.pagamento || {}) },
-      expira_em: new Date(Date.now() + horas * 3600_000).toISOString(),
+      expira_em: new Date(Date.now() + minutos * 60_000).toISOString(),
       criado_por: id.email,
     }).select("id,numero,token,expira_em").single();
     if (error) throw error;
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH { id, acao: "cancelar" | "renovar" | "editar", horas?, ...campos do orçamento }
+// PATCH { id, acao: "cancelar" | "renovar" | "editar", minutos?, ...campos do orçamento }
 export async function PATCH(request: NextRequest) {
   try {
     await exigirSuperAdmin(request);
@@ -100,7 +101,7 @@ export async function PATCH(request: NextRequest) {
     if (!/^[0-9a-f-]{36}$/i.test(String(b.id || ""))) return NextResponse.json({ success: false, error: "Orçamento inválido" }, { status: 400 });
     let update: Record<string, unknown>;
     if (b.acao === "cancelar") update = { status: "cancelado" };
-    else if (b.acao === "renovar") update = { status: "enviado", expira_em: new Date(Date.now() + Math.min(720, Math.max(1, Number(b.horas) || 24)) * 3600_000).toISOString() };
+    else if (b.acao === "renovar") update = { status: "enviado", expira_em: new Date(Date.now() + Math.min(43200, Math.max(1, Math.round(Number(b.minutos) || Number(b.horas) * 60 || 1440))) * 60_000).toISOString() };
     else if (b.acao === "editar") {
       const cliente = String(b.cliente_nome || "").trim().slice(0, 160);
       const v = valores(b);

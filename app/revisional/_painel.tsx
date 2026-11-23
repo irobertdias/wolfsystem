@@ -10,7 +10,7 @@ import { baixarPdfProposta } from "../lib/revisional-pdf";
 import Icone from "../components/a2/Icone";
 
 type Config = {
-  empresa_nome: string; empresa_cnpj: string; whatsapp_contato: string; validade_horas: number;
+  empresa_nome: string; empresa_cnpj: string; whatsapp_contato: string; validade_minutos: number;
   percentual_imovel: number; percentual_veiculo: number; taxa_veiculo: number; metodo_veiculo: "percentual" | "taxa";
 };
 type PropostaLista = {
@@ -62,9 +62,9 @@ function linkWhats(telefone: string, texto: string) {
   return `https://wa.me/${n}?text=${encodeURIComponent(texto)}`;
 }
 
-function mensagemCliente(nome: string, link: string, horas: number) {
+function mensagemCliente(nome: string, link: string, minutos: number) {
   const primeiro = nome.trim().split(/\s+/)[0] || "";
-  return `Olá ${primeiro}! Finalizamos a análise do seu financiamento e identificamos cobranças indevidas. Sua análise contratual está pronta:\n\n${link}\n\n⚠️ Ela é válida por ${horas}h.`;
+  return `Olá ${primeiro}! Finalizamos a análise do seu financiamento e identificamos cobranças indevidas. Sua análise contratual está pronta:\n\n${link}\n\n⚠️ Ela é válida por ${minutos} minutos.`;
 }
 
 /* ---------- campos ---------- */
@@ -95,7 +95,7 @@ export function PainelRevisional({ embutido = false }: { embutido?: boolean }) {
   const [erroAcesso, setErroAcesso] = useState("");
   const [aba, setAba] = useState<"nova" | "lista" | "config">("nova");
   const [config, setConfig] = useState<Config | null>({
-    empresa_nome: "", empresa_cnpj: "", whatsapp_contato: "", validade_horas: 24,
+    empresa_nome: "", empresa_cnpj: "", whatsapp_contato: "", validade_minutos: 1440,
     percentual_imovel: 35, percentual_veiculo: 35, taxa_veiculo: 1.5, metodo_veiculo: "percentual",
   });
   const [podeConfigurar, setPodeConfigurar] = useState(false);
@@ -313,7 +313,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
   const emprestimo = tipo === "emprestimo";
   const veiculo = emprestimo ? emprestimoForm : veiculoForm;
   const setVeiculo = emprestimo ? setEmprestimoForm : setVeiculoForm;
-  const [validade, setValidade] = useState(config.validade_horas);
+  const [validade, setValidade] = useState(config.validade_minutos);
   const [gerando, setGerando] = useState(false);
   const [erro, setErro] = useState("");
   const [gerada, setGerada] = useState<{ link: string; numero: string; expira_em: string } | null>(null);
@@ -367,7 +367,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
         method: editar ? "PUT" : "POST",
         body: JSON.stringify({
           tipo, cliente_nome: cliente.nome, cliente_documento: cliente.documento, cliente_telefone: cliente.telefone,
-          consultor_nome: consultor, dados: tipo === "imovel" ? imovel : veiculo, validade_horas: validade,
+          consultor_nome: consultor, dados: tipo === "imovel" ? imovel : veiculo, validade_minutos: validade,
         }),
       });
       setGerada(editar ? { ...d.proposta, link: editar.link } : d.proposta);
@@ -594,7 +594,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
         </div>
 
         <div className={`${cartaoCls} flex flex-col gap-3 p-[22px]`}>
-          <Campo rotulo="Validade do link (horas)"><Texto valor={validade} onChange={(v) => setValidade(Number(v.replace(/\D/g, "")) || 0)} inputMode="numeric" /></Campo>
+          <Campo rotulo="Validade do link (minutos)"><Texto valor={validade} onChange={(v) => setValidade(Number(v.replace(/\D/g, "")) || 0)} inputMode="numeric" /></Campo>
           {(pendencias.length > 0 || !cliente.nome.trim()) && (
             <ul className="m-0 flex list-none flex-col gap-1.5 rounded-xl bg-[#FFFBEB] p-3 text-[12.5px] font-semibold text-[#92400E]">
               {!cliente.nome.trim() && <li className="flex items-start gap-2"><Icone nome="alerta" tamanho={14} />Informe o nome do cliente</li>}
@@ -690,10 +690,10 @@ function ListaPropostas({ propostas, config, podeExcluir, onMudou, onEditar }: {
                 )}
                 <button onClick={() => navigator.clipboard.writeText(p.link)} className={botaoSec}><Icone nome="copiar" tamanho={13} />Copiar link</button>
                 <button onClick={() => void baixarPdfProposta({ ...p, cliente_documento: formatarDocumento(p.cliente_documento), empresa: { ...(p.empresa || {}), ...(config?.empresa_nome ? { nome: config.empresa_nome } : {}) }, marca: (config as any)?.marca, criada_em: p.created_at }).catch(() => alert("Não foi possível gerar o PDF"))} className={botaoSec}><Icone nome="download" tamanho={13} />PDF</button>
-                <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 3600_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[var(--w-50)] !text-[var(--w-700)] hover:!bg-[var(--w-100)]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
+                <a href={linkWhats(p.cliente_telefone, mensagemCliente(p.cliente_nome, p.link, Math.max(1, Math.round((new Date(p.expira_em).getTime() - Date.now()) / 60_000))))} target="_blank" rel="noreferrer" className={`${botaoSec} !bg-[var(--w-50)] !text-[var(--w-700)] hover:!bg-[var(--w-100)]`}><Icone nome="whatsapp" tamanho={13} />WhatsApp</a>
                 <a href={p.link} target="_blank" rel="noreferrer" className={botaoSec}><Icone nome="olho" tamanho={13} />Abrir</a>
                 {(p.status === "expirada" || p.status === "cancelada" || aberta) && (
-                  <button disabled={ocupado === p.id} onClick={() => acao(p, "renovar")} className={botaoSec} title={`Mais ${config?.validade_horas || 24}h a partir de agora`}><Icone nome="atualizar" tamanho={13} />Renovar</button>
+                  <button disabled={ocupado === p.id} onClick={() => acao(p, "renovar")} className={botaoSec} title={`Mais ${config?.validade_minutos || 1440} minutos a partir de agora`}><Icone nome="atualizar" tamanho={13} />Renovar</button>
                 )}
                 {aberta && <button disabled={ocupado === p.id} onClick={() => acao(p, "cancelar")} className={`${botaoSec} !bg-[#FEF2F2] !text-[#B91C1C] hover:!bg-[#FEE2E2]`}><Icone nome="x" tamanho={13} />Cancelar</button>}
                 {podeExcluir && <button disabled={ocupado === p.id} onClick={() => excluir(p)} title="Excluir proposta" aria-label="Excluir proposta" className={`${botaoSec} !bg-[#FEF2F2] !text-[#B91C1C] hover:!bg-[#FEE2E2]`}><Icone nome="lixeira" tamanho={13} />Excluir</button>}
@@ -745,7 +745,7 @@ function Configuracoes({ config, onSalvo }: { config: Config; onSalvo: (c: Confi
         <Campo rotulo="Empresa (aparece na proposta)"><Texto valor={c.empresa_nome} onChange={set("empresa_nome")} /></Campo>
         <Campo rotulo="CNPJ"><Texto valor={c.empresa_cnpj} onChange={set("empresa_cnpj")} /></Campo>
         <Campo rotulo="WhatsApp de contato" dica="Botão após o cliente aceitar"><Texto valor={c.whatsapp_contato} onChange={set("whatsapp_contato")} /></Campo>
-        <Campo rotulo="Validade padrão do link (horas)"><Texto valor={c.validade_horas} onChange={set("validade_horas")} inputMode="numeric" /></Campo>
+        <Campo rotulo="Validade padrão do link (minutos)"><Texto valor={c.validade_minutos} onChange={set("validade_minutos")} inputMode="numeric" /></Campo>
         <Campo rotulo="% correção padrão — imóvel"><Texto valor={c.percentual_imovel} onChange={set("percentual_imovel")} inputMode="decimal" /></Campo>
         <Campo rotulo="% correção padrão — veículo" dica="Usado quando o método escolhido é % sobre a parcela"><Texto valor={c.percentual_veiculo} onChange={set("percentual_veiculo")} inputMode="decimal" /></Campo>
         <Campo rotulo="Taxa corrigida padrão — veículo (% a.m.)"><Texto valor={c.taxa_veiculo} onChange={set("taxa_veiculo")} inputMode="decimal" /></Campo>

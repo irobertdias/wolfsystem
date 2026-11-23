@@ -6,7 +6,7 @@ import {
 } from "../../../lib/revisional";
 import {
   SEM_CACHE, exigirRevisional, lerConfig, lerConfigCrm, linkPublico, novoNumero, novoToken, podeConfigurarRevisional,
-  podeExcluirRevisional, statusEfetivo,
+  podeExcluirRevisional, statusEfetivo, limitarMinutos,
 } from "../_shared";
 
 function veTodas(acesso: AcessoWolf) {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       : calcularVeiculo(dados as ReturnType<typeof normalizarVeiculo>);
 
     const config = await lerConfig(acesso.workspaceId);
-    const horas = Math.min(720, Math.max(1, Number(body.validade_horas) || config.validade_horas));
+    const minutos = limitarMinutos(body.validade_minutos, config.validade_minutos);
     const token = novoToken();
     const { data, error } = await supabaseServer.from("revisional_propostas").insert({
       workspace_id: acesso.workspaceId,
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       dados,
       resultado,
       empresa: { nome: config.empresa_nome, cnpj: config.empresa_cnpj, whatsapp: config.whatsapp_contato },
-      expira_em: new Date(Date.now() + horas * 3600_000).toISOString(),
+      expira_em: new Date(Date.now() + minutos * 60_000).toISOString(),
     }).select("id,numero,token,expira_em").single();
     if (error) throw error;
 

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autenticarWorkspace, respostaErroAcesso, supabaseServer } from "../../../_auth";
-import { SEM_CACHE, exigirRevisional, lerConfig, podeExcluirRevisional } from "../../_shared";
+import { SEM_CACHE, exigirRevisional, lerConfig, limitarMinutos, podeExcluirRevisional } from "../../_shared";
 import { linhaCrmDaProposta } from "../../../../lib/revisional-contrato";
 import {
   calcularImovel, calcularVeiculo, normalizarImovel, normalizarVeiculo, normalizarDados, tipoRevisional, validarDados,
@@ -41,12 +41,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
       : calcularVeiculo(dados as ReturnType<typeof normalizarVeiculo>);
 
     const config = await lerConfig(acesso.workspaceId);
-    const horas = Math.min(720, Math.max(1, Number(body.validade_horas) || config.validade_horas));
+    const minutos = limitarMinutos(body.validade_minutos, config.validade_minutos);
     const { data, error: erroUp } = await supabaseServer.from("revisional_propostas").update({
       tipo, cliente_nome: clienteNome, cliente_documento: clienteDoc, cliente_telefone: clienteTel,
       consultor_nome: String(body.consultor_nome || "").trim().slice(0, 120) || undefined,
       dados, resultado,
-      expira_em: new Date(Date.now() + horas * 3600_000).toISOString(),
+      expira_em: new Date(Date.now() + minutos * 60_000).toISOString(),
       status: atual.status === "cancelada" ? "enviada" : atual.status,
       updated_at: new Date().toISOString(),
     }).eq("id", id).eq("workspace_id", acesso.workspaceId).select("id,numero,token,expira_em").single();
@@ -80,7 +80,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   }
 }
 
-// PATCH { acao: "cancelar" | "renovar", horas? }
+// PATCH { acao: "cancelar" | "renovar", minutos? }
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
@@ -125,9 +125,9 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
       update = { status: "cancelada" };
     } else if (body.acao === "renovar") {
       const config = await lerConfig(acesso.workspaceId);
-      const horas = Math.min(720, Math.max(1, Number(body.horas) || config.validade_horas));
+      const minutos = limitarMinutos(body.minutos, config.validade_minutos);
       update = {
-        expira_em: new Date(Date.now() + horas * 3600_000).toISOString(),
+        expira_em: new Date(Date.now() + minutos * 60_000).toISOString(),
         status: proposta.status === "cancelada" ? "enviada" : proposta.status,
       };
     } else {

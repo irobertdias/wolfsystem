@@ -15,12 +15,14 @@ export async function PUT(request: NextRequest) {
     if (!podeConfigurarRevisional(acesso)) {
       return NextResponse.json({ success: false, error: "Sem permissão para alterar as configurações do Revisional" }, { status: 403 });
     }
+    const minutos = Math.round(n(body.validade_minutos, 1, 43200, 1440));
     const registro = {
       workspace_id: acesso.workspaceId,
       empresa_nome: String(body.empresa_nome || "").trim().slice(0, 160),
       empresa_cnpj: String(body.empresa_cnpj || "").trim().slice(0, 20),
       whatsapp_contato: String(body.whatsapp_contato || "").replace(/\D/g, "").slice(0, 15),
-      validade_horas: Math.round(n(body.validade_horas, 1, 720, 24)),
+      // validade em minutos (1 min a 30 dias) — coluna validade_minutos (migração 20261123)
+      validade_minutos: minutos,
       percentual_imovel: n(body.percentual_imovel, 0, 90, 35),
       percentual_veiculo: n(body.percentual_veiculo, 0, 90, 35),
       taxa_veiculo: n(body.taxa_veiculo, 0, 20, 1.5),
@@ -29,7 +31,13 @@ export async function PUT(request: NextRequest) {
       // a marca só vai junto quando a tela manda (coluna criada pela migração 20261112)
       ...(body.marca !== undefined ? { marca: limparMarca(body.marca) } : {}),
     };
-    const { error } = await supabaseServer.from("revisional_config").upsert(registro, { onConflict: "workspace_id" });
+    let { error } = await supabaseServer.from("revisional_config").upsert(registro, { onConflict: "workspace_id" });
+    if (error && /validade_minutos/.test(error.message)) {
+      // banco ainda sem a coluna nova: grava em horas na antiga (arredonda, mínimo 1 h)
+      const { validade_minutos: _m, ...antigo } = registro;
+      ({ error } = await supabaseServer.from("revisional_config")
+        .upsert({ ...antigo, validade_horas: Math.min(720, Math.max(1, Math.round(minutos / 60))) }, { onConflict: "workspace_id" }));
+    }
     if (error) {
       if (/marca/.test(error.message)) throw Object.assign(new Error("Falta rodar a migração da marca (supabase/migrations/20261112_revisional_marca.sql)"), { statusCode: 400 });
       throw error;

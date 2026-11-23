@@ -41,7 +41,8 @@ export type ConfigRevisional = {
   empresa_nome: string;
   empresa_cnpj: string;
   whatsapp_contato: string;
-  validade_horas: number;
+  /** Validade do link em minutos (coluna validade_minutos, migração 20261123). */
+  validade_minutos: number;
   percentual_imovel: number;
   percentual_veiculo: number;
   taxa_veiculo: number;
@@ -68,7 +69,7 @@ export const CONFIG_PADRAO: Omit<ConfigRevisional, "workspace_id"> = {
   empresa_nome: "",
   empresa_cnpj: "",
   whatsapp_contato: "",
-  validade_horas: 24,
+  validade_minutos: 1440,
   percentual_imovel: 35,
   percentual_veiculo: 35,
   taxa_veiculo: 1.5,
@@ -76,14 +77,22 @@ export const CONFIG_PADRAO: Omit<ConfigRevisional, "workspace_id"> = {
   marca: {},
 };
 
+/** Minutos de validade: 1 min a 30 dias. */
+export const limitarMinutos = (v: unknown, padrao: number) => {
+  const x = Math.round(Number(v));
+  return Number.isFinite(x) && x >= 1 ? Math.min(43200, x) : padrao;
+};
+
 export async function lerConfig(workspaceId: string): Promise<ConfigRevisional> {
   const { data, error } = await supabaseServer
     .from("revisional_config").select("*").eq("workspace_id", workspaceId).maybeSingle();
   if (error) throw error;
-  const base = { workspace_id: workspaceId, ...CONFIG_PADRAO, ...(data || {}) };
+  const { validade_horas: horas, validade_minutos: minutos, ...resto } = (data || {}) as Record<string, any>;
+  const base = { workspace_id: workspaceId, ...CONFIG_PADRAO, ...resto };
   return {
     ...base,
-    validade_horas: Number(base.validade_horas),
+    // coluna nova em minutos; sem ela (banco antes da migração 20261123), a antiga em horas
+    validade_minutos: limitarMinutos(minutos ?? (horas != null ? Number(horas) * 60 : undefined), CONFIG_PADRAO.validade_minutos),
     percentual_imovel: Number(base.percentual_imovel),
     percentual_veiculo: Number(base.percentual_veiculo),
     taxa_veiculo: Number(base.taxa_veiculo),

@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Icone from "../../components/a2/Icone";
+import TelaExpirada from "../../components/TelaExpirada";
 import { PERFIS, PLANOS, brlOrc, calcularOrcamento, pctOrc, type DadosPagamento, type Implantacao, type ItemOrcamento, type UsuarioImplantacao } from "../../lib/orcamento";
 
 type Orcamento = {
@@ -64,7 +65,9 @@ function Contador({ expiraEm, deslocamento, onExpirar }: { expiraEm: string; des
   const dia = 86400_000;
   const partes: [string, string][] = resto >= 2 * dia
     ? [[String(Math.floor(resto / dia)), "dias"], [p(Math.floor((resto % dia) / 3600_000)), "h"], [p(Math.floor((resto % 3600_000) / 60_000)), "min"]]
-    : [[p(Math.floor(resto / 3600_000)), "h"], [p(Math.floor((resto % 3600_000) / 60_000)), "min"], [p(Math.floor((resto % 60_000) / 1000)), "s"]];
+    : resto >= 3600_000
+    ? [[p(Math.floor(resto / 3600_000)), "h"], [p(Math.floor((resto % 3600_000) / 60_000)), "min"], [p(Math.floor((resto % 60_000) / 1000)), "s"]]
+    : [[p(Math.floor(resto / 60_000)), "min"], [p(Math.floor((resto % 60_000) / 1000)), "s"]];
   return (
     <div className="flex items-center justify-between gap-3 rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3.5">
       <div className="flex items-center gap-2.5">
@@ -199,6 +202,7 @@ export default function OrcamentoPage() {
   const primeiro = orc.cliente_nome.trim().split(/\s+/)[0] || "";
   const sv = orc.servicos;
   const marca = sv?.empresa || "Wolf System";
+  if (orc.status === "expirado") return <TelaExpirada numero={orc.numero} expiraEm={orc.expira_em} contato={sv ? (sv.emissor || marca) : "a Wolf System"} />;
   const nomeUnico = sv ? "Implantação e configuração" : "Configuração inicial";
   const servicosItens = (orc.itens || []).filter((i) => i.tipo === "personalizado" || i.tipo === "modulo");
   const aceito = orc.status === "aceito";
