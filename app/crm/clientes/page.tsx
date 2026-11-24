@@ -111,6 +111,9 @@ const FIN_GRUPOS: { nome: string; itens: { key: string; label: string; icone: st
 const FIN_OPCOES_KEYS = FIN_GRUPOS.flatMap((g) => g.itens.map((i) => i.key));
 const todasFinOpcoes = (v: boolean): Record<string, boolean> => FIN_OPCOES_KEYS.reduce((a, k) => { a[k] = v; return a; }, {} as Record<string, boolean>);
 
+// Vendedor IA: campo `ia` do cadastro ("nao" = desligado; "gpt"/"claude" = ligado).
+const iaLigada = (ia?: string | null) => !!ia && !["nao", "não", "false", "0"].includes(String(ia).toLowerCase());
+
 const planoPresets: Record<string, {
   usuarios: number; conexoes: number;
   webjs: boolean; waba: boolean; instagram: boolean;
@@ -305,7 +308,7 @@ export default function Clientes() {
     modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
     modulo_rh: false, modulo_bater_ponto: false,
     modulo_financeiro: false, financeiro_opcoes: {},
-    ia: "gpt", autorizado: false, senha: "",
+    ia: "nao", autorizado: false, senha: "",
     // 🆕 cobrança
     dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
     status_pagamento: "ativo",
@@ -589,7 +592,7 @@ export default function Clientes() {
       modulo_cobranca: false, modulo_equipes: false, modulo_funil_avancado: false,
       modulo_rh: false, modulo_bater_ponto: false,
       modulo_financeiro: false, financeiro_opcoes: {},
-      ia: "gpt", autorizado: false, senha: "",
+      ia: "nao", autorizado: false, senha: "",
       dia_vencimento: null, valor_mensalidade: null, proximo_vencimento: null,
       status_pagamento: "ativo",
       bloqueio_postergado_ate: null,
@@ -1196,6 +1199,7 @@ export default function Clientes() {
                 Controle quais módulos o cliente pode acessar. Módulos não liberados aparecem no menu mas mostram tela de upsell ao clicar.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
+                <Toggle value={iaLigada(formCadastro.ia)} onChange={() => setFormCadastro({ ...formCadastro, ia: iaLigada(formCadastro.ia) ? "nao" : "gpt" })} label="✨ Vendedor IA" desc="Exclusivo para quem contratar: IA que atende e vende" color="#0F766E" />
                 <Toggle value={!!formCadastro.modulo_roleta} onChange={() => setFormCadastro({ ...formCadastro, modulo_roleta: !formCadastro.modulo_roleta })} label="Roleta de Distribuição" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_disparos_web} onChange={() => setFormCadastro({ ...formCadastro, modulo_disparos_web: !formCadastro.modulo_disparos_web })} label="Disparos Web" desc="Intermediário, Ultra" color="#14B8A6" />
                 <Toggle value={!!formCadastro.modulo_validacao_numeros} onChange={() => setFormCadastro({ ...formCadastro, modulo_validacao_numeros: !formCadastro.modulo_validacao_numeros })} label={"\u2705 Valida\u00e7\u00e3o de n\u00fameros"} desc={"Higieniza\u00e7\u00e3o de listas com canal exclusivo"} color="#0891b2" />
@@ -1596,6 +1600,7 @@ export default function Clientes() {
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_rh} icone="🧑‍💼" label="RH" cor="#059669" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_bater_ponto} icone="🕐" label="Bater Ponto" cor="#0891b2" />
                 <BadgeModulo ativo={!!cadastroSelecionado.modulo_financeiro} icone="💰" label="Financeiro" cor="#C2410C" />
+                <BadgeModulo ativo={iaLigada(cadastroSelecionado.ia)} icone="✨" label="Vendedor IA" cor="#0F766E" />
               </div>
             </div>
 

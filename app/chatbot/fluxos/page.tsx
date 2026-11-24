@@ -2337,6 +2337,10 @@ export default function FluxosPage() {
   const { modulos, carregado: modulosCarregados } = useModulos();
 
   const contratosLiberados = modulosCarregados && modulos.contratos_assinaturas;
+  // Vendedor IA é módulo contratado à parte (campo `ia` do cadastro do dono).
+  const vendedorLiberado = modulosCarregados && modulos.vendedor_ia;
+  const TIPOS_VENDEDOR = ["assistente_universal", "nicho_atendimento"];
+  const AVISO_VENDEDOR = "O Vendedor IA é um módulo exclusivo para quem contratou. Solicite a liberação ao administrador.";
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // ✅ Agora é username (string como "wolf_admin"), nunca id numérico
@@ -2559,7 +2563,7 @@ export default function FluxosPage() {
       if(!username){alert("Workspace não encontrado! Faça login novamente.");return;}
       const ini:No = {id:uid(),tipo:"inicio",x:200,y:200,dados:defaultD("inicio"),saidas:[...B.inicio.saidas]};
       // Modelo "Vendedora IA pronta": Início → Vendedor IA → Nicho (Vendedora IA) + Transferir, já ligados.
-      const pronto = form.modelo==="vendedora";
+      const pronto = form.modelo==="vendedora" && vendedorLiberado;
       const ia:No = {id:uid(),tipo:"assistente_universal",x:520,y:230,dados:{...defaultD("assistente_universal"),motor:"agente",modelo:"gpt-4.1",modelo_reserva:"gpt-4.1-mini",lembretes_inteligentes:{ativo:true,minutos:[20,120,480,1440,2880],silencio_inicio:21,silencio_fim:8}},saidas:[...B.assistente_universal.saidas]};
       const nicho:No = {id:uid(),tipo:"nicho_atendimento",x:860,y:250,dados:defaultD("nicho_atendimento"),saidas:[...B.nicho_atendimento.saidas]};
       const humano:No = {id:uid(),tipo:"transferir",x:1180,y:420,dados:{...defaultD("transferir"),modo:"equipe",mensagem:"{{handoff_mensagem}}"},saidas:[...B.transferir.saidas]};
@@ -2703,6 +2707,7 @@ export default function FluxosPage() {
   async function toggleAtivo() {
     if(!fluxoAtivo?.id) return;
     if(!fluxoAtivo.ativo&&nos.some(n=>['assistente_universal','nicho_atendimento'].includes(n.tipo))){
+      if(!vendedorLiberado){alert(AVISO_VENDEDOR);return;}
       if(!universalExecutavel(nos,arestas,wsId)){alert('Revise a configuração antes de ativar:\n\n'+(validarEstruturaUniversal(nos,arestas).join('\n')||'Configure o motor do assistente e carregue o workspace.'));return;}
       try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch('/api/workspace/vendas/health?workspaceId='+encodeURIComponent(wsId||''),{cache:'no-store',headers:session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{}});const j=await r.json();if(!r.ok||j.versao<2||!j.pronto)throw Error();}catch{alert('O serviço universal não está pronto. A ativação foi interrompida.');return;}
     }
@@ -2753,6 +2758,7 @@ export default function FluxosPage() {
   }
 
   function adicionarNo(tipo:TipoNo) {
+    if (TIPOS_VENDEDOR.includes(tipo) && !vendedorLiberado) { alert(AVISO_VENDEDOR); return; }
     if (["gerar_documento", "validar_assinatura", "assinatura_wolf"].includes(tipo) && !contratosLiberados) {
       alert("Contratos e Assinaturas possui planos Essencial, Profissional e Empresarial a partir de R$ 49,90/mês com CRM Wolf. Solicite a liberação ao administrador.");
       return;
@@ -2928,8 +2934,8 @@ export default function FluxosPage() {
                 <button onClick={()=>setShowNovo(false)} style={{background:"#F1F5F4",border:"none",color:"#64748B",fontSize:18,cursor:"pointer",borderRadius:8,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}><Icone nome="x" tamanho={16} /></button>
               </div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                {([["vendedora","✨ Vendedora IA pronta","IA que vende, tira dúvidas e fecha pedidos"],["branco","📄 Em branco","Monte bloco a bloco"]] as const).map(([k,t2,s2])=>(
-                  <button key={k} type="button" onClick={()=>setForm({...form,modelo:k})} style={{textAlign:"left",padding:"10px 12px",borderRadius:10,cursor:"pointer",border:form.modelo===k?"2px solid var(--w-600)":"1px solid #E6ECEA",background:form.modelo===k?"#ecfdf5":"#fff"}}>
+                {([["vendedora","✨ Vendedora IA pronta","IA que vende, tira dúvidas e fecha pedidos"],["branco","📄 Em branco","Monte bloco a bloco"]] as const).filter(([k])=>k!=="vendedora"||vendedorLiberado).map(([k,t2,s2])=>(
+                  <button key={k} type="button" onClick={()=>setForm({...form,modelo:k})} style={{textAlign:"left",padding:"10px 12px",borderRadius:10,cursor:"pointer",border:(form.modelo===k||(!vendedorLiberado&&k==="branco"))?"2px solid var(--w-600)":"1px solid #E6ECEA",background:(form.modelo===k||(!vendedorLiberado&&k==="branco"))?"#ecfdf5":"#fff"}}>
                     <div style={{fontSize:13,fontWeight:700,color:"#0F172A"}}>{t2}</div><div style={{fontSize:11,color:"#64748B"}}>{s2}</div>
                   </button>))}
               </div>
@@ -3140,7 +3146,7 @@ export default function FluxosPage() {
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"12px 0"}}>
           {GRUPOS.map(grupo => {
-            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (c.grupo!=="Documentos" || contratosLiberados));
+            const tipos = (Object.entries(B) as [TipoNo,BC][]).filter(([tipo,c])=>c.grupo===grupo && (c.grupo!=="Documentos" || contratosLiberados) && (!TIPOS_VENDEDOR.includes(tipo) || vendedorLiberado));
             const ab = grupoAberto===grupo;
             return (
               <div key={grupo} style={{marginBottom:6}}>

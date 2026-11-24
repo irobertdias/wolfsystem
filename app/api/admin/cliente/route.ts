@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
       permite_webjs: permite_webjs !== false,
       permite_waba: !!permite_waba,
       permite_instagram: !!permite_instagram,
-      ia: ia || "gpt",
+      ia: ia || "nao", // Vendedor IA: só liga para quem contratou
       autorizado: testeNovo.modo === "teste" || !!autorizado,
       user_id: userId,
       workspace_id: usernameLimpo,    // 🆕 mesma string que o workspace.username
