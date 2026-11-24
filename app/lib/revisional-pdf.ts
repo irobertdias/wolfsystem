@@ -290,7 +290,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
     fonte("bold", 9, C.tinta); texto(`${pagas} de ${prazo} parcelas pagas`, M + 6, y + 7);
     fonte("normal", 8, C.cinza); texto(`${r.restantes} restantes`, PW - M - 6, y + 7, { align: "right" });
     fonte("normal", 8, C.suave);
-    texto(`Já pagas: devolução de ${brl(r.estorno)}`, M + 6, y + 24);
+    texto(`Já pago ao banco: ${brl((Number(d.parcela_atual) || 0) * pagas)}`, M + 6, y + 24);
     texto(`Restantes: redução de ${brl(r.reducao_total)}`, PW - M - 6, y + 24, { align: "right" });
     y += 42;
   }
