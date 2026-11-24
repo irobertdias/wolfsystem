@@ -225,8 +225,6 @@ export default function PropostaRevisionalPage() {
   const { dados: d, resultado: r } = proposta;
   const reducaoPct = d.parcela_atual > 0 ? Math.round((1 - r.parcela_corrigida / d.parcela_atual) * 100) : 0;
   const economiaParcela = imovel ? r.diferenca_parcela : r.reducao_parcela;
-  const taxaCobrada: number | null = imovel ? r.taxa_contratada_mensal ?? null : r.taxa_contratada ?? null;
-  const taxaMedia: number | null = r.taxa_media_mensal ?? null;
   const zap = (proposta.empresa?.whatsapp || "").replace(/\D/g, "");
   const msgZap = encodeURIComponent(`Olá! Aceitei a proposta de análise contratual nº ${proposta.numero}.`);
   const primeiroNome = proposta.cliente_nome.trim().split(/\s+/)[0] || "";
@@ -305,32 +303,6 @@ export default function PropostaRevisionalPage() {
               {reducaoPct > 0 && <span className="rounded-full bg-amber-100 px-3 py-1 font-bold text-amber-800">−{reducaoPct}% na parcela</span>}
             </div>
           </Card>
-
-          {/* juros x mercado */}
-          {taxaCobrada && taxaMedia && (
-            <Card>
-              <Titulo icone="📊">Seus juros × média do mercado</Titulo>
-              {(() => {
-                const max = Math.max(taxaCobrada, taxaMedia) * 1.08;
-                const vezes = r.vezes_media as number | null;
-                return (
-                  <>
-                    {[["Juros cobrados no seu contrato", taxaCobrada, "from-red-500 to-rose-500", "text-red-600"], [`Média do mercado (Banco Central${d.taxa_media_ref ? `, ${d.taxa_media_ref}` : ""})`, taxaMedia, "from-emerald-500 to-teal-500", "text-emerald-600"]].map(([k, v, cor, txt]) => (
-                      <div key={k as string} className="mb-3">
-                        <div className="mb-1 flex justify-between text-[13px]"><span className="text-slate-600">{k}</span><b className={txt as string}>{pctBR(v as number)} a.m.</b></div>
-                        <div className="h-3 rounded-full bg-slate-100"><div className={`h-3 rounded-full bg-gradient-to-r ${cor}`} style={{ width: `${((v as number) / max) * 100}%` }} /></div>
-                      </div>
-                    ))}
-                    {vezes != null && vezes > 1 && (
-                      <div className="mt-2 rounded-2xl bg-red-50 px-4 py-3 text-center text-[13px] text-red-700">
-                        Você paga <b className="text-[16px]">{vezes.toLocaleString("pt-BR")}×</b> a taxa média praticada no mercado
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </Card>
-          )}
 
           {/* composição (imóvel) */}
           {imovel && (
@@ -441,7 +413,7 @@ export default function PropostaRevisionalPage() {
           )}
 
           <div className="space-y-2 px-1 text-center text-[11.5px] leading-relaxed text-slate-400">
-            <p>Arts. 42, 43 e 51 da Lei nº 8.078/1990 (Código de Defesa do Consumidor). Valores estimados com base nos dados informados, sujeitos à análise do contrato.{taxaMedia ? " Taxa média de mercado: Banco Central do Brasil (SGS)." : ""}</p>
+            <p>Arts. 42, 43 e 51 da Lei nº 8.078/1990 (Código de Defesa do Consumidor). Valores estimados com base nos dados informados, sujeitos à análise do contrato.</p>
           </div>
         </div>
       </div>

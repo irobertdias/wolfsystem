@@ -245,29 +245,6 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   });
   y += 30;
 
-  // juros x mercado
-  if (taxaCobrada && taxaMedia) {
-    tituloSecao("3", "Seus juros × média do mercado", M, y);
-    y += 5;
-    cartao(M, y, W, 36, 4);
-    const max = Math.max(taxaCobrada, taxaMedia) * 1.1;
-    const tx = M + 6, tw = W - 12 - 50;
-    ([["Juros cobrados no seu contrato", taxaCobrada, C.vermelho500], [`Média do mercado - Banco Central${d.taxa_media_ref ? ` (${d.taxa_media_ref})` : ""}`, taxaMedia, C.verde500]] as [string, number, RGB][]).forEach(([k, v, cor], i) => {
-      const yy = y + 8 + i * 12;
-      fonte("normal", 8, C.suave); texto(k, tx, yy);
-      fonte("bold", 9, cor); texto(`${pctBR(v)} a.m.`, tx + tw, yy, { align: "right" });
-      fill(C.linha); doc.roundedRect(tx, yy + 2, tw, 3.4, 1.7, 1.7, "F");
-      fill(cor); doc.roundedRect(tx, yy + 2, (tw * v) / max, 3.4, 1.7, 1.7, "F");
-    });
-    // selo das vezes
-    const sx = PW - M - 46, sw = 40;
-    const acima = vezes != null && vezes > 1;
-    fill(acima ? C.vermelho50 : C.verde50); doc.roundedRect(sx, y + 6, sw, 24, 4, 4, "F");
-    fonte("bold", 20, acima ? C.vermelho600 : C.verde600); texto(vezes != null ? `${vezes.toLocaleString("pt-BR")}×` : "-", sx + sw / 2, y + 18, { align: "center" });
-    fonte("normal", 7, acima ? C.vermelho600 : C.verde700); texto(acima ? "acima da média" : "da média", sx + sw / 2, y + 24.5, { align: "center" });
-    y += 44;
-  }
-
   /* =================== PÁGINA 2 — DETALHES =================== */
   doc.addPage();
   fill(C.fundo); doc.rect(0, 0, PW, PH, "F");
@@ -280,7 +257,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
 
   // quadro: composição (imóvel) ou andamento (veículo)
   if (imovel) {
-    tituloSecao("4", "Para onde vai sua parcela", M, y);
+    tituloSecao("3", "Para onde vai sua parcela", M, y);
     y += 5;
     cartao(M, y, W, 38, 4);
     const partes = [
@@ -303,7 +280,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
     });
     y += 46;
   } else {
-    tituloSecao("4", "Andamento do contrato", M, y);
+    tituloSecao("3", "Andamento do contrato", M, y);
     y += 5;
     cartao(M, y, W, 34, 4);
     const pagas = Number(d.pagas) || 0, prazo = Math.max(1, Number(d.prazo) || 1);
@@ -339,14 +316,14 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   const parcela: [string, string, RGB?][] = imovel
     ? [["Parcela atual", brl(d.parcela_atual), C.vermelho600], ["Parcela corrigida", brl(r.parcela_corrigida), C.verde600], ["Juros", brl(d.juros)], ["Amortização", brl(d.amortizacao)], ["Tarifa administrativa", brl(d.tarifa_adm)], ["Seguros", brl(d.seguros)]]
     : [["Parcela atual", brl(d.parcela_atual), C.vermelho600], ["Parcela corrigida", brl(r.parcela_corrigida), C.verde600], ["Juros abusivos/parcela", brl(r.reducao_parcela), C.laranja500], ...(taxaMedia ? [["Taxa aplicada", `${pctBR(r.taxa_aplicada)} a.m.`] as [string, string]] : [])];
-  tituloSecao("5", "Dados analisados", M, y);
+  tituloSecao("4", "Dados analisados", M, y);
   y += 5;
   const h1 = quadro("Contrato", C.azul600, contrato, M, y, meia);
   const h2 = quadro("Parcela", C.roxo500, parcela, M + meia + 5, y, meia);
   y += Math.max(h1, h2) + 9;
 
   // resultado
-  tituloSecao("6", "Resultado da análise", M, y);
+  tituloSecao("5", "Resultado da análise", M, y);
   y += 5;
   const res: [string, string, RGB?][] = imovel
     ? [["Parcelas de amortização pagas", brl(r.amortizacao_corrigida)], ["Parcelas de juros pagas", brl(r.juros_pagos)], ["Amortizado pelo banco", brl(r.amortizado)], ["Diferença na amortização", brl(r.diferenca_amortizacao), C.vermelho600], ["Tarifas e seguros questionáveis", brl(r.tarifas_questionaveis), C.laranja500]]
@@ -367,7 +344,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
 
   // próximos passos
   if (y + 22 < PH - 32) {
-    tituloSecao("7", "Próximos passos", M, y);
+    tituloSecao("6", "Próximos passos", M, y);
     y += 5;
     const passos: [string, string][] = [
       ["Aceite a proposta", "Pelo link, dentro do prazo de validade."],
@@ -393,7 +370,7 @@ export async function gerarPdfProposta(p: PropostaPdf) {
   const legal = doc.splitTextToSize(txt(
     "Art. 42: proibição de cobrança abusiva. Art. 43: direito de acesso e correção de dados. Art. 51: nulidade de cláusulas abusivas em contratos de consumo. " +
     "Valores estimados com base nos dados informados, sujeitos à análise do contrato." +
-    (taxaMedia ? " Taxa média de mercado: Banco Central do Brasil (SGS)." : "")
+    ""
   ), W);
   doc.text(legal, M, y + 4.5);
 
