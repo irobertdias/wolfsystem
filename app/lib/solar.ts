@@ -212,7 +212,7 @@ export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar
   const cartao = n(cfg.parcelas_cartao) > 1 ? { meses: Math.round(n(cfg.parcelas_cartao)), valor: r2(preco / Math.round(n(cfg.parcelas_cartao))) } : null;
 
   const itens = [
-    `${paineis} módulos ${cfg.painel_marca} de ${W} W (${String(kwp).replace(".", ",")} kWp)`,
+    `${paineis} × ${cfg.painel_marca || "módulo fotovoltaico"} de ${W} W (${String(kwp).replace(".", ",")} kWp)`,
     inversor,
     `Estrutura de fixação para ${telhadoLabel(e.telhado).toLowerCase()}`,
     "Cabos, conectores, string box e proteções elétricas",
