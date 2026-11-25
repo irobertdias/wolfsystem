@@ -29,7 +29,11 @@ html[data-nicho="informatica"] {
   --w-50: #F5F3FF; --w-100: #EDE9FE; --w-200: #DDD6FE; --w-300: #C4B5FD; --w-400: #A78BFA;
   --w-500: #8B5CF6; --w-600: #7C3AED; --w-700: #6D28D9; --w-800: #5B21B6; --w-900: #4C1D95;
 }
-html[data-nicho="consignado"], html[data-nicho="vendas"], html[data-nicho="roupas"], html[data-nicho="informatica"] {
+html[data-nicho="solar"] {
+  --w-50: #FFFBEB; --w-100: #FEF3C7; --w-200: #FDE68A; --w-300: #FCD34D; --w-400: #FBBF24;
+  --w-500: #F59E0B; --w-600: #D97706; --w-700: #B45309; --w-800: #92400E; --w-900: #78350F;
+}
+html[data-nicho="consignado"], html[data-nicho="vendas"], html[data-nicho="roupas"], html[data-nicho="informatica"], html[data-nicho="solar"] {
   --color-emerald-50: var(--w-50); --color-emerald-100: var(--w-100); --color-emerald-200: var(--w-200);
   --color-emerald-300: var(--w-300); --color-emerald-400: var(--w-400); --color-emerald-500: var(--w-500);
   --color-emerald-600: var(--w-600); --color-emerald-700: var(--w-700); --color-emerald-800: var(--w-800);

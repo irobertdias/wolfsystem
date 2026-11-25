@@ -41,6 +41,11 @@ export const MODULOS_NICHO: Partial<Record<Vertical, ModuloNicho[]>> = {
     { key: "pagamento_online", label: "Pagamento online (gateway)", desc: "Cliente paga pelo link com Mercado Pago ou Asaas; baixa automática", padrao: false },
     { key: "ia_vendas", label: "Vendedora IA no WhatsApp + avisos", desc: "Atende consultando estoque e preços, fecha o pedido, manda o pagamento e avisa cada etapa", padrao: false },
   ],
+  solar: [
+    { key: "propostas", label: "Propostas solares com link", desc: "Dimensionamento, preço, economia e link para o cliente aceitar", padrao: true },
+    { key: "simulador", label: "Simulador de sistema", desc: "Calcula painéis, inversor, geração, economia e retorno", padrao: true },
+    { key: "obras", label: "Acompanhamento da obra", desc: "Visita técnica, homologação e instalação", padrao: true },
+  ],
   consignado: [
     { key: "esteira", label: "Esteira de contratos", desc: "Da simulação ao pagamento", padrao: true },
     { key: "simulador", label: "Simulador de margem", desc: "Margem consignável e valor liberado", padrao: true },

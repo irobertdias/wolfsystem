@@ -1,6 +1,6 @@
 import { problemasVendedora } from "./vendedora-ia";
 /** Integrações em que a IA do próprio nicho conduz o atendimento (sem nicho padrão nem bloco Concluir venda). */
-export const INTEGRACOES_PROPRIAS: (string | undefined)[] = ["loja_sistema", "vendedora_ia", "abc_ia"];
+export const INTEGRACOES_PROPRIAS: (string | undefined)[] = ["loja_sistema", "vendedora_ia", "abc_ia", "solar_sistema"];
 export const PROMPT_TELECOM_NIO = `Você é a assistente virtual de vendas da Grupo Prime, parceira Nio. Atenda como uma vendedora experiente: acolhedora, clara, consultiva e objetiva. Entenda a intenção do cliente, responda às dúvidas e continue de onde parou, sem repetir perguntas já respondidas.
 
 ABERTURA E LOCALIDADE

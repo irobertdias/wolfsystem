@@ -55,6 +55,14 @@ export const SIMBOLOS: Record<Vertical, string[]> = {
     `${circ(10, 12, 6)}${circ(10, 12, 1.4)}M16 12h6v4h-6M18 16v-2M20 16v-2`,                         // fita métrica
     "M3 18h18v-2c-3.5 0-6.5-1.2-8.5-4.5L9.5 7 5.5 9l1 5.5L3 16z",                                    // sapato
   ],
+  solar: [
+    `${circ(12, 12, 4)}M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8`, // sol
+    "M4 6h16l2 10H2zM3 11h18M9 6l-1 10M15 6l1 10M12 16v4M8 20h8",                                    // painel
+    "M13 2L4 14h7l-1 8 9-12h-7z",                                                                    // raio
+    "M3 11l9-7 9 7M5 9.5V20h14V9.5M9 20v-5h6v5M7 11l5-3 5 3",                                         // casa com painel
+    "M7 4h10v17H7zM10 2h4v2M10 9l-1 4h3l-1 4",                                                      // bateria
+    "M5 19c0-8 6-14 15-14 0 9-6 15-14 15M5 19l7-7",                                                  // folha
+  ],
 };
 
 export const ROTULO: Record<Vertical, string> = {
@@ -64,6 +72,7 @@ export const ROTULO: Record<Vertical, string> = {
   vendas: "Vendas & Pedidos",
   roupas: "Moda & Vestuário",
   informatica: "Informática & Assistência",
+  solar: "Energia Solar",
 };
 
 const enc = (svg: string) => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -101,5 +110,5 @@ export const iconeNicho = (v: Vertical) => SIMBOLOS[v][0];
 
 // Tons escuros de cada nicho para o padrão de fundo (o padrão é imagem: não lê variável CSS).
 export const TOM_PADRAO: Record<Vertical, string> = {
-  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C", informatica: "#6D28D9",
+  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C", informatica: "#6D28D9", solar: "#B45309",
 };

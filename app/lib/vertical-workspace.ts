@@ -4,7 +4,7 @@
 
 import { padraoNicho, arteNicho, ROTULO, TOM_PADRAO } from "./arte-nicho";
 
-export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas" | "informatica";
+export type Vertical = "telecom" | "consignado" | "revisional" | "vendas" | "roupas" | "informatica" | "solar";
 
 // Tipos oferecidos no cadastro do cliente (o "revisional" aparece como Financeiro).
 export const VERTICAIS: { id: Vertical; nome: string; desc: string; icone: string }[] = [
@@ -14,6 +14,7 @@ export const VERTICAIS: { id: Vertical; nome: string; desc: string; icone: strin
   { id: "vendas", nome: "Vendas", desc: "Vendas em geral, produtos e serviços", icone: "dinheiro" },
   { id: "roupas", nome: "Roupas", desc: "Loja de roupas e moda", icone: "tag" },
   { id: "informatica", nome: "Informática", desc: "Loja de informática e assistência técnica", icone: "config" },
+  { id: "solar", nome: "Energia Solar", desc: "Venda e instalação de sistemas fotovoltaicos", icone: "raio" },
 ];
 
 // Sistema próprio de cada nicho (Telecom usa o CRM de vendas de internet; o Financeiro, /crm/revisional).
@@ -23,6 +24,7 @@ export const SISTEMA_DO_NICHO: Partial<Record<Vertical, string>> = {
   roupas: "/crm/moda",
   vendas: "/crm/comercial",
   informatica: "/crm/informatica",
+  solar: "/crm/solar",
 };
 
 export function normalizarVertical(v: unknown): Vertical | null {
@@ -218,6 +220,7 @@ export function vocabularioDoWorkspace(workspaceId?: string | number | null): Vo
   if (v === "vendas") return VENDAS;
   if (v === "roupas") return ROUPAS;
   if (v === "informatica") return INFORMATICA;
+  if (v === "solar") return SOLAR;
   return TELECOM;
 }
 
@@ -245,4 +248,30 @@ const INFORMATICA: Vocabulario = {
   secaoEndereco: "Endereço do cliente",
   secaoAgendamento: "Andamento",
   secaoPlano: "Produto, condições e valores",
+};
+
+const SOLAR: Vocabulario = {
+  itens: "Propostas",
+  itemSing: "proposta",
+  subtituloCrm: "Energia Solar",
+  concluidas: "Sistemas ligados",
+  concluidasMin: "ligados",
+  concluidaSing: "ligado",
+  abrev: "lig.",
+  aguardando: "Aguardando instalação",
+  aguardandoCurto: "aguardando instalação",
+  aguardandoParaConcluida: "Instalação → ligado",
+  taxa: "taxa de fechamento",
+  taxaTitulo: "Taxa de fechamento",
+  fornecedores: "Kits",
+  fornecedorSing: "kit",
+  iconeFornecedor: "☀️",
+  semFornecedor: "sem kit",
+  receitaConcluida: "Receita fechada",
+  ticketDetalhe: "média por sistema",
+  porDia: "Propostas fechadas e em instalação por dia",
+  somenteConcluidas: "Somente sistemas ligados",
+  secaoEndereco: "Endereço da instalação",
+  secaoAgendamento: "Visita técnica e instalação",
+  secaoPlano: "Sistema, potência e valores",
 };
