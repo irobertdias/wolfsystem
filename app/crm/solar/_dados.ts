@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { novoToken } from "../../lib/loja-orcamento";
-import { calcularSolar, configSolar, etapaSolar, type ConfigSolar, type DadosSolar, type EntradaSolar, type ObraSolar } from "../../lib/solar";
+import { calcularSolar, configSolar, etapaSolar, origemSolar, type ConfigSolar, type DadosSolar, type EntradaSolar, type ObraSolar } from "../../lib/solar";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Energia Solar — dados do CRM
@@ -40,7 +40,8 @@ export const sol = (p: PropostaSolar): DadosSolar => (p.dados_customizados?.sola
 export const dataBR = (iso?: string | null) => (iso || "").slice(0, 10).split("-").reverse().join("/");
 export const dataHoraBR = (iso?: string | null) => (iso ? new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 export const hoje = () => new Date().toISOString().slice(0, 10);
-export const linkProposta = (token?: string) => (token ? `${typeof window !== "undefined" ? window.location.origin : "https://app.wolfgyn.com.br"}/solar/${token}` : "");
+/** Link da proposta para o cliente final (domínio próprio da empresa, se tiver). */
+export const linkProposta = (token?: string, ws?: string) => (token ? `${origemSolar(ws, typeof window !== "undefined" ? window.location.origin : "https://app.wolfgyn.com.br")}/solar/${token}` : "");
 export const expirada = (d: DadosSolar) => !!d.validade_ate && new Date(d.validade_ate).getTime() < Date.now() && !d.aceite;
 
 const mesmo = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();

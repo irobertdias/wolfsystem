@@ -54,7 +54,7 @@ export default function Painel({ dados, ir }: any) {
     const agora = Date.now();
     for (const p of propostas) {
       const d = sol(p), st = p.status_venda || "LEAD", nome = p.nome.split(" ")[0];
-      const link = linkProposta(d.token);
+      const link = linkProposta(d.token, dados.wsId);
       if (st === "PROPOSTA ENVIADA" && !d.aceite && !d.recusa && d.token) {
         const venc = d.validade_ate ? new Date(d.validade_ate).getTime() : 0;
         if (d.visualizado_em && agora - new Date(d.visualizado_em).getTime() > 6 * 3600000 && (!venc || venc > agora)) {

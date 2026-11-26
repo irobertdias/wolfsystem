@@ -30,8 +30,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(pathname === "/" ? "/" : pathname + request.nextUrl.search, "https://app.wolfgyn.com.br"));
   }
 
+  // Subdomínio da empresa de energia solar (ex.: primesolar.wolfgyn.com.br): serve só a
+  // proposta (/solar/<token> e /solar/<token>/pdf) e as APIs dela. O resto vai para o app.
+  if (HOSTS_SOLAR.has(host.split(":")[0])) {
+    if (pathname.startsWith("/solar/") || pathname.startsWith("/api/solar/")) return NextResponse.next();
+    return NextResponse.redirect(new URL(pathname === "/" ? "/" : pathname + request.nextUrl.search, "https://app.wolfgyn.com.br"));
+  }
+
   return NextResponse.next();
 }
+
+/** Mesmos hosts de DOMINIO_SOLAR (app/lib/solar.ts). */
+const HOSTS_SOLAR = new Set(["primesolar.wolfgyn.com.br"]);
 
 /** Mesmos hosts de SUBDOMINIO_PROPOSTA (app/api/revisional/_shared.ts). */
 const HOSTS_PROPOSTA = new Set(["clickconsultoria.wolfgyn.com.br", "aproveconsultoria.wolfgyn.com.br"]);

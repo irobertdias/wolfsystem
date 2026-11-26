@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual, randomBytes } from "crypto";
 import { supabaseServer, segredoInternoWolf } from "../../_auth";
-import { calcularSolar, resumoSolarTexto, brl, kwpTxt, anosTxt, etapaSolar, linhasSolar, HSP_UF, TELHADOS, type EntradaSolar, type ConfigSolar } from "../../../lib/solar";
+import { calcularSolar, resumoSolarTexto, brl, kwpTxt, anosTxt, etapaSolar, linhasSolar, origemSolar, HSP_UF, TELHADOS, type EntradaSolar, type ConfigSolar } from "../../../lib/solar";
 import { lerConfigSolar, vendedorIALiberado, dadosSolar, atualizarSolar, avisarEmpresaSolar, linkSolar, so } from "../_solar";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     if (!ws) return NextResponse.json({ ok: false, erro: "workspaceId obrigatório" }, { status: 400 });
     if (!(await vendedorIALiberado(ws))) return NextResponse.json({ ok: false, erro: "Módulo Vendedor IA não liberado para este workspace" }, { status: 403 });
     const { cfg } = await lerConfigSolar(ws);
-    const origem = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const origem = origemSolar(ws, process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin);
     const acao = String(b.acao || "");
 
     if (acao === "config") {

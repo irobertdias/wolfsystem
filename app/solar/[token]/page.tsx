@@ -79,7 +79,7 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
           <div className="truncate text-[17px] font-extrabold">{emp.nome || "Energia solar"}</div>
           <div className="text-[12.5px] text-slate-500">{[emp.cnpj && `CNPJ ${emp.cnpj}`, emp.cidade].filter(Boolean).join(" · ")}</div>
         </div>
-        <a href={`/solar/${token}/pdf`} className="ml-auto rounded-xl bg-white px-3 py-2 text-[12.5px] font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 print:hidden">Proposta em PDF</a>
+        <a href={`/solar/${token}/pdf`} target="_blank" rel="noopener" className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-[13px] font-extrabold text-white shadow-sm print:hidden">⬇ Baixar PDF</a>
       </header>
 
       <section className="mx-auto mt-6 max-w-4xl px-5">
@@ -91,7 +91,10 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
               <h1 className="mt-3 text-[28px] font-black leading-tight sm:text-[40px]">Sua conta de luz de {brl0(r.conta_antes)} vai para cerca de {brl0(r.conta_depois)}</h1>
               <p className="mt-3 text-[15px] text-white/90">Economia estimada de <b>{brl(r.economia_mes)} por mês</b>, cerca de <b>{brl0(r.economia_25)}</b> em 25 anos.</p>
             </> : <h1 className="mt-3 text-[28px] font-black">Sua proposta de energia solar</h1>}
-            {p.status === "aberta" && p.validade_ate && <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-[13px] font-bold">Condição válida por <Contador ate={p.validade_ate} /></div>}
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              {p.status === "aberta" && p.validade_ate && <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-[13px] font-bold">Condição válida por <Contador ate={p.validade_ate} /></div>}
+              <a href={`/solar/${token}/pdf`} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[13.5px] font-extrabold text-orange-700 shadow-md print:hidden">⬇ Baixar a proposta completa em PDF</a>
+            </div>
           </div>
         </div>
       </section>

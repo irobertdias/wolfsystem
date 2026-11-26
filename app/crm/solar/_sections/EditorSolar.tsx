@@ -74,14 +74,14 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
       const { data } = await supabase.from("proposta").select("*").eq("workspace_id", wsId).eq("id", proposta.id).single();
       const token = await gerarLinkSolar(wsId, (data as any) || proposta, cfg, n(minutos));
       await carregar();
-      const url = linkProposta(token);
+      const url = linkProposta(token, wsId);
       try { await navigator.clipboard.writeText(url); } catch {}
       setMsg({ tipo: "ok", texto: `Link pronto e copiado: ${url}` });
     } catch (e: any) { setMsg({ tipo: "warn", texto: "Erro ao gerar o link: " + (e?.message || e) }); }
     finally { setSalvando(false); }
   };
 
-  const link = linkProposta(d.token);
+  const link = linkProposta(d.token, wsId);
   const zap = () => {
     const fone = String(cli.telefone1 || "").replace(/\D/g, "");
     const texto = `Olá, ${cli.nome.split(" ")[0] || ""}! ☀️ Preparei a proposta do seu sistema de energia solar de ${kwpTxt(r.kwp)}.\n\nEconomia estimada: ${brl(r.economia_mes)}/mês.\nInvestimento: ${brl(r.preco)}.\n\nVeja todos os detalhes e aprove por aqui:\n${link}`;

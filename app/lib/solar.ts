@@ -392,6 +392,15 @@ export function calcularSolar(e: EntradaSolar, cfgBase: ConfigSolar): ResultadoS
   };
 }
 
+// ─── domínio próprio das propostas (link e PDF que o cliente final recebe) ───
+// O login continua em app.wolfgyn.com.br. Para incluir uma empresa: adicione aqui,
+// em HOSTS_SOLAR do proxy.ts e o domínio no projeto da Vercel.
+export const DOMINIO_SOLAR: Record<string, string> = {
+  primesolar: "https://primesolar.wolfgyn.com.br",
+};
+/** Endereço base dos links de proposta do workspace. */
+export const origemSolar = (ws?: string | null, padrao = "https://app.wolfgyn.com.br") => (ws && DOMINIO_SOLAR[ws]) || padrao;
+
 // ─── etapas da proposta (status_venda da tabela proposta) ───
 export type EtapaSolar = { key: string; label: string; curto: string; cor: string };
 export const ETAPAS_SOLAR: EtapaSolar[] = [

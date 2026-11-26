@@ -1,6 +1,6 @@
 import { supabaseServer } from "../_auth";
 import { enviarWhatsappLoja } from "../loja/_avisos";
-import { configSolar, brl, kwpTxt, etapaSolar, type ConfigSolar, type DadosSolar } from "../../lib/solar";
+import { configSolar, origemSolar, brl, kwpTxt, etapaSolar, type ConfigSolar, type DadosSolar } from "../../lib/solar";
 
 // Peças do nicho solar usadas no servidor: configuração, proposta pública e avisos.
 
@@ -72,7 +72,7 @@ export async function avisarEmpresaSolar(ws: string, propostaId: number, situaca
       detalhe,
       d.canal === "whatsapp_ia" ? "Atendido pela Vendedora IA no WhatsApp." : "",
       `Etapa: ${etapaSolar(x.status_venda).label}`,
-      d.token ? linkSolar(d.token) : "",
+      d.token ? linkSolar(d.token, origemSolar(ws, ORIGEM)) : "",
     ].filter(Boolean).join("\n\n");
     const r2 = await enviarWhatsappLoja(ws, dono, texto, cfg.canal_id);
     if (r2.ok) await atualizarSolar(propostaId, `Empresa avisada no WhatsApp (${situacao})`, (dd) => ({ dono_avisado: { ...(dd.dono_avisado || {}), [situacao]: new Date().toISOString() } }), undefined, { __por: "sistema" });

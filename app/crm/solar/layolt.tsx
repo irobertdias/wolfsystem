@@ -7,6 +7,7 @@ import { brl0, kwpTxt, ETAPAS_GANHAS } from "../../lib/solar";
 import { useSolar, sol } from "./_dados";
 import Painel from "./_sections/Painel";
 import Propostas from "./_sections/Propostas";
+import ListaPropostas from "./_sections/ListaPropostas";
 import Obras from "./_sections/Obras";
 import Simulador from "./_sections/Simulador";
 import ConfigSolarTela from "./_sections/ConfigSolar";
@@ -22,14 +23,15 @@ export type Item = { key: string; label: string; icone: string; soGestor?: boole
 
 export const ITENS: Item[] = [
   { key: "painel",    label: "Central",                 icone: "grafico" },
-  { key: "propostas", label: "Funil de vendas",         icone: "documento", modulo: "propostas" },
+  { key: "lista",     label: "Propostas",               icone: "documento", modulo: "propostas" },
+  { key: "propostas", label: "Funil de vendas",         icone: "funil", modulo: "propostas" },
   { key: "simulador", label: "Simulador",               icone: "raio", modulo: "simulador" },
   { key: "obras",     label: "Projetos e homologação",  icone: "calendario", modulo: "obras" },
   { key: "config",    label: "Kit, preços e ajustes",   icone: "config", soGestor: true },
 ];
 
 const SECTIONS: Record<string, React.ComponentType<any>> = {
-  painel: Painel, propostas: Propostas, simulador: Simulador, obras: Obras, config: ConfigSolarTela,
+  painel: Painel, lista: ListaPropostas, propostas: Propostas, simulador: Simulador, obras: Obras, config: ConfigSolarTela,
 };
 
 export type AlvoSolar = { propostaId?: number; novo?: boolean; etapa?: string; preenchido?: any; t?: number };
@@ -124,7 +126,7 @@ export function MolduraSolar({ dados, itens, aba, ir, topo, children }: { dados:
         </div>
         <div className="sx-topo-a">
           {itens.some((i) => i.key === "simulador") && <button className="sx-btn sx-btn-vidro" onClick={() => ir("simulador")}><Icone nome="raio" tamanho={15} /> Simular</button>}
-          <button className="sx-btn sx-btn-ouro" onClick={() => ir("propostas", { novo: true })}>+ Nova proposta</button>
+          <button className="sx-btn sx-btn-ouro" onClick={() => ir(itens.some((i) => i.key === "lista") ? "lista" : "propostas", { novo: true })}>+ Nova proposta</button>
         </div>
       </header>
 

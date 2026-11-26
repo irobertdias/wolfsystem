@@ -86,6 +86,18 @@ export default function ConfigSolarTela({ dados }: any) {
     <Page>
       <PageHeader titulo="Kit, preços e financiamento" subtitulo="Tudo o que entra no cálculo das propostas e na Vendedora IA" acao={<Btn onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar ajustes"}</Btn>} />
       {msg && <Banner tipo={msg.tipo}>{msg.texto}</Banner>}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", background: "linear-gradient(120deg,#FFF8E1,#FFFDF5)", border: "1px solid #F1D98A", borderRadius: 16, padding: "14px 18px", marginBottom: 16 }}>
+        <div style={{ flex: "1 1 260px" }}>
+          <div style={{ fontWeight: 800, color: "#5B4300", fontSize: 15 }}>Valor do kWh (tarifa da distribuidora)</div>
+          <div style={{ fontSize: 12.5, color: "#7A6420", marginTop: 2 }}>Quanto o cliente paga por kWh, com impostos. Entra na conta de luz, na economia e no retorno de todas as propostas novas. Em cada proposta dá para mudar só para aquele cliente.</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 800, color: "#5B4300" }}>R$</span>
+          <input style={{ ...inputSm, width: 120, fontSize: 18, fontWeight: 800, textAlign: "center" }} inputMode="decimal" {...num("tarifa_padrao")} />
+          <span style={{ fontSize: 13, color: "#7A6420" }}>por kWh</span>
+          <Btn onClick={salvar} disabled={salvando}>{salvando ? "Salvando…" : "Salvar"}</Btn>
+        </div>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16, alignItems: "start" }}>
         <Card titulo="Empresa (sai na proposta)">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
