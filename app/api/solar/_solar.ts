@@ -46,37 +46,48 @@ export async function atualizarSolar(id: number, nota: string, mudar: (d: DadosS
   return novo;
 }
 
-/** Avisa a empresa no WhatsApp (config.solar.dono_whatsapp). Uma vez por situação e proposta. */
-export async function avisarEmpresaSolar(ws: string, propostaId: number, situacao: "aceite" | "visita" | "recusa" | "nova", detalhe = "") {
+/** WhatsApps de aviso da empresa (config.solar.dono_whatsapp aceita vários, separados por vírgula). */
+export const numerosAviso = (v: any) => [...new Set(String(v || "").split(/[,;/\n]+/).map((x) => so(x)).filter((x) => x.length >= 10).map((x) => (x.startsWith("55") ? x : "55" + x)))];
+
+/** Avisa a empresa no WhatsApp: status, cliente, preço e link. Uma vez por situação
+ *  e proposta ("atualizada" avisa sempre que a proposta muda). */
+export async function avisarEmpresaSolar(ws: string, propostaId: number, situacao: "aceite" | "visita" | "recusa" | "nova" | "atualizada", detalhe = "") {
   try {
     const [{ data: p }, { cfg }] = await Promise.all([
       supabaseServer.from("proposta").select("id,nome,telefone1,cidade,estado,endereco,valor_plano,status_venda,dados_customizados").eq("workspace_id", ws).eq("id", propostaId).maybeSingle(),
       lerConfigSolar(ws),
     ]);
     if (!p) return { ok: false, motivo: "proposta não encontrada" };
-    const dono = so(cfg.dono_whatsapp);
-    if (dono.length < 10) return { ok: false, motivo: "sem WhatsApp de avisos nos ajustes" };
+    const donos = numerosAviso(cfg.dono_whatsapp);
+    if (!donos.length) return { ok: false, motivo: "sem WhatsApp de avisos nos ajustes" };
     const d = dadosSolar(p), r = d.resultado, x: any = p;
-    if (d.dono_avisado?.[situacao]) return { ok: true, motivo: "já avisado" };
+    if (situacao !== "atualizada" && d.dono_avisado?.[situacao]) return { ok: true, motivo: "já avisado" };
+    const num = d.numero || x.id;
     const cabeca = {
-      aceite: `✅ *PROPOSTA SOLAR ACEITA — ${d.numero || x.id}*`,
-      visita: `📅 *PEDIDO DE VISITA TÉCNICA — ${d.numero || x.id}*`,
-      recusa: `❌ *Proposta solar recusada — ${d.numero || x.id}*`,
-      nova: `☀️ *Nova proposta solar — ${d.numero || x.id}*`,
+      aceite: `✅ *PROPOSTA ACEITA — ${num}*\nStatus: *ACEITA pelo cliente* (o atendimento foi passado para a equipe)`,
+      visita: `📅 *PEDIDO DE VISITA TÉCNICA — ${num}*\nStatus: *visita técnica pedida*`,
+      recusa: `❌ *Proposta recusada — ${num}*\nStatus: *recusada*`,
+      nova: `☀️ *PROPOSTA ENVIADA — ${num}*\nStatus: *enviada ao cliente*`,
+      atualizada: `🔄 *PROPOSTA ATUALIZADA E REENVIADA — ${num}*\nStatus: *enviada ao cliente*`,
     }[situacao];
+    const preco = Number(x.valor_plano) || r?.preco || 0;
     const texto = [
       cabeca,
-      `👤 ${x.nome || "-"}${x.telefone1 ? ` · ${x.telefone1}` : ""}${x.cidade ? `\n📍 ${[x.endereco, x.cidade, x.estado].filter(Boolean).join(", ")}` : ""}`,
-      r ? `${kwpTxt(r.kwp)} · ${r.paineis} painéis · ${r.consumo_kwh} kWh/mês\nEconomia ${brl(r.economia_mes)}/mês · *${brl(Number(x.valor_plano) || r.preco)}*` : "",
-      d.aceite?.pagamento ? `Pagamento: ${d.aceite.pagamento}${d.aceite.prazo ? ` em ${d.aceite.prazo}x` : ""}` : "",
+      `👤 Cliente: *${x.nome || "-"}*${x.telefone1 ? `\n📱 ${x.telefone1}` : ""}${x.cidade ? `\n📍 ${[x.endereco, x.cidade, x.estado].filter(Boolean).join(", ")}` : ""}`,
+      `💰 Preço: *${brl(preco)}*${r?.preco_de && r.preco_de > preco ? ` (de ${brl(r.preco_de)})` : ""}`,
+      r ? `☀️ ${kwpTxt(r.kwp)} · ${r.paineis} placas · ${r.consumo_kwh} kWh/mês\nEconomia de ${brl(r.economia_mes)}/mês` : "",
+      d.aceite?.pagamento ? `💳 Pagamento: ${d.aceite.pagamento}${d.aceite.prazo ? ` em ${d.aceite.prazo}x` : ""}` : "",
       detalhe,
-      d.canal === "whatsapp_ia" ? "Atendido pela Vendedora IA no WhatsApp." : "",
-      `Etapa: ${etapaSolar(x.status_venda).label}`,
-      d.token ? linkSolar(d.token, origemSolar(ws, ORIGEM)) : "",
+      d.canal === "whatsapp_ia" ? "🤖 Atendido pela Ana (Vendedora IA) no WhatsApp." : "",
+      d.token ? `🔗 Proposta: ${linkSolar(d.token, origemSolar(ws, ORIGEM))}` : "",
     ].filter(Boolean).join("\n\n");
-    const r2 = await enviarWhatsappLoja(ws, dono, texto, cfg.canal_id);
-    if (r2.ok) await atualizarSolar(propostaId, `Empresa avisada no WhatsApp (${situacao})`, (dd) => ({ dono_avisado: { ...(dd.dono_avisado || {}), [situacao]: new Date().toISOString() } }), undefined, { __por: "sistema" });
-    return r2;
+    let ok = false, motivo = "";
+    for (const dono of donos) {
+      const r2 = await enviarWhatsappLoja(ws, dono, texto, cfg.canal_id);
+      if (r2.ok) ok = true; else motivo = (r2 as any).motivo || (r2 as any).erro || "falha no envio";
+    }
+    if (ok && situacao !== "atualizada") await atualizarSolar(propostaId, `Empresa avisada no WhatsApp (${situacao})`, (dd) => ({ dono_avisado: { ...(dd.dono_avisado || {}), [situacao]: new Date().toISOString() } }), undefined, { __por: "sistema" });
+    return ok ? { ok: true } : { ok: false, motivo };
   } catch (e: any) {
     return { ok: false, motivo: String(e?.message || e).slice(0, 160) };
   }

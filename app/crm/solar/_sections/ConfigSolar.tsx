@@ -235,7 +235,7 @@ export default function ConfigSolarTela({ dados }: any) {
 
         <Card titulo="Avisos e Vendedora IA">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Row><Field label="WhatsApp que recebe os avisos (aceite, visita)" flex="1 1 180px"><input style={inputSm} value={c.dono_whatsapp} onChange={(e) => set({ dono_whatsapp: e.target.value })} placeholder="5562999999999" /></Field>
+            <Row><Field label="WhatsApp que recebe os avisos (proposta enviada, aceita, visita). Vários: separe por vírgula" flex="1 1 180px"><input style={inputSm} value={c.dono_whatsapp} onChange={(e) => set({ dono_whatsapp: e.target.value })} placeholder="5562999999999, 5562988888888" /></Field>
               <Field label="Canal que envia" flex="1 1 160px"><select style={inputSm} value={c.canal_id || ""} onChange={(e) => set({ canal_id: e.target.value ? Number(e.target.value) : null })}><option value="">Canal do atendimento</option>{canais.map((x) => <option key={x.id} value={x.id}>{x.nome || `Canal ${x.id}`}</option>)}</select></Field></Row>
             <Field label="Regras extras para a Vendedora IA (tom, promoções, cidades atendidas, o que nunca prometer…)"><textarea style={{ ...inputSm, minHeight: 110 }} value={c.instrucoes_ia} onChange={(e) => set({ instrucoes_ia: e.target.value })} placeholder="Ex.: atendemos Goiânia e região até 150 km. Visita técnica grátis. Nunca prometa conta zerada." /></Field>
             <span style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>Para ligar a IA: no construtor de fluxos, use o bloco Nicho com a integração "Energia solar" ligado ao bloco Assistente (com a chave da OpenAI). O módulo Vendedor IA precisa estar liberado para este cliente.</span>

@@ -135,6 +135,9 @@ export async function POST(request: NextRequest) {
         const { error } = await supabaseServer.from("proposta").update({ ...campos, dados_customizados: { ...existente.dados_customizados, solar } }).eq("id", existente.id);
         if (error) throw error;
         id = existente.id;
+        // Aviso à empresa: a primeira vez como "enviada"; depois só se o preço mudou.
+        if (!d.dono_avisado?.nova) await avisarEmpresaSolar(ws, id, "nova");
+        else if (Math.abs((Number(existente.valor_plano) || 0) - r.preco) >= 1) await avisarEmpresaSolar(ws, id, "atualizada");
       } else {
         token = novoToken(); numero = `SOL-${Date.now().toString(36).toUpperCase().slice(-6)}`;
         const solar = { numero, entrada: e, resultado: r, token, validade_ate, enviada_em: agora, canal: "whatsapp_ia",
