@@ -172,9 +172,9 @@ export function variaveisDaProposta(
   extra: { honorarios_exito?: number; honorarios_entrada?: number; empresa_nome?: string; empresa_cnpj?: string; empresa_endereco?: string; cliente_email?: string } = {},
 ): Record<string, string> {
   const d = p.dados || {};
-  const MOD_EMP: Record<string, string> = { pessoal: "empréstimo pessoal", consignado_inss: "empréstimo consignado (INSS)", consignado_publico: "empréstimo consignado (servidor público)", consignado_privado: "empréstimo consignado (trabalhador CLT)" };
+  const MOD_EMP: Record<string, string> = { pessoal: "empréstimo pessoal", consignado: "empréstimo consignado" };
   const bem = p.tipo === "imovel" ? "financiamento imobiliário"
-    : p.tipo === "emprestimo" ? (MOD_EMP[String(d.modalidade_emprestimo || "")] || "empréstimo pessoal")
+    : p.tipo === "emprestimo" ? (MOD_EMP[String(d.modalidade_emprestimo || "").startsWith("consignado") ? "consignado" : "pessoal"])
     : `financiamento de veículo${d.modelo ? ` (${d.modelo}${d.ano ? `, ${d.ano}` : ""})` : ""}`;
   const pct = n(extra.honorarios_exito);
   return {

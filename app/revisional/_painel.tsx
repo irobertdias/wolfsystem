@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import {
   brl, calcularImovel, calcularVeiculo, formatarDocumento, normalizarImovel, normalizarVeiculo, normalizarEmprestimo,
-  pctBR, validarDados, MODALIDADES_EMPRESTIMO, NOME_TIPO, tipoRevisional, type TipoRevisional,
+  pctBR, validarDados, MODALIDADES_EMPRESTIMO, modalidadeEmprestimo, NOME_TIPO, tipoRevisional, type TipoRevisional,
 } from "../lib/revisional";
 import { baixarPdfProposta } from "../lib/revisional-pdf";
 import Icone from "../components/a2/Icone";
@@ -501,7 +501,7 @@ function NovaSimulacao({ config, usuarioNome, onCriada, editar, onSairEdicao }: 
                 {emprestimo ? (
                   <div className="sm:col-span-2">
                     <Campo rotulo="Tipo de empréstimo" dica="Define a taxa média do Banco Central usada na comparação">
-                      <select className={inputCls} value={veiculo.modalidade_emprestimo || "pessoal"} onChange={(e) => setV("modalidade_emprestimo")(e.target.value)}>
+                      <select className={inputCls} value={modalidadeEmprestimo(veiculo.modalidade_emprestimo)} onChange={(e) => setV("modalidade_emprestimo")(e.target.value)}>
                         {MODALIDADES_EMPRESTIMO.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
                       </select>
                     </Campo>

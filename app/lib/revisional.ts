@@ -21,15 +21,15 @@ export const NOME_TIPO: Record<TipoRevisional, string> = { imovel: "Imóvel", ve
 /** Modalidades de empréstimo, cada uma com a sua série de taxa média do Banco Central (SGS, % a.m., PF, recursos livres). */
 export const MODALIDADES_EMPRESTIMO = [
   { key: "pessoal", label: "Empréstimo pessoal (não consignado)", serie: 25464 },
-  { key: "consignado_inss", label: "Consignado INSS (aposentado/pensionista)", serie: 25468 },
-  { key: "consignado_publico", label: "Consignado servidor público", serie: 25467 },
-  { key: "consignado_privado", label: "Consignado trabalhador CLT (privado)", serie: 25466 },
+  { key: "consignado", label: "Consignado", serie: 25465 }, // consignado total (INSS, servidor e CLT juntos)
 ] as const;
 export type ModalidadeEmprestimo = (typeof MODALIDADES_EMPRESTIMO)[number]["key"];
+/** Propostas antigas guardaram consignado_inss / _publico / _privado: hoje é tudo "consignado". */
 export function modalidadeEmprestimo(v: unknown): ModalidadeEmprestimo {
+  if (typeof v === "string" && v.startsWith("consignado")) return "consignado";
   return (MODALIDADES_EMPRESTIMO.find((m) => m.key === v)?.key || "pessoal") as ModalidadeEmprestimo;
 }
-export const nomeModalidadeEmprestimo = (v: unknown) => MODALIDADES_EMPRESTIMO.find((m) => m.key === v)?.label || "Empréstimo pessoal";
+export const nomeModalidadeEmprestimo = (v: unknown) => MODALIDADES_EMPRESTIMO.find((m) => m.key === modalidadeEmprestimo(v))?.label || "Empréstimo pessoal";
 
 export type DadosImovel = {
   banco: string;
