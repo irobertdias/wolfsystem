@@ -108,6 +108,7 @@ export function propostaPublica(p: any, cfg: ConfigSolar) {
     reajuste_aa: cfg.reajuste_aa,
     degradacao_aa: cfg.degradacao_aa,
     validade_minutos: cfg.validade_minutos,
+    distribuidora: cfg.distribuidora || "",
     aceite: d.aceite ? { em: d.aceite.em, pagamento: d.aceite.pagamento || "", prazo: d.aceite.prazo || null } : null,
     recusa: d.recusa ? { em: d.recusa.em, motivo: d.recusa.motivo } : null,
     visita: d.visita ? { data: d.visita.data || "" } : null,

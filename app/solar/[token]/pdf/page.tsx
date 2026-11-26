@@ -10,7 +10,7 @@ type Proposta = {
   cliente: { nome: string; cidade: string; estado: string; endereco: string };
   resultado: ResultadoSolar | null; entrada: { telhado: string; ligacao: string; tarifa: number | null };
   observacoes: string; condicoes: string; formas_pagamento: string[]; taxa_financiamento: number;
-  reajuste_aa?: number; degradacao_aa?: number;
+  reajuste_aa?: number; degradacao_aa?: number; distribuidora?: string;
   empresa: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; cidade: string; logo: string; site: string; instagram?: string };
   kit: { painel_marca: string; painel_garantia: string; inversor_marca: string; inversor_garantia: string; instalacao_garantia: string; prazo_instalacao: string; estrutura_garantia?: string };
   aceite: { em: string; pagamento: string; prazo: number | null } | null;
@@ -178,6 +178,32 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
   const totalCom = r.conta_25_com || anos.reduce((s, a) => s + a.com, 0);
   const cartoes = r.cartoes?.length ? r.cartoes : r.cartao ? [{ meses: r.cartao.meses, valor: r.cartao.valor, total: r.cartao.valor * r.cartao.meses, acrescimo_pct: 0 }] : [];
   const linkAceite = typeof window !== "undefined" ? `${window.location.origin}/solar/${token}` : "";
+  const PAGINAS = 7;
+  const distrib = (p.distribuidora || "").replace(/\s+(Distribuidora de Energia|S\.?A\.?).*$/i, "").trim() || "distribuidora";
+  const taxaMin = Math.round((r.minimo_kwh || 0) * (r.tarifa || 0));
+  const cobre = Math.min(r.cobertura_pct || 100, 100);
+  const maiorCartao = cartoes.length ? cartoes[cartoes.length - 1] : null;
+  const maiorFin = r.parcelas.length ? r.parcelas[r.parcelas.length - 1] : null;
+  const qtdInv = r.inversor_tipo === "micro" ? parseInt(r.inversor, 10) || 1 : 1;
+  const telhado = telhadoLabel(p.entrada.telhado).split(" /")[0].toLowerCase();
+  // "Troque a conta pela parcela": quanto sai por mês em cada caminho
+  const cenarios: { t: string; s: string; parcela: number; conta: number; tom: string }[] = [
+    { t: "Hoje, sem energia solar", s: "só a conta de luz", parcela: 0, conta: r.conta_antes, tom: "ruim" },
+    ...(maiorCartao ? [{ t: `Pagando no cartão em ${maiorCartao.meses}x`, s: `parcela + conta nova, por ${maiorCartao.meses} meses`, parcela: maiorCartao.valor, conta: r.conta_depois, tom: "meio" }] : []),
+    ...(maiorFin ? [{ t: `Financiado em ${maiorFin.meses}x`, s: `parcela + conta nova (simulação)`, parcela: maiorFin.valor, conta: r.conta_depois, tom: "meio" }] : []),
+    { t: "Depois de quitado", s: "só a conta nova, por mais de 20 anos", parcela: 0, conta: r.conta_depois, tom: "bom" },
+  ];
+  const maxCen = Math.max(...cenarios.map((c) => c.parcela + c.conta), 1);
+  const itensCompra: [string, string, string, string][] = [
+    [String(r.paineis), `Placas solares ${kit.painel_marca ? `${kit.painel_marca} ` : ""}de ${r.painel_w} W`, "Captam a luz do sol e transformam em energia elétrica.", kit.painel_garantia],
+    [String(qtdInv), r.inversor_tipo === "micro" ? `Microinversores ${kit.inversor_marca || ""}`.trim() : `Inversor ${kit.inversor_marca || ""} de ${num(r.inversor_kw, 1)} kW`.replace("  ", " "), "É o “cérebro”: transforma a energia das placas na energia da sua tomada e mostra a produção no celular.", kit.inversor_garantia],
+    ["1", `Estrutura de fixação para ${telhado}`, "Prende as placas no telhado com segurança e vedação, sem goteira.", kit.estrutura_garantia || "—"],
+    ["1", "Cabos solares, conectores e proteções elétricas", "Levam a energia com segurança e protegem contra surtos, raios e curto-circuito.", "—"],
+    ["1", "Projeto elétrico e ART", "Feito e assinado por engenheiro eletricista responsável.", "—"],
+    ["1", `Homologação na ${distrib}`, `Cuidamos de toda a papelada com a ${distrib} até a troca do seu medidor.`, "—"],
+    ["1", "Instalação completa", "Equipe especializada, do telhado ao quadro de energia, com tudo funcionando.", kit.instalacao_garantia],
+    ["1", "Monitoramento pelo aplicativo", "Você acompanha quanto está gerando, de qualquer lugar, pelo celular.", "—"],
+  ];
 
   const Cabeca = ({ n, titulo, sub }: { n: string; titulo: string; sub?: string }) => (
     <header className="sp-cab">
@@ -190,7 +216,7 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
     </header>
   );
   const Rodape = ({ pg }: { pg: number }) => (
-    <footer className="sp-rod"><span>{rodape}</span><span>Proposta {p.numero} · {dataBR(p.data)} · {pg}/5</span></footer>
+    <footer className="sp-rod"><span>{rodape}</span><span>Proposta {p.numero} · {dataBR(p.data)} · {pg}/{PAGINAS}</span></footer>
   );
 
   return (
@@ -231,10 +257,10 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
           </div>
 
           <div className="sp-capa-kpis">
-            <div><b>{num(r.kwp, 2)}</b><span>kWp de potência</span></div>
-            <div><b>{r.paineis}</b><span>módulos de {r.painel_w} W</span></div>
-            <div><b>{num(r.geracao_kwh)}</b><span>kWh gerados por mês</span></div>
-            <div className="sp-ouro"><b>{brl0(r.economia_mes)}</b><span>de economia por mês</span></div>
+            <div><b>{r.paineis}</b><span>placas solares no seu telhado</span></div>
+            <div><b>{num(r.geracao_kwh)} kWh</b><span>de energia gerada por mês</span></div>
+            <div><b>{brl0(r.conta_depois)}</b><span>sua conta de luz depois</span></div>
+            <div className="sp-ouro"><b>{brl0(r.economia_mes)}</b><span>que você economiza por mês</span></div>
           </div>
 
           {r.campanha ? <div className="sp-capa-fita">{r.campanha} · condição especial</div> : null}
@@ -243,9 +269,43 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
           <div className="sp-capa-rod">{rodape}</div>
         </section>
 
-        {/* ───────────── 2 · ANÁLISE ───────────── */}
+        {/* ───────────── 2 · RESUMO EM 1 MINUTO ───────────── */}
+        <section className="sp-pg">
+          <Cabeca n="01" titulo={`${primeiro}, sua proposta em 1 minuto`} sub="Tudo o que importa, sem termo técnico" />
+          <ol className="sp-res">
+            <li><i>1</i><span>Hoje você paga cerca de <b>{brl(r.conta_antes)}</b> de luz por mês, para um consumo de {num(r.consumo_kwh)} kWh.</span></li>
+            <li><i>2</i><span>Vamos instalar <b>{r.paineis} placas solares</b> no seu telhado. Elas produzem cerca de <b>{num(r.geracao_kwh)} kWh por mês</b>{cobre >= 95 ? ", praticamente toda a energia que você usa" : `, cerca de ${cobre}% do que você usa`}.</span></li>
+            <li><i>3</i><span>Sua conta cai para cerca de <b>{brl(r.conta_depois)}</b> por mês. O que sobra é a taxa mínima da {distrib} e o uso da rede elétrica (explicamos no fim da página).</span></li>
+            <li><i>4</i><span>Você deixa de pagar <b>{brl(r.economia_mes)} por mês</b>, ou <b>{brl0(r.economia_ano)}</b> só no primeiro ano.</span></li>
+            <li><i>5</i><span>O sistema completo, <b>instalado e aprovado na {distrib}</b>, sai por <b>{brl(r.preco)}</b> à vista{maiorCartao ? <> ou <b>{maiorCartao.meses}x de {brl(maiorCartao.valor)}</b> no cartão</> : null}.</span></li>
+            <li><i>6</i><span>Com o que você economiza, o sistema <b>se paga em {anosTxt(r.payback_anos)}</b>. Depois disso, a economia é toda sua por mais de 20 anos.</span></li>
+          </ol>
+
+          <div className="sp-troca">
+            <div className="sp-bloco-t">Troque a conta de luz pela parcela · quanto sai por mês</div>
+            {cenarios.map((c) => (
+              <div key={c.t} className={`sp-cen sp-cen-${c.tom}`}>
+                <div className="sp-cen-t"><b>{c.t}</b><span>{c.s}</span></div>
+                <div className="sp-cen-b">
+                  {c.parcela > 0 ? <i className="sp-cen-p" style={{ width: `${(c.parcela / maxCen) * 100}%` }} /> : null}
+                  <i className="sp-cen-c" style={{ width: `${Math.max((c.conta / maxCen) * 100, 1.5)}%` }} />
+                </div>
+                <div className="sp-cen-v">{brl(c.parcela + c.conta)}</div>
+              </div>
+            ))}
+            <div className="sp-cen-leg"><span><i className="sp-cen-c" />conta de luz</span><span><i className="sp-cen-p" />parcela do sistema</span></div>
+          </div>
+
+          <div className="sp-zera">
+            <b>Por que a conta não chega a zero?</b>
+            <span>Todo imóvel ligado à rede paga uma taxa mínima de energia ({LIG[r.ligacao] || "sua ligação"}: {r.minimo_kwh} kWh{taxaMin ? `, cerca de ${brl0(taxaMin)}` : ""}), mais a iluminação pública da prefeitura. Pela lei da energia solar (Lei 14.300), uma pequena parte da energia que você manda para a rede também paga o uso dos fios. Tudo isso <b>já está descontado</b> nos valores desta proposta.</span>
+          </div>
+          <Rodape pg={2} />
+        </section>
+
+        {/* ───────────── 3 · ANÁLISE ───────────── */}
         <section className="sp-pg sp-pg-analise">
-          <Cabeca n="01" titulo="Análise de viabilidade" sub={`Estimativas com base no consumo médio de ${num(r.consumo_kwh)} kWh por mês`} />
+          <Cabeca n="02" titulo="Sua economia" sub={`Estimativas com base no seu consumo médio de ${num(r.consumo_kwh)} kWh por mês`} />
           <div className="sp-heroi">
             <div className="sp-heroi-esq">
               <div className="sp-rot">Sua conta de luz</div>
@@ -268,12 +328,12 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
           <div className="sp-kpis">
             <div className="sp-kpi sp-kpi-d"><span>Economia por mês</span><b>{brl(r.economia_mes)}</b></div>
             <div className="sp-kpi"><span>Economia no 1º ano</span><b>{brl(r.economia_ano)}</b></div>
-            <div className="sp-kpi"><span>Retorno do investimento</span><b>{anosTxt(r.payback_anos)}</b></div>
+            <div className="sp-kpi"><span>O sistema se paga em</span><b>{anosTxt(r.payback_anos)}</b></div>
             <div className="sp-kpi sp-kpi-o"><span>Economia em 25 anos</span><b>{brl0(r.economia_25)}</b></div>
           </div>
 
           <div className="sp-bloco">
-            <div className="sp-bloco-t">Consumo × geração</div>
+            <div className="sp-bloco-t">O que você gasta × o que as placas produzem</div>
             <div className="sp-barras">
               <div className="sp-barra-l"><span>Seu consumo</span><div><i style={{ width: `${(r.consumo_kwh / maxBarra) * 100}%` }} className="sp-i-c" /></div><b>{num(r.consumo_kwh)} kWh</b></div>
               <div className="sp-barra-l"><span>Geração do sistema</span><div><i style={{ width: `${(r.geracao_kwh / maxBarra) * 100}%` }} className="sp-i-g" /></div><b>{num(r.geracao_kwh)} kWh</b></div>
@@ -288,12 +348,12 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
               <div className="sp-verde-k"><b>{num(r.arvores || 0)}</b><span>árvores plantadas, em equivalência</span></div>
             </div>
             <div className="sp-claro">
-              <div className="sp-bloco-t">Premissas do cálculo</div>
+              <div className="sp-bloco-t">Como fizemos a conta</div>
               <ul className="sp-lista">
-                <li>Tarifa considerada: <b>{brl(r.tarifa)}/kWh</b></li>
-                <li>Ligação: <b>{LIG[r.ligacao] || r.ligacao}</b> · {r.uf}</li>
-                <li>Reajuste da energia: <b>{num(p.reajuste_aa ?? 5, 1)}% ao ano</b></li>
-                <li>Valores referentes ao ano vigente</li>
+                <li>Preço da energia hoje: <b>{brl(r.tarifa)} por kWh</b></li>
+                <li>Seu consumo médio: <b>{num(r.consumo_kwh)} kWh por mês</b></li>
+                <li>Ligação <b>{(LIG[r.ligacao] || r.ligacao).toLowerCase()}</b> · {r.uf}</li>
+                <li>A energia sobe em média <b>{num(p.reajuste_aa ?? 5, 1)}% ao ano</b></li>
               </ul>
             </div>
           </div>
@@ -307,65 +367,82 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
               ["%", "Parcela que cabe", "Troque a conta pela parcela."],
             ].map(([ic, t, s]) => <div key={t}><i>{ic}</i><span><b>{t}</b>{s}</span></div>)}
           </div>
-          <Rodape pg={2} />
+          <Rodape pg={3} />
         </section>
 
-        {/* ───────────── 3 · SISTEMA ───────────── */}
+        {/* ───────────── 4 · SISTEMA ───────────── */}
         <section className="sp-pg">
-          <Cabeca n="02" titulo="Engenharia do seu sistema" sub="Como a energia do sol chega até a sua tomada" />
+          <Cabeca n="03" titulo="O que você está comprando" sub="Item por item, e para que serve cada um" />
+          <table className="sp-compra">
+            <thead><tr><th>Qtd.</th><th>Item</th><th>Para que serve</th><th>Garantia</th></tr></thead>
+            <tbody>{itensCompra.map(([q, it, para, gar]) => <tr key={it}><td>{q}</td><td>{it}</td><td>{para}</td><td>{gar || "—"}</td></tr>)}</tbody>
+          </table>
+          <div className="sp-compra-tot">
+            <span>Potência total <b>{num(r.kwp, 2)} kWp</b></span>
+            <span>Área no telhado <b>cerca de {num(r.area_m2, 0)} m²</b></span>
+            <span>Prazo <b>{kit.prazo_instalacao || "a combinar"}</b></span>
+          </div>
+          <div className="sp-bloco-t" style={{ marginTop: 26 }}>Como a energia do sol chega até a sua tomada</div>
           <div className="sp-fluxo">
             {[
-              ["☀", "Os módulos captam a luz do sol", "e geram energia em corrente contínua."],
-              ["⚡", "O inversor converte a energia", "para a corrente da sua casa ou empresa."],
-              ["⌂", "A energia vai para o quadro", "e abastece tudo o que está ligado."],
-              ["⟳", "O medidor bidirecional", "registra o que você usa e o que injeta na rede."],
-              ["＋", "O excedente vira crédito", "na distribuidora por até 60 meses."],
+              ["☀", "As placas captam o sol", "e produzem energia durante o dia."],
+              ["⚡", "O inversor transforma", "essa energia na mesma da sua tomada."],
+              ["⌂", "Sua casa usa primeiro", "tudo o que está ligado gasta essa energia."],
+              ["⟳", "O que sobra vai para a rede", "e o medidor novo registra."],
+              ["＋", "Vira crédito na conta", "para usar à noite ou em outro mês."],
             ].map(([ic, t, s], i) => (
               <div key={i} className="sp-passo"><div className="sp-passo-ic">{ic}</div><div className="sp-passo-n">{i + 1}</div><b>{t}</b><span>{s}</span></div>
             ))}
           </div>
 
-          <div className="sp-equip">
-            <div className="sp-eq">
-              <div className="sp-eq-ic"><svg viewBox="0 0 48 48" width="34" height="34"><rect x="4" y="9" width="40" height="27" rx="2" fill="#0F3B4F" stroke="#E3B547" strokeWidth="1.5" />{[0, 1, 2, 3].map((c) => [0, 1, 2].map((l) => <rect key={`${c}${l}`} x={6.5 + c * 9.6} y={11.5 + l * 7.9} width="8.6" height="6.9" fill="#1C5A73" />))}<rect x="22" y="36" width="4" height="7" fill="#E3B547" /></svg></div>
-              <div className="sp-eq-t">Módulos fotovoltaicos</div>
-              <div className="sp-eq-big">{r.paineis} × {r.painel_w} W</div>
-              <dl><dt>Fabricante</dt><dd>{kit.painel_marca}</dd><dt>Potência total</dt><dd>{num(r.kwp, 2)} kWp</dd><dt>Área ocupada</dt><dd>{num(r.area_m2, 1)} m²</dd><dt>Garantia</dt><dd>{kit.painel_garantia}</dd></dl>
-            </div>
-            <div className="sp-eq">
-              <div className="sp-eq-ic"><svg viewBox="0 0 48 48" width="34" height="34"><rect x="9" y="5" width="30" height="38" rx="5" fill="#F4F1E8" stroke="#0E4D34" strokeWidth="1.8" /><rect x="15" y="13" width="18" height="9" rx="1.5" fill="#0E4D34" /><circle cx="24" cy="32" r="4" fill="none" stroke="#E3B547" strokeWidth="2" /></svg></div>
-              <div className="sp-eq-t">{r.inversor_tipo === "micro" ? "Microinversores" : "Inversor"}</div>
-              <div className="sp-eq-big">{r.inversor_tipo === "micro" ? r.inversor.split(" ")[0] + " unidades" : `${num(r.inversor_kw, 1)} kW`}</div>
-              <dl><dt>Fabricante</dt><dd>{kit.inversor_marca}</dd><dt>Tipo</dt><dd>{r.inversor_tipo === "micro" ? "Microinversor (por módulo)" : "Inversor central (string)"}</dd><dt>Garantia</dt><dd>{kit.inversor_garantia}</dd></dl>
-            </div>
-            <div className="sp-eq">
-              <div className="sp-eq-ic"><svg viewBox="0 0 48 48" width="34" height="34"><path d="M4 26 24 9l20 17" fill="none" stroke="#0E4D34" strokeWidth="2.4" strokeLinejoin="round" /><path d="M10 22v19h28V22" fill="#F4F1E8" stroke="#0E4D34" strokeWidth="1.8" /><path d="M14 20 24 12l10 8" fill="none" stroke="#E3B547" strokeWidth="2" /></svg></div>
-              <div className="sp-eq-t">Instalação</div>
-              <div className="sp-eq-big">{telhadoLabel(p.entrada.telhado).split(" /")[0]}</div>
-              <dl><dt>Rede</dt><dd>{LIG[r.ligacao] || r.ligacao}</dd><dt>Produção estimada</dt><dd>{num(r.geracao_kwh)} kWh/mês</dd><dt>Estrutura</dt><dd>{kit.estrutura_garantia ? `garantia de ${kit.estrutura_garantia}` : "inclusa"}</dd></dl>
-            </div>
-          </div>
-
-          <div className="sp-garantias">
-            <div className="sp-bloco-t">Garantias</div>
-            <div className="sp-gar">
-              <div><b>Módulos</b><span>{kit.painel_garantia}</span></div>
-              <div><b>Inversor</b><span>{kit.inversor_garantia}</span></div>
-              <div><b>Estrutura</b><span>{kit.estrutura_garantia || "—"}</span></div>
-              <div><b>Instalação</b><span>{kit.instalacao_garantia}</span></div>
-            </div>
-          </div>
-
-          <div className="sp-inclui">
-            <div className="sp-bloco-t">O que está incluso</div>
-            <ul>{r.itens.map((it) => <li key={it}>{it}</li>)}</ul>
-          </div>
-          <Rodape pg={3} />
+          <Rodape pg={4} />
         </section>
 
-        {/* ───────────── 4 · 25 ANOS ───────────── */}
+        {/* ───────────── 5 · DO SIM ATÉ A CONTA BAIXAR + DÚVIDAS ───────────── */}
         <section className="sp-pg">
-          <Cabeca n="03" titulo="Desempenho financeiro" sub="O que acontece com o seu dinheiro nos próximos 25 anos" />
+          <Cabeca n="04" titulo="Do “sim” até a conta baixar" sub="O caminho completo, e quem cuida de cada parte" />
+          <div className="sp-trilha">
+            {[
+              ["Você aprova", "Pelo link da proposta ou assinando a última página. Combinamos a forma de pagamento.", "você"],
+              ["Visita técnica", "Nosso técnico confere o telhado, o quadro de energia e o medidor.", "nós"],
+              ["Projeto e pedido", `O engenheiro faz o projeto e damos entrada na ${distrib}. Você só assina a procuração.`, "nós"],
+              ["Instalação", "Montamos as placas, o inversor e as proteções. Normalmente em poucos dias de obra.", "nós"],
+              ["Vistoria e medidor", `A ${distrib} vistoria e troca seu medidor por um que mede a energia nos dois sentidos.`, distrib],
+              ["Sistema ligado", "A partir daí a economia já aparece nas próximas contas de luz.", "pronto!"],
+            ].map(([t, s, quem], i) => (
+              <div key={t} className="sp-tr"><i>{i + 1}</i><div><b>{t}</b><span>{s}</span></div><em>{quem}</em></div>
+            ))}
+          </div>
+          {kit.prazo_instalacao ? <p className="sp-mini" style={{ marginTop: 8 }}>Prazo informado pela empresa: <b>{kit.prazo_instalacao}</b>.</p> : null}
+
+          <div className="sp-bloco-t" style={{ marginTop: 22 }}>Perguntas que todo cliente faz</div>
+          <div className="sp-faq">
+            {[
+              ["E em dia nublado ou de chuva?", "As placas geram menos, mas continuam gerando. A conta usa a média do ano: os meses de muito sol compensam os de pouco."],
+              ["E à noite?", "À noite as placas não geram. Você usa os créditos da energia que sobrou durante o dia."],
+              ["Se faltar energia na rua, fico com luz?", "Não. Por segurança, o sistema ligado à rede desliga junto quando falta energia. Para ter luz na queda existe o sistema com bateria (orçamento à parte)."],
+              ["Os créditos de energia vencem?", `Valem por 60 meses e podem abater a conta de outro imóvel seu, no mesmo nome e atendido pela ${distrib}.`],
+              ["Precisa de manutenção?", "Pouca: limpar as placas de tempos em tempos e acompanhar a produção pelo aplicativo."],
+              ["E se eu mudar de casa?", "O sistema pode ser retirado e reinstalado no novo endereço, ou fica como valorização do imóvel na venda."],
+            ].map(([q, a]) => <div key={q}><b>{q}</b><span>{a}</span></div>)}
+          </div>
+
+          <div className="sp-bloco-t" style={{ marginTop: 20 }}>Palavras que aparecem nesta proposta</div>
+          <dl className="sp-gloss">
+            <dt>kWh</dt><dd>A “unidade” da energia. É o que vem escrito na sua conta de luz.</dd>
+            <dt>kWp</dt><dd>O tamanho do sistema: a força máxima das placas somadas.</dd>
+            <dt>Inversor</dt><dd>Aparelho que transforma a energia das placas na energia da tomada.</dd>
+            <dt>Homologação</dt><dd>A aprovação do sistema pela {distrib}. Nós cuidamos de tudo.</dd>
+            <dt>Crédito de energia</dt><dd>A energia que sobra de dia vai para a rede e volta como desconto.</dd>
+            <dt>Se paga em</dt><dd>Quanto tempo a economia leva para devolver o valor investido.</dd>
+          </dl>
+          <Rodape pg={5} />
+        </section>
+
+        {/* ───────────── 6 · 25 ANOS ───────────── */}
+        <section className="sp-pg">
+          <Cabeca n="05" titulo="Seu dinheiro em 25 anos" sub="Quanto você pagaria sem energia solar e quanto fica no seu bolso" />
+          <p className="sp-ler"><b>Como ler o gráfico:</b> a linha começa abaixo de zero porque é o valor que você investe. Cada mês de economia vai subindo a linha. Quando ela passa do zero, o sistema já se pagou{r.payback_anos ? ` (em ${anosTxt(r.payback_anos)})` : ""}. Tudo acima disso é dinheiro que fica com você.</p>
           <div className="sp-g25"><Grafico25 anos={anos} preco={r.preco} payback={r.payback_anos} /></div>
           <div className="sp-comp">
             <div className="sp-comp-c"><span>Sem energia solar</span><b>{brl0(totalSem)}</b><i>pagos à distribuidora em 25 anos</i></div>
@@ -383,19 +460,19 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
             </tbody>
           </table>
           <p className="sp-mini">Estimativa com reajuste da energia de {num(p.reajuste_aa ?? 5, 1)}% ao ano{(p.degradacao_aa ?? 0) > 0 ? ` e perda de geração de ${num(p.degradacao_aa || 0, 1)}% ao ano` : ""}. O saldo acumulado já desconta o investimento.</p>
-          <Rodape pg={4} />
+          <Rodape pg={6} />
         </section>
 
         {/* ───────────── 5 · INVESTIMENTO ───────────── */}
         <section className="sp-pg">
-          <Cabeca n="04" titulo="Investimento e condições" sub={validade ? `Proposta válida até ${dataBR(p.validade_ate)}${diasValidade ? ` (${diasValidade} dia${diasValidade > 1 ? "s" : ""})` : ""}` : undefined} />
+          <Cabeca n="06" titulo="Quanto custa e como pagar" sub={validade ? `Proposta válida até ${dataBR(p.validade_ate)}${diasValidade ? ` (${diasValidade} dia${diasValidade > 1 ? "s" : ""})` : ""}` : undefined} />
           <div className="sp-preco">
             {r.campanha ? <div className="sp-preco-fita">{r.campanha}</div> : null}
             <div className="sp-preco-l">
               <span>Investimento total · sistema completo instalado</span>
               {r.preco_de ? <s>de {brl(r.preco_de)}</s> : null}
               <b>{r.preco_de ? <small>por </small> : null}{brl(r.preco)}</b>
-              <i>à vista · {num(r.kwp, 2)} kWp · {brl(r.preco_wp)} por Wp</i>
+              <i>à vista · tudo incluso: equipamentos, instalação e aprovação na {distrib}</i>
             </div>
             {cartoes.length ? (
               <div className="sp-preco-r">
@@ -443,7 +520,7 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
               <div><i /><b>{emp.nome}</b><span>{emp.cnpj ? `CNPJ ${emp.cnpj}` : ""}</span><span>{[emp.endereco, emp.cidade].filter(Boolean).join(" · ")}</span></div>
             </div>
           </div>
-          <Rodape pg={5} />
+          <Rodape pg={7} />
         </section>
       </div>
     </main>
@@ -614,6 +691,51 @@ const CSS = `
 .sp-ass div{display:flex;flex-direction:column;font-size:11px;color:#5B6B63;gap:2px}
 .sp-ass i{display:block;height:1.5px;background:#10241B;margin-bottom:8px}
 .sp-ass b{font-size:12.5px;color:#10241B}
+/* resumo em 1 minuto */
+.sp-res{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.sp-res li{display:flex;gap:14px;align-items:flex-start;background:#fff;border:1px solid #ECE7DA;border-radius:16px;padding:11px 16px;font-size:14px;line-height:1.5;color:#33453C}
+.sp-res li i{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:900 13px Manrope;font-style:normal;background:linear-gradient(135deg,#F6D77A,#D7A331);color:#2A1C02;margin-top:1px}
+.sp-res b{color:#0B3324}
+.sp-troca{margin-top:18px;background:#fff;border:1px solid #ECE7DA;border-radius:20px;padding:16px 18px 12px}
+.sp-cen{display:grid;grid-template-columns:205px 1fr 96px;align-items:center;gap:12px;padding:6px 0}
+.sp-cen-t b{display:block;font-size:12.5px;color:#0B3324}.sp-cen-t span{display:block;font-size:10.5px;color:#7A867F}
+.sp-cen-b{display:flex;height:20px;background:#F4F1E8;border-radius:999px;overflow:hidden}
+.sp-cen-b i,.sp-cen-leg i{display:block;height:100%}
+.sp-cen-p{background:linear-gradient(90deg,#E3B547,#C99A2E)}
+.sp-cen-c{background:#9AA9A1}
+.sp-cen-ruim .sp-cen-c{background:linear-gradient(90deg,#EF8A6B,#C2410C)}
+.sp-cen-bom .sp-cen-c{background:linear-gradient(90deg,#23964B,#0E4D34)}
+.sp-cen-v{text-align:right;font:800 15px Manrope;color:#0B3324}
+.sp-cen-ruim .sp-cen-v{color:#B4380C}.sp-cen-bom .sp-cen-v{color:#0E4D34}
+.sp-cen-leg{display:flex;gap:16px;justify-content:flex-end;font-size:10.5px;color:#7A867F;margin-top:4px}
+.sp-cen-leg span{display:flex;align-items:center;gap:6px}.sp-cen-leg i{width:12px;height:12px;border-radius:4px}
+.sp-zera{margin-top:14px;border-radius:18px;padding:14px 18px;background:linear-gradient(135deg,#FFF6DA,#F9EBC0);border:1px solid #EED593;font-size:12px;line-height:1.55;color:#5A4415}
+.sp-zera b{display:block;font-size:13px;color:#6B4A0C;margin-bottom:3px}
+.sp-zera span b{display:inline;font-size:inherit;margin:0}
+/* o que você está comprando */
+.sp-compra{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;background:#fff;border:1px solid #ECE7DA;border-radius:18px;overflow:hidden}
+.sp-compra th{background:#0B3324;color:#F6D77A;text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:10px 12px}
+.sp-compra td{padding:10px 12px;border-top:1px solid #EEEAE0;color:#33453C;vertical-align:top;line-height:1.45}
+.sp-compra td:first-child{text-align:center;font:900 17px Manrope;color:#B8862B;width:46px}
+.sp-compra td:nth-child(2){font-weight:800;color:#0B3324;width:210px}
+.sp-compra td:last-child{width:120px;font-weight:700;color:#0E4D34}
+.sp-compra tr:nth-child(even) td{background:#FBFAF6}
+.sp-compra-tot{display:flex;gap:10px;margin-top:10px}
+.sp-compra-tot span{flex:1;background:#EEF6F1;border:1px solid #CFE5D8;border-radius:14px;padding:9px 12px;font-size:11px;color:#5B6B63}
+.sp-compra-tot b{display:block;font-size:13.5px;color:#0B3324;margin-top:2px}
+/* do sim até a conta baixar */
+.sp-trilha{display:flex;flex-direction:column;gap:0;position:relative}
+.sp-trilha:before{content:"";position:absolute;left:17px;top:18px;bottom:18px;width:2px;background:linear-gradient(180deg,#E3B547,#0E4D34)}
+.sp-tr{display:grid;grid-template-columns:36px 1fr auto;gap:14px;align-items:center;padding:6px 0;position:relative}
+.sp-tr i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font:900 14px Manrope;font-style:normal;background:#0B3324;color:#F6D77A;box-shadow:0 0 0 4px #FBFAF6;z-index:1}
+.sp-tr b{display:block;font-size:13.5px;color:#0B3324}.sp-tr span{display:block;font-size:11.5px;color:#5B6B63;line-height:1.4}
+.sp-tr em{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8A6314;background:#FFF6DA;border:1px solid #EED593;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.sp-faq{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp-faq div{background:#fff;border:1px solid #ECE7DA;border-radius:14px;padding:10px 13px;font-size:11px;line-height:1.45;color:#33453C}
+.sp-faq b{display:block;font-size:12px;color:#0B3324;margin-bottom:2px}
+.sp-gloss{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:6px 12px;margin:0;font-size:11px;line-height:1.4;color:#33453C}
+.sp-gloss dt{font-weight:900;color:#B8862B;white-space:nowrap}.sp-gloss dd{margin:0}
+.sp-ler{font-size:12px;line-height:1.55;color:#33453C;background:#EEF6F1;border:1px solid #CFE5D8;border-radius:14px;padding:10px 14px;margin:0 0 12px}
 /* o tema do sistema força a fonte em tudo (body * … !important): aqui a proposta usa a dela */
 body .sp-fundo *:not(code):not(pre):not(kbd):not(samp):not(.font-mono){font-family:Manrope,system-ui,sans-serif!important}
 body .sp-fundo .sp-pg :is(.sp-cab-t,.sp-capa-marca b,.sp-capa-h1,.sp-capa-h1 em,.sp-capa-cliente,.sp-antes,.sp-depois,.sp-verde-k b,.sp-eq-big,.sp-comp-c b,.sp-preco-l b,.sp-preco-r em,.sp-pag-v,.sp-serif){font-family:Fraunces,Georgia,"Times New Roman",serif!important}
