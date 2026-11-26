@@ -40,6 +40,7 @@ function entradaDe(b: any): EntradaSolar {
     ligacao: ["mono", "bi", "tri"].includes(b.ligacao) ? b.ligacao : undefined,
     telhado: TELHADOS.some((t) => t.key === b.telhado) ? b.telhado : undefined,
     aumento_pct: Number(b.aumento_pct) || undefined,
+    inversor_tipo: b.inversor_tipo === "micro" || b.inversor_tipo === "string" ? b.inversor_tipo : undefined,
   };
 }
 
@@ -48,9 +49,11 @@ function resumoIA(r: ReturnType<typeof calcularSolar>) {
     potencia: kwpTxt(r.kwp), paineis: r.paineis, painel_w: r.painel_w, inversor: r.inversor, geracao_kwh_mes: r.geracao_kwh,
     consumo_considerado_kwh: r.consumo_kwh, area_m2: r.area_m2, uf: r.uf, sol_h_dia: r.hsp, tarifa: brl(r.tarifa),
     conta_hoje: brl(r.conta_antes), conta_depois: brl(r.conta_depois), economia_mes: brl(r.economia_mes), economia_ano: brl(r.economia_ano), economia_25_anos: brl(r.economia_25),
-    investimento: brl(r.preco), retorno: anosTxt(r.payback_anos),
-    financiamento: r.parcelas.map((p) => `${p.meses}x de ${brl(p.valor)}`), entrada: r.entrada ? brl(r.entrada) : null,
-    cartao: r.cartao ? `${r.cartao.meses}x de ${brl(r.cartao.valor)}` : null,
+    investimento: brl(r.preco), investimento_de: r.preco_de ? brl(r.preco_de) : null, campanha: r.campanha || null, retorno: anosTxt(r.payback_anos),
+    financiamento_simulacao: r.parcelas.map((p) => `${p.meses}x de ${brl(p.valor)}`), entrada: r.entrada ? brl(r.entrada) : null,
+    cartao: r.cartoes?.length ? r.cartoes.map((c) => `${c.meses}x de ${brl(c.valor)}`) : r.cartao ? [`${r.cartao.meses}x de ${brl(r.cartao.valor)}`] : [],
+    cartao_com_entrada: r.cartao_entrada ? `entrada de ${brl(r.cartao_entrada.entrada)} + ${r.cartao_entrada.meses}x de ${brl(r.cartao_entrada.valor)} sem juros` : null,
+    tipo_inversor: r.inversor_tipo === "micro" ? "microinversor" : "inversor central",
     itens: r.itens, texto_whatsapp: resumoSolarTexto(r),
   };
 }
@@ -77,8 +80,12 @@ export async function POST(request: NextRequest) {
     if (acao === "config") {
       return NextResponse.json({
         ok: true, empresa: cfg.empresa, kit: { modulo: `${cfg.painel_marca} ${cfg.painel_w} W`, inversor: `${cfg.inversor_marca} (${cfg.inversor_tipo === "micro" ? "microinversor" : "inversor string"})` },
-        garantias: { modulo: cfg.painel_garantia, inversor: cfg.inversor_garantia, instalacao: cfg.instalacao_garantia }, prazo_instalacao: cfg.prazo_instalacao,
-        formas_pagamento: cfg.formas_pagamento, financiamento: { juros_am: cfg.taxa_financiamento, prazos: cfg.prazos_financiamento, entrada_pct: cfg.entrada_pct }, cartao_vezes: cfg.parcelas_cartao,
+        garantias: { modulo: cfg.painel_garantia, inversor: cfg.inversor_garantia, estrutura: cfg.estrutura_garantia, instalacao: cfg.instalacao_garantia }, prazo_instalacao: cfg.prazo_instalacao,
+        formas_pagamento: cfg.formas_pagamento, financiamento: { juros_am: cfg.taxa_financiamento, prazos: cfg.prazos_financiamento, entrada_pct: cfg.entrada_pct, simulacao: true },
+        cartao: cfg.cartao_opcoes?.length ? cfg.cartao_opcoes.map((o) => `${o.parcelas}x (+${o.acrescimo_pct}% sobre o à vista)`) : [`até ${cfg.parcelas_cartao}x`],
+        cartao_com_entrada: cfg.cartao_entrada_pct && cfg.cartao_sem_juros ? `entrada de ${cfg.cartao_entrada_pct}% + restante em até ${cfg.cartao_sem_juros}x sem juros` : null,
+        campanha: cfg.campanha?.nome ? `${cfg.campanha.nome}${cfg.campanha.ate ? ` (até ${cfg.campanha.ate.split("-").reverse().join("/")})` : ""}` : null,
+        microinversor: cfg.inversor_tipo === "micro" ? "padrão" : `opcional, cerca de ${cfg.adicional_micro_pct}% a mais`,
         tarifa_padrao: cfg.tarifa_padrao, uf_padrao: cfg.uf_padrao, condicoes: cfg.observacoes, validade_minutos: cfg.validade_minutos, instrucoes: cfg.instrucoes_ia,
         telhados: TELHADOS.map((t) => t.key),
       });
@@ -126,7 +133,7 @@ export async function POST(request: NextRequest) {
         id = (data as any).id;
         await avisarEmpresaSolar(ws, id, "nova");
       }
-      return NextResponse.json({ ok: true, proposta_id: id, numero, link: linkSolar(token, origem), valida_ate: new Date(validade_ate).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), atualizada: !!existente, ...resumoIA(r) });
+      return NextResponse.json({ ok: true, proposta_id: id, numero, link: linkSolar(token, origem), link_pdf: `${linkSolar(token, origem)}/pdf`, valida_ate: new Date(validade_ate).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), atualizada: !!existente, ...resumoIA(r) });
     }
 
     // As ações abaixo só mexem em propostas do próprio telefone do cliente.

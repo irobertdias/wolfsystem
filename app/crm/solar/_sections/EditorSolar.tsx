@@ -31,6 +31,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
   const [f, setF] = useState({
     consumo: txt(e0.consumo_kwh), conta: txt(e0.conta_valor), tarifa: txt(e0.tarifa || cfg.tarifa_padrao), ligacao: (e0.ligacao || "bi") as Ligacao,
     telhado: e0.telhado || "ceramico", aumento: txt(e0.aumento_pct), paineis: txt(e0.paineis), desconto: txt(e0.desconto), preco_manual: txt(e0.preco_manual),
+    inversor_tipo: (e0.inversor_tipo || cfg.inversor_tipo || "string") as "string" | "micro",
   });
   const [obs, setObs] = useState(d.observacoes || "");
   const [minutos, setMinutos] = useState(String(cfg.validade_minutos || 10080));
@@ -43,6 +44,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
     consumo_kwh: n(f.consumo) || undefined, conta_valor: n(f.conta) || undefined, tarifa: n(f.tarifa) || undefined,
     uf: cli.estado, cidade: cli.cidade, ligacao: f.ligacao, telhado: f.telhado, aumento_pct: n(f.aumento) || undefined,
     paineis: n(f.paineis) || undefined, desconto: n(f.desconto) || undefined, preco_manual: n(f.preco_manual) || undefined,
+    inversor_tipo: f.inversor_tipo,
   };
   const r = useMemo(() => calcularSolar(entrada, cfg), [JSON.stringify(entrada), cfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const temConsumo = r.consumo_kwh > 0;
@@ -133,6 +135,10 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
               <Field label="Telhado" flex="2 1 200px"><select style={inputSm} value={f.telhado} onChange={(e) => set("telhado", e.target.value)}>{TELHADOS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select></Field>
               <Field label="Aumento de consumo (%)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.aumento} onChange={(e) => set("aumento", e.target.value)} placeholder="0" /></Field>
             </Row>
+            <Field label="Inversor"><select style={inputSm} value={f.inversor_tipo} onChange={(e) => set("inversor_tipo", e.target.value)}>
+              <option value="string">Inversor central (string)</option>
+              <option value="micro">Microinversor{cfg.inversor_tipo !== "micro" && n(cfg.adicional_micro_pct) ? ` (+${n(cfg.adicional_micro_pct)}%)` : ""}</option>
+            </select></Field>
             <Row>
               <Field label="Painéis (ajuste manual)" flex="1 1 120px"><input style={inputSm} inputMode="numeric" value={f.paineis} onChange={(e) => set("paineis", e.target.value)} placeholder={`auto (${r.paineis})`} /></Field>
               <Field label="Desconto (R$)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.desconto} onChange={(e) => set("desconto", e.target.value)} placeholder="0,00" /></Field>
@@ -160,13 +166,16 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
         </Card>
 
         <Card titulo="Valores">
-          <Linha k={`Tabela (${brl(r.preco_tabela / Math.max(1, r.kwp * 1000))}/Wp)`} v={brl(r.preco_tabela)} />
+          <Linha k={`${cfg.modo_preco === "kits" ? "Tabela de kits" : "Tabela"} (${brl(r.preco_tabela / Math.max(1, r.kwp * 1000))}/Wp)`} v={brl(r.preco_tabela)} />
+          {r.preco_de ? <Linha k={`Preço "de"${r.campanha ? ` · ${r.campanha}` : ""}`} v={brl(r.preco_de)} /> : null}
           {r.adicional > 0 && <Linha k="Adicional do telhado" v={brl(r.adicional)} />}
           {r.desconto > 0 && <Linha k="Desconto" v={`- ${brl(r.desconto)}`} />}
-          <Linha k="Investimento" v={brl(r.preco)} forte />
+          <Linha k="Investimento à vista" v={brl(r.preco)} forte />
           <Linha k="Retorno do investimento" v={anosTxt(r.payback_anos)} />
-          {r.parcelas.map((p) => <Linha key={p.meses} k={`Financiado em ${p.meses}x${r.entrada ? " (com entrada)" : ""}`} v={brl(p.valor)} />)}
-          {r.cartao && <Linha k={`Cartão em até ${r.cartao.meses}x`} v={brl(r.cartao.valor)} />}
+          {(r.cartoes?.length ? r.cartoes : []).map((c) => <Linha key={`c${c.meses}`} k={`Cartão ${c.meses}x${c.acrescimo_pct ? ` (+${String(c.acrescimo_pct).replace(".", ",")}%)` : ""}`} v={brl(c.valor)} />)}
+          {!r.cartoes?.length && r.cartao && <Linha k={`Cartão em até ${r.cartao.meses}x`} v={brl(r.cartao.valor)} />}
+          {r.cartao_entrada && <Linha k={`Entrada ${brl0(r.cartao_entrada.entrada)} + ${r.cartao_entrada.meses}x sem juros`} v={brl(r.cartao_entrada.valor)} />}
+          {r.parcelas.map((p) => <Linha key={p.meses} k={`Financiamento ${p.meses}x${r.entrada ? " (com entrada)" : ""}`} v={brl(p.valor)} />)}
         </Card>
 
         {msg && <Banner tipo={msg.tipo}>{msg.texto}</Banner>}
@@ -190,6 +199,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
                     <Btn onClick={gerarLink} disabled={salvando}>{d.token ? "Renovar e copiar link" : "Gerar link"}</Btn>
                     {d.token && <Btn variante="ghost" onClick={zap}>Enviar no WhatsApp</Btn>}
                     {d.token && <Btn variante="ghost" onClick={() => window.open(link, "_blank")}>Abrir</Btn>}
+                    {d.token && <Btn variante="ghost" onClick={() => window.open(`${link}/pdf`, "_blank")}>Proposta em PDF</Btn>}
                   </Row>
                 </div>
                 {d.aceite && <Banner tipo="ok">Aceita pelo cliente em {dataHoraBR(d.aceite.em)}{d.aceite.pagamento ? ` · ${d.aceite.pagamento}` : ""}{d.aceite.prazo ? ` em ${d.aceite.prazo}x` : ""}.</Banner>}
@@ -213,7 +223,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
             </div>
           </Card>
         )}
-        <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>Estimativa com a irradiação média do estado, desempenho de {Math.round(cfg.eficiencia * 100)}% e o custo mínimo da ligação. A economia desconta {cfg.fio_b_pct}% de Fio B. Confirme na visita técnica.</div>
+        <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>Estimativa com {n(cfg.geracao_kwh_kwp) > 0 ? `${String(cfg.geracao_kwh_kwp).replace(".", ",")} kWh por kWp ao mês` : `a irradiação média do estado e desempenho de ${Math.round(cfg.eficiencia * 100)}%`}{cfg.descontar_minimo === false ? "" : " e o custo mínimo da ligação"}. A economia desconta {cfg.fio_b_pct}% de Fio B. Confirme na visita técnica.</div>
       </div>
     </div>
   );

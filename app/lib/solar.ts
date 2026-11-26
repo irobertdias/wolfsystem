@@ -33,9 +33,13 @@ export const telhadoLabel = (k?: string | null) => TELHADOS.find((t) => t.key ==
 export const INVERSORES_KW = [2, 3, 3.6, 4, 5, 6, 7.5, 8, 10, 12, 15, 20, 25, 30, 36, 40, 50, 60, 75, 100, 125, 150];
 
 export type FaixaPreco = { ate_kwp: number; preco_wp: number }; // R$ por Wp até essa potência
+/** Kit da tabela da empresa: preço fechado por quantidade de módulos. */
+export type KitSolar = { paineis: number; inversor_kw: number; preco: number; preco_de?: number };
+/** Parcelamento no cartão: acréscimo total (%) sobre o preço à vista. */
+export type OpcaoCartao = { parcelas: number; acrescimo_pct: number };
 
 export type ConfigSolar = {
-  empresa: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; cidade: string; logo: string; site: string };
+  empresa: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; cidade: string; logo: string; site: string; instagram?: string };
   painel_marca: string;
   painel_w: number;              // potência do módulo (W)
   painel_area_m2: number;        // área de cada módulo
@@ -46,6 +50,18 @@ export type ConfigSolar = {
   inversor_garantia: string;
   instalacao_garantia: string;
   faixas: FaixaPreco[];
+  modo_preco: "faixas" | "kits"; // R$/Wp por faixa ou tabela de kits por quantidade de módulos
+  kits: KitSolar[];
+  arredondar_97: boolean;        // preço termina em 97 (ex.: 16.997)
+  adicional_micro_pct: number;   // % a mais quando o sistema usa microinversor
+  sobrecarga_inversor: number;   // kWp dos módulos ÷ kW do inversor aceito (1,3 = 30%)
+  campanha: { nome: string; ate: string }; // oferta exibida na proposta (ate = AAAA-MM-DD)
+  geracao_kwh_kwp: number;       // kWh por kWp ao mês (0 = calcular pela irradiação do estado)
+  descontar_minimo: boolean;     // dimensiona descontando a taxa mínima da ligação
+  estrutura_garantia: string;
+  cartao_opcoes: OpcaoCartao[];
+  cartao_entrada_pct: number;    // entrada (%) para parcelar o restante sem juros
+  cartao_sem_juros: number;      // até N vezes sem juros após a entrada
   adicional_telhado: Record<string, number>; // % sobre o preço
   min_paineis: number;
   tarifa_padrao: number;         // R$/kWh com impostos
@@ -68,7 +84,7 @@ export type ConfigSolar = {
 };
 
 export const CONFIG_SOLAR_PADRAO: ConfigSolar = {
-  empresa: { nome: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", logo: "", site: "" },
+  empresa: { nome: "", cnpj: "", telefone: "", email: "", endereco: "", cidade: "", logo: "", site: "", instagram: "" },
   painel_marca: "Módulo monocristalino",
   painel_w: 610,
   painel_area_m2: 2.7,
@@ -86,6 +102,18 @@ export const CONFIG_SOLAR_PADRAO: ConfigSolar = {
     { ate_kwp: 75, preco_wp: 2.35 },
     { ate_kwp: 9999, preco_wp: 2.2 },
   ],
+  modo_preco: "faixas",
+  kits: [],
+  arredondar_97: false,
+  adicional_micro_pct: 20,
+  sobrecarga_inversor: 1.3,
+  campanha: { nome: "", ate: "" },
+  geracao_kwh_kwp: 0,
+  descontar_minimo: true,
+  estrutura_garantia: "5 anos",
+  cartao_opcoes: [],
+  cartao_entrada_pct: 0,
+  cartao_sem_juros: 0,
   adicional_telhado: { ceramico: 0, fibrocimento: 0, metalico: 0, laje: 5, solo: 12 },
   min_paineis: 4,
   tarifa_padrao: 1.0,
@@ -115,6 +143,9 @@ export function configSolar(salvo: any): ConfigSolar {
     empresa: { ...CONFIG_SOLAR_PADRAO.empresa, ...(s.empresa || {}) },
     adicional_telhado: { ...CONFIG_SOLAR_PADRAO.adicional_telhado, ...(s.adicional_telhado || {}) },
     faixas: Array.isArray(s.faixas) && s.faixas.length ? s.faixas : CONFIG_SOLAR_PADRAO.faixas,
+    kits: Array.isArray(s.kits) ? s.kits : [],
+    cartao_opcoes: Array.isArray(s.cartao_opcoes) ? s.cartao_opcoes : [],
+    campanha: { ...CONFIG_SOLAR_PADRAO.campanha, ...(s.campanha || {}) },
     prazos_financiamento: Array.isArray(s.prazos_financiamento) && s.prazos_financiamento.length ? s.prazos_financiamento : CONFIG_SOLAR_PADRAO.prazos_financiamento,
     formas_pagamento: Array.isArray(s.formas_pagamento) && s.formas_pagamento.length ? s.formas_pagamento : CONFIG_SOLAR_PADRAO.formas_pagamento,
   };
@@ -132,9 +163,12 @@ export type EntradaSolar = {
   aumento_pct?: number;      // previsão de aumento de consumo (ar-condicionado, carro elétrico…)
   desconto?: number;         // R$ de desconto no preço
   preco_manual?: number;     // preço final digitado (substitui a tabela)
+  inversor_tipo?: "string" | "micro"; // escolha da proposta (padrão: o dos ajustes)
 };
 
 export type Parcela = { meses: number; valor: number };
+export type ParcelaCartao = { meses: number; valor: number; total: number; acrescimo_pct: number };
+export type AnoSolar = { ano: number; sem: number; com: number; economia: number; saldo: number };
 export type ResultadoSolar = {
   uf: string; hsp: number; tarifa: number; ligacao: Ligacao;
   consumo_kwh: number; minimo_kwh: number; alvo_kwh: number;
@@ -144,6 +178,17 @@ export type ResultadoSolar = {
   conta_antes: number; conta_depois: number; economia_mes: number; economia_ano: number; economia_25: number;
   payback_anos: number; parcelas: Parcela[]; cartao: Parcela | null; entrada: number;
   itens: string[];
+  // campos novos (propostas antigas podem não ter)
+  inversor_tipo?: "string" | "micro";
+  preco_de?: number;                 // preço "de" da campanha (riscado)
+  campanha?: string;                 // nome da oferta, se ativa
+  cartoes?: ParcelaCartao[];
+  cartao_entrada?: { entrada: number; meses: number; valor: number } | null;
+  anos?: AnoSolar[];                 // 25 anos: conta sem e com solar, economia e saldo acumulado
+  conta_25_sem?: number;
+  conta_25_com?: number;
+  co2_ton_25?: number;               // CO₂ evitado em 25 anos
+  arvores?: number;                  // árvores equivalentes
 };
 
 export const n = (v: any) => {
@@ -161,6 +206,29 @@ export function precoWp(cfg: ConfigSolar, kwp: number) {
   return n((faixas.find((f) => kwp <= n(f.ate_kwp)) || faixas[faixas.length - 1])?.preco_wp);
 }
 
+const final97 = (v: number) => (v <= 0 ? 0 : Math.max(97, Math.round((v + 3) / 100) * 100 - 3));
+
+/** Preço pela tabela de kits: exato se houver kit com essa quantidade; senão, R$/módulo interpolado entre os vizinhos. */
+export function precoKit(cfg: ConfigSolar, paineis: number) {
+  const kits = (cfg.kits || []).filter((k) => n(k.paineis) > 0 && n(k.preco) > 0).sort((a, b) => n(a.paineis) - n(b.paineis));
+  if (!kits.length || paineis <= 0) return null;
+  const exato = kits.find((k) => n(k.paineis) === paineis);
+  if (exato) return { preco: n(exato.preco), preco_de: n(exato.preco_de) || 0, inversor_kw: n(exato.inversor_kw) || 0, exato: true };
+  const porMod = (k: KitSolar, campo: "preco" | "preco_de") => n(k[campo]) / n(k.paineis);
+  const abaixo = [...kits].reverse().find((k) => n(k.paineis) < paineis);
+  const acima = kits.find((k) => n(k.paineis) > paineis);
+  const interp = (campo: "preco" | "preco_de") => {
+    if (abaixo && acima) {
+      if (!n(abaixo[campo]) || !n(acima[campo])) return 0;
+      const t = (paineis - n(abaixo.paineis)) / (n(acima.paineis) - n(abaixo.paineis));
+      return paineis * (porMod(abaixo, campo) + (porMod(acima, campo) - porMod(abaixo, campo)) * t);
+    }
+    const k = (abaixo || acima)!;
+    return n(k[campo]) ? paineis * porMod(k, campo) : 0;
+  };
+  return { preco: interp("preco"), preco_de: interp("preco_de"), inversor_kw: 0, exato: false };
+}
+
 /** Dimensiona o sistema e calcula preço, economia, retorno e parcelas. */
 export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar {
   const uf = String(e.uf || cfg.uf_padrao || "GO").toUpperCase();
@@ -171,45 +239,81 @@ export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar
   let consumo = n(e.consumo_kwh);
   if (!consumo && n(e.conta_valor) > 0) consumo = n(e.conta_valor) / tarifa;
   consumo = Math.max(0, consumo * (1 + n(e.aumento_pct) / 100));
-  const alvo = Math.max(0, consumo - minimo);
+  const alvo = Math.max(0, cfg.descontar_minimo === false ? consumo : consumo - minimo);
   const pr = n(cfg.eficiencia) > 0 && n(cfg.eficiencia) <= 1 ? n(cfg.eficiencia) : 0.8;
+  // kWh gerados por kWp instalado ao mês: valor da empresa (medido nas obras) ou irradiação × desempenho.
+  const kwhPorKwp = n(cfg.geracao_kwh_kwp) > 0 ? n(cfg.geracao_kwh_kwp) : hsp * 30 * pr;
   const W = n(cfg.painel_w) || 550;
-  const kwpNec = alvo / (hsp * 30 * pr);
-  const paineis = Math.max(n(e.paineis) > 0 ? Math.round(n(e.paineis)) : Math.max(Math.round(n(cfg.min_paineis)) || 1, Math.ceil((kwpNec * 1000) / W)), 1);
+  const kwpNec = alvo / kwhPorKwp;
+  const paineis = Math.max(n(e.paineis) > 0 ? Math.round(n(e.paineis)) : Math.max(Math.round(n(cfg.min_paineis)) || 1, Math.ceil((kwpNec * 1000) / W - 1e-9)), 1);
   const kwp = r2((paineis * W) / 1000);
-  const geracao = Math.round(kwp * hsp * 30 * pr);
+  const geracao = Math.round(kwp * kwhPorKwp);
+
+  const tipoInv: "string" | "micro" = e.inversor_tipo === "micro" || e.inversor_tipo === "string" ? e.inversor_tipo : cfg.inversor_tipo === "micro" ? "micro" : "string";
+  const usarKits = cfg.modo_preco === "kits" && (cfg.kits || []).some((k) => n(k.paineis) > 0 && n(k.preco) > 0);
+  const kit = usarKits ? precoKit(cfg, paineis) : null;
 
   let inversor = "", inversorKw = 0;
-  if (cfg.inversor_tipo === "micro") {
+  if (tipoInv === "micro") {
     const porMicro = Math.max(1, Math.round(n(cfg.micro_paineis)) || 4);
     const qtd = Math.ceil(paineis / porMicro);
     inversorKw = kwp; inversor = `${qtd} microinversor${qtd > 1 ? "es" : ""} ${cfg.inversor_marca}`.trim();
   } else {
-    const minimoInv = kwp / 1.3; // até 30% de sobrecarga nos módulos
-    inversorKw = INVERSORES_KW.find((k) => k >= minimoInv) || Math.ceil(minimoInv);
+    // Potência de módulos acima da do inversor (sobrecarga): 30% por padrão; a empresa pode usar mais.
+    const sobre = n(cfg.sobrecarga_inversor) >= 1 ? n(cfg.sobrecarga_inversor) : 1.3;
+    const minimoInv = kwp / sobre;
+    const pelaRegra = INVERSORES_KW.find((k) => k >= minimoInv - 1e-9) || Math.ceil(minimoInv);
+    const kitAbaixo = usarKits ? [...cfg.kits].filter((k) => n(k.paineis) > 0 && n(k.paineis) < paineis && n(k.inversor_kw) > 0).sort((a, b) => n(b.paineis) - n(a.paineis))[0] : null;
+    inversorKw = kit?.inversor_kw || Math.max(pelaRegra, n(kitAbaixo?.inversor_kw));
     inversor = `Inversor ${cfg.inversor_marca} ${String(inversorKw).replace(".", ",")} kW`.replace("Inversor Inversor", "Inversor");
   }
 
   const wp = precoWp(cfg, kwp);
-  const precoTabela = r2(kwp * 1000 * wp);
+  let precoTabela = kit ? kit.preco : kwp * 1000 * wp;
+  let precoDe = kit?.preco_de || 0;
+  const pctMicro = tipoInv === "micro" && cfg.inversor_tipo !== "micro" ? n(cfg.adicional_micro_pct) / 100 : 0;
+  precoTabela *= 1 + pctMicro;
+  precoDe *= 1 + pctMicro;
+  const ajustado = !kit?.exato || pctMicro > 0;
+  if (cfg.arredondar_97 && ajustado) precoTabela = final97(precoTabela);
+  if (cfg.arredondar_97 && precoDe && ajustado) precoDe = Math.round(precoDe / 500) * 500 - 1;
+  precoTabela = r2(precoTabela);
   const adicional = r2(precoTabela * (n(cfg.adicional_telhado?.[e.telhado || ""]) / 100));
   const desconto = Math.max(0, n(e.desconto));
   const preco = n(e.preco_manual) > 0 ? r2(n(e.preco_manual)) : Math.max(0, r2(precoTabela + adicional - desconto));
+  if (precoDe && precoDe <= preco) precoDe = 0;
+  const campanhaAtiva = !!cfg.campanha?.nome && (!cfg.campanha.ate || new Date(`${cfg.campanha.ate}T23:59:59-03:00`).getTime() >= Date.now());
 
   const compensado = Math.min(geracao, alvo);
   const economiaMes = r2(compensado * tarifa * (1 - n(cfg.fio_b_pct) / 100));
   const contaAntes = r2(Math.max(consumo, minimo) * tarifa);
   const contaDepois = r2(Math.max(contaAntes - economiaMes, minimo * tarifa));
   const economiaAno = r2(economiaMes * 12);
-  let economia25 = 0;
-  for (let a = 0; a < 25; a++) economia25 += economiaAno * Math.pow(1 + n(cfg.reajuste_aa) / 100, a) * Math.pow(1 - n(cfg.degradacao_aa) / 100, a);
+  const reaj = n(cfg.reajuste_aa) / 100, degr = n(cfg.degradacao_aa) / 100;
+  let economia25 = 0, sem25 = 0, com25 = 0, saldo = -preco;
+  const anos: AnoSolar[] = [];
+  for (let a = 0; a < 25; a++) {
+    const fator = Math.pow(1 + reaj, a);
+    const eco = economiaAno * fator * Math.pow(1 - degr, a);
+    const sem = contaAntes * 12 * fator;
+    economia25 += eco; sem25 += sem; com25 += sem - eco; saldo += eco;
+    anos.push({ ano: a + 1, sem: Math.round(sem), com: Math.round(sem - eco), economia: Math.round(eco), saldo: Math.round(saldo) });
+  }
   const payback = economiaAno > 0 ? r2(preco / economiaAno) : 0;
 
   const entrada = r2(preco * (n(cfg.entrada_pct) / 100));
   const financiado = preco - entrada;
   const i = n(cfg.taxa_financiamento) / 100;
   const parcelas = (cfg.prazos_financiamento || []).map((m) => ({ meses: Math.round(n(m)), valor: r2(parcelaPrice(financiado, i, Math.round(n(m)))) })).filter((p) => p.meses > 0);
-  const cartao = n(cfg.parcelas_cartao) > 1 ? { meses: Math.round(n(cfg.parcelas_cartao)), valor: r2(preco / Math.round(n(cfg.parcelas_cartao))) } : null;
+  const cartoes: ParcelaCartao[] = (cfg.cartao_opcoes || [])
+    .filter((o) => n(o.parcelas) > 0)
+    .map((o) => { const total = r2(preco * (1 + n(o.acrescimo_pct) / 100)); return { meses: Math.round(n(o.parcelas)), total, valor: r2(total / Math.round(n(o.parcelas))), acrescimo_pct: n(o.acrescimo_pct) }; })
+    .sort((a, b) => a.meses - b.meses);
+  const maior = cartoes[cartoes.length - 1];
+  const cartao = maior ? { meses: maior.meses, valor: maior.valor } : n(cfg.parcelas_cartao) > 1 ? { meses: Math.round(n(cfg.parcelas_cartao)), valor: r2(preco / Math.round(n(cfg.parcelas_cartao))) } : null;
+  const entCartao = n(cfg.cartao_entrada_pct) > 0 && n(cfg.cartao_sem_juros) > 0
+    ? { entrada: r2(preco * n(cfg.cartao_entrada_pct) / 100), meses: Math.round(n(cfg.cartao_sem_juros)), valor: r2((preco * (1 - n(cfg.cartao_entrada_pct) / 100)) / Math.round(n(cfg.cartao_sem_juros))) }
+    : null;
 
   const itens = [
     `${paineis} × ${cfg.painel_marca || "módulo fotovoltaico"} de ${W} W (${String(kwp).replace(".", ",")} kWp)`,
@@ -219,6 +323,8 @@ export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar
     "Projeto, ART e homologação na concessionária",
     "Instalação completa e monitoramento pelo aplicativo",
   ];
+  // Fator médio da rede brasileira (~0,0817 tCO₂/MWh) e ~7 árvores por tonelada.
+  const co2 = r2((geracao * 12 * 25 * 0.0817) / 1000);
 
   return {
     uf, hsp, tarifa, ligacao, consumo_kwh: Math.round(consumo), minimo_kwh: minimo, alvo_kwh: Math.round(alvo),
@@ -227,6 +333,9 @@ export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar
     preco_tabela: precoTabela, adicional, desconto: n(e.preco_manual) > 0 ? 0 : desconto, preco, preco_wp: kwp > 0 ? r2(preco / (kwp * 1000)) : 0,
     conta_antes: contaAntes, conta_depois: contaDepois, economia_mes: economiaMes, economia_ano: economiaAno, economia_25: Math.round(economia25),
     payback_anos: payback, parcelas, cartao, entrada, itens,
+    inversor_tipo: tipoInv, preco_de: precoDe ? r2(precoDe) : 0, campanha: campanhaAtiva ? cfg.campanha.nome : "",
+    cartoes, cartao_entrada: entCartao, anos, conta_25_sem: Math.round(sem25), conta_25_com: Math.round(com25),
+    co2_ton_25: co2, arvores: Math.round(co2 * 7),
   };
 }
 
@@ -283,7 +392,8 @@ export function resumoSolarTexto(r: ResultadoSolar) {
     `⚡ Gera cerca de *${r.geracao_kwh} kWh/mês* (seu consumo: ${r.consumo_kwh} kWh)`,
     `💡 Conta de luz: de ${brl(r.conta_antes)} para cerca de ${brl(r.conta_depois)}`,
     `💰 Economia de *${brl(r.economia_mes)}/mês* (${brl0(r.economia_25)} em 25 anos)`,
-    `🏷️ Investimento: *${brl(r.preco)}* · retorno em ${anosTxt(r.payback_anos)}`,
-    r.parcelas.length ? `🏦 Financiado: ${r.parcelas.map((p) => `${p.meses}x de ${brl(p.valor)}`).join(" · ")}` : "",
+    `🏷️ Investimento: ${r.preco_de ? `~de ${brl(r.preco_de)}~ por ` : ""}*${brl(r.preco)}* à vista · retorno em ${anosTxt(r.payback_anos)}`,
+    r.cartao ? `💳 Cartão: ${r.cartao.meses}x de ${brl(r.cartao.valor)}` : "",
+    r.parcelas.length ? `🏦 Financiamento (simulação): ${r.parcelas.slice(-3).map((p) => `${p.meses}x de ${brl(p.valor)}`).join(" · ")}` : "",
   ].filter(Boolean).join("\n");
 }

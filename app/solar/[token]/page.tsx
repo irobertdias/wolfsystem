@@ -79,7 +79,7 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
           <div className="truncate text-[17px] font-extrabold">{emp.nome || "Energia solar"}</div>
           <div className="text-[12.5px] text-slate-500">{[emp.cnpj && `CNPJ ${emp.cnpj}`, emp.cidade].filter(Boolean).join(" · ")}</div>
         </div>
-        <button onClick={() => window.print()} className="ml-auto rounded-xl bg-white px-3 py-2 text-[12.5px] font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 print:hidden">Baixar PDF</button>
+        <a href={`/solar/${token}/pdf`} className="ml-auto rounded-xl bg-white px-3 py-2 text-[12.5px] font-bold text-slate-600 shadow-sm ring-1 ring-slate-200 print:hidden">Proposta em PDF</a>
       </header>
 
       <section className="mx-auto mt-6 max-w-4xl px-5">
