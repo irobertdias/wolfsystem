@@ -42,7 +42,7 @@ export default function ConfigSolarTela({ dados }: any) {
       kits: (c.kits || []).map((k) => ({ paineis: Math.round(n(k.paineis)), inversor_kw: n(k.inversor_kw), preco: n(k.preco), ...(n(k.preco_de) ? { preco_de: n(k.preco_de) } : {}) })).filter((k) => k.paineis > 0 && k.preco > 0).sort((a, b) => a.paineis - b.paineis),
       cartao_opcoes: (c.cartao_opcoes || []).map((o) => ({ parcelas: Math.round(n(o.parcelas)), acrescimo_pct: n(o.acrescimo_pct) })).filter((o) => o.parcelas > 0).sort((a, b) => a.parcelas - b.parcelas),
       adicional_micro_pct: n(c.adicional_micro_pct), sobrecarga_inversor: n(c.sobrecarga_inversor) >= 1 ? n(c.sobrecarga_inversor) : 1.3,
-      geracao_kwh_kwp: n(c.geracao_kwh_kwp), cartao_entrada_pct: n(c.cartao_entrada_pct), cartao_sem_juros: Math.round(n(c.cartao_sem_juros)),
+      geracao_kwh_kwp: n(c.geracao_kwh_kwp), meta_mes: n(c.meta_mes), cartao_entrada_pct: n(c.cartao_entrada_pct), cartao_sem_juros: Math.round(n(c.cartao_sem_juros)),
     };
     const { error } = await salvarConfigSolar(wsId, limpo);
     setSalvando(false);
@@ -158,6 +158,17 @@ export default function ConfigSolarTela({ dados }: any) {
             <Field label="Formas de pagamento (uma por linha)"><textarea style={{ ...inputSm, minHeight: 80 }} value={c.formas_pagamento.join("\n")} onChange={(e) => set({ formas_pagamento: e.target.value.split("\n") })} onBlur={() => set({ formas_pagamento: c.formas_pagamento.map((x) => x.trim()).filter(Boolean) })} /></Field>
             <Field label="Condições que saem na proposta"><textarea style={{ ...inputSm, minHeight: 80 }} value={c.observacoes} onChange={(e) => set({ observacoes: e.target.value })} /></Field>
             <Field label="Validade do link da proposta (minutos)"><input style={inputSm} inputMode="numeric" {...num("validade_minutos")} /></Field>
+          </div>
+        </Card>
+
+        <Card titulo="Homologação e meta">
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <span style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>Quem assina a ART e protocola na distribuidora. Sai na procuração gerada em Projetos e homologação.</span>
+            <Row><Field label="Título" flex="1 1 150px"><input style={inputSm} value={c.procurador?.titulo || ""} onChange={(e) => set({ procurador: { ...c.procurador, titulo: e.target.value } })} placeholder="Engenheiro eletricista" /></Field>
+              <Field label="Nome do procurador" flex="2 1 200px"><input style={inputSm} value={c.procurador?.nome || ""} onChange={(e) => set({ procurador: { ...c.procurador, nome: e.target.value } })} /></Field></Row>
+            <Row><Field label="CPF do procurador" flex="1 1 150px"><input style={inputSm} value={c.procurador?.cpf || ""} onChange={(e) => set({ procurador: { ...c.procurador, cpf: e.target.value } })} /></Field>
+              <Field label="Distribuidora da região" flex="2 1 200px"><input style={inputSm} value={c.distribuidora || ""} onChange={(e) => set({ distribuidora: e.target.value })} placeholder="Ex.: Equatorial Goiás Distribuidora de Energia S.A." /></Field></Row>
+            <Field label="Meta de vendas do mês (R$)"><input style={inputSm} inputMode="decimal" {...num("meta_mes")} placeholder="ex.: 250000" /></Field>
           </div>
         </Card>
 

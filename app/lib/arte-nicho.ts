@@ -110,5 +110,5 @@ export const iconeNicho = (v: Vertical) => SIMBOLOS[v][0];
 
 // Tons escuros de cada nicho para o padrão de fundo (o padrão é imagem: não lê variável CSS).
 export const TOM_PADRAO: Record<Vertical, string> = {
-  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C", informatica: "#6D28D9", solar: "#B45309",
+  telecom: "#047857", revisional: "#047857", consignado: "#1D4ED8", vendas: "#C2410C", roupas: "#BE123C", informatica: "#6D28D9", solar: "#17803C",
 };

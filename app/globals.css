@@ -29,9 +29,11 @@ html[data-nicho="informatica"] {
   --w-50: #F5F3FF; --w-100: #EDE9FE; --w-200: #DDD6FE; --w-300: #C4B5FD; --w-400: #A78BFA;
   --w-500: #8B5CF6; --w-600: #7C3AED; --w-700: #6D28D9; --w-800: #5B21B6; --w-900: #4C1D95;
 }
+/* Energia solar: verde da folha + dourado do sol (paleta da Prime Solar) */
 html[data-nicho="solar"] {
-  --w-50: #FFFBEB; --w-100: #FEF3C7; --w-200: #FDE68A; --w-300: #FCD34D; --w-400: #FBBF24;
-  --w-500: #F59E0B; --w-600: #D97706; --w-700: #B45309; --w-800: #92400E; --w-900: #78350F;
+  --w-50: #F0FAF2; --w-100: #DCF2E1; --w-200: #B7E4C2; --w-300: #86CF9A; --w-400: #4FB46D;
+  --w-500: #23964B; --w-600: #17803C; --w-700: #136633; --w-800: #10512B; --w-900: #0B3B20;
+  --sol-ouro: #E3B547; --sol-ouro-claro: #F6D77A; --sol-ouro-escuro: #B8862B; --sol-noite: #0B3324;
 }
 html[data-nicho="consignado"], html[data-nicho="vendas"], html[data-nicho="roupas"], html[data-nicho="informatica"], html[data-nicho="solar"] {
   --color-emerald-50: var(--w-50); --color-emerald-100: var(--w-100); --color-emerald-200: var(--w-200);

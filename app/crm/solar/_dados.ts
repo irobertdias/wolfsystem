@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { novoToken } from "../../lib/loja-orcamento";
-import { calcularSolar, configSolar, etapaSolar, type ConfigSolar, type DadosSolar, type EntradaSolar } from "../../lib/solar";
+import { calcularSolar, configSolar, etapaSolar, type ConfigSolar, type DadosSolar, type EntradaSolar, type ObraSolar } from "../../lib/solar";
 
 // ═══════════════════════════════════════════════════════════════════════
 // Energia Solar — dados do CRM
@@ -139,6 +139,24 @@ export async function gerarLinkSolar(wsId: string, p: PropostaSolar, cfg: Config
   if (error) throw error;
   return token;
 }
+
+/** Grava o projeto/homologação (dados_customizados.solar.obra) e anota no histórico. */
+export async function salvarObraSolar(wsId: string, p: PropostaSolar, obra: ObraSolar, nota = "") {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: atual } = await supabase.from("proposta").select("dados_customizados").eq("workspace_id", wsId).eq("id", p.id).maybeSingle();
+  const dc = (atual as any)?.dados_customizados || p.dados_customizados || {};
+  const d: DadosSolar = dc.solar || {};
+  const historico = nota ? [...(d.historico || []), { em: new Date().toISOString(), nota, por: user?.email }] : d.historico;
+  return supabase.from("proposta").update({ dados_customizados: { ...dc, solar: { ...d, obra, historico } }, ...(obra.cpf_titular && !p.cpf ? { cpf: obra.cpf_titular } : {}), updated_at: new Date().toISOString() }).eq("workspace_id", wsId).eq("id", p.id);
+}
+
+/** Dias desde a data (ISO). */
+export const diasDesde = (iso?: string | null) => (iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)) : 0);
+/** Quando a proposta entrou na etapa atual (pelo histórico). */
+export const entrouNaEtapa = (p: PropostaSolar) => {
+  const h = [...(sol(p).historico || [])].reverse().find((x) => x.etapa === p.status_venda);
+  return h?.em || p.updated_at || p.created_at;
+};
 
 export async function excluirPropostaSolar(wsId: string, id: number) {
   return supabase.from("proposta").delete().eq("workspace_id", wsId).eq("id", id);

@@ -78,6 +78,9 @@ export type ConfigSolar = {
   validade_minutos: number;      // validade do link da proposta
   formas_pagamento: string[];
   observacoes: string;           // condições que saem na proposta
+  procurador: { titulo: string; nome: string; cpf: string }; // quem assina a ART e protocola na distribuidora
+  distribuidora: string;         // distribuidora padrão da região (vai na procuração)
+  meta_mes: number;              // meta de vendas do mês (R$)
   dono_whatsapp: string;         // avisos de aceite/visita para a empresa
   canal_id: number | null;       // canal do WhatsApp usado nos avisos
   instrucoes_ia: string;         // regras extras para a vendedora IA
@@ -130,6 +133,9 @@ export const CONFIG_SOLAR_PADRAO: ConfigSolar = {
   validade_minutos: 10080,
   formas_pagamento: ["À vista (PIX ou transferência)", "Financiamento solar", "Cartão de crédito"],
   observacoes: "Inclui projeto, homologação na concessionária, estrutura, cabos, proteções, instalação e monitoramento pelo aplicativo. Valores sujeitos à visita técnica.",
+  procurador: { titulo: "Engenheiro eletricista", nome: "", cpf: "" },
+  distribuidora: "",
+  meta_mes: 0,
   dono_whatsapp: "",
   canal_id: null,
   instrucoes_ia: "",
@@ -146,6 +152,7 @@ export function configSolar(salvo: any): ConfigSolar {
     kits: Array.isArray(s.kits) ? s.kits : [],
     cartao_opcoes: Array.isArray(s.cartao_opcoes) ? s.cartao_opcoes : [],
     campanha: { ...CONFIG_SOLAR_PADRAO.campanha, ...(s.campanha || {}) },
+    procurador: { ...CONFIG_SOLAR_PADRAO.procurador, ...(s.procurador || {}) },
     prazos_financiamento: Array.isArray(s.prazos_financiamento) && s.prazos_financiamento.length ? s.prazos_financiamento : CONFIG_SOLAR_PADRAO.prazos_financiamento,
     formas_pagamento: Array.isArray(s.formas_pagamento) && s.formas_pagamento.length ? s.formas_pagamento : CONFIG_SOLAR_PADRAO.formas_pagamento,
   };
@@ -356,7 +363,43 @@ export const etapaSolar = (k?: string | null) => ETAPAS_SOLAR.find((e) => e.key 
 export const ETAPAS_GANHAS = ["CONTRATO", "HOMOLOGACAO", "INSTALACAO", "CONCLUIDA"];
 export const ETAPAS_ABERTAS = ["LEAD", "PROPOSTA ENVIADA"];
 
-export type HistoricoSolar = { em: string; etapa?: string; nota: string; por?: string };
+// ─── projeto e homologação (depois do aceite) ───
+export type ObraSolar = {
+  checks?: Record<string, string>;  // chave do passo → data/hora em que foi marcado
+  cpf_titular?: string;
+  uc?: string;                      // unidade consumidora (nº da conta)
+  distribuidora?: string;
+  protocolo?: string;               // nº da solicitação de acesso
+  instalacao_data?: string;         // AAAA-MM-DD
+  equipe?: string;
+  obs?: string;
+};
+export const PASSOS_OBRA: { grupo: string; itens: { k: string; label: string }[] }[] = [
+  { grupo: "Documentos", itens: [
+    { k: "doc_conta", label: "Conta de luz recente" },
+    { k: "doc_identidade", label: "RG/CNH do titular" },
+    { k: "doc_procuracao", label: "Procuração assinada" },
+    { k: "doc_contrato", label: "Contrato assinado / pagamento" },
+  ]},
+  { grupo: "Projeto e distribuidora", itens: [
+    { k: "visita", label: "Visita técnica feita" },
+    { k: "art", label: "ART emitida" },
+    { k: "projeto", label: "Projeto e diagrama unifilar" },
+    { k: "protocolo", label: "Solicitação de acesso protocolada" },
+    { k: "parecer", label: "Parecer de acesso aprovado" },
+  ]},
+  { grupo: "Instalação e ligação", itens: [
+    { k: "material", label: "Material entregue no local" },
+    { k: "instalado", label: "Sistema instalado" },
+    { k: "vistoria", label: "Vistoria da distribuidora" },
+    { k: "medidor", label: "Medidor bidirecional trocado" },
+    { k: "monitoramento", label: "Monitoramento no app do cliente" },
+  ]},
+];
+export const TOTAL_PASSOS = PASSOS_OBRA.reduce((s, g) => s + g.itens.length, 0);
+export const progressoObra = (o?: ObraSolar) => Math.round((Object.keys(o?.checks || {}).filter((k) => PASSOS_OBRA.some((g) => g.itens.some((i) => i.k === k))).length / TOTAL_PASSOS) * 100);
+
+export type HistoricoSolar ={ em: string; etapa?: string; nota: string; por?: string };
 export type DadosSolar = {
   numero?: string;
   entrada?: EntradaSolar;
@@ -369,6 +412,7 @@ export type DadosSolar = {
   recusa?: { em: string; motivo: string; por?: string };
   visita?: { pedida_em: string; data?: string; endereco?: string; obs?: string };
   distribuidora?: string;
+  obra?: ObraSolar;
   observacoes?: string;
   canal?: string;              // "whatsapp_ia" quando a IA criou
   historico?: HistoricoSolar[];
