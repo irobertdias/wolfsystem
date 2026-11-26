@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { timingSafeEqual, randomBytes } from "crypto";
 import { supabaseServer, segredoInternoWolf } from "../../_auth";
-import { calcularSolar, resumoSolarTexto, brl, kwpTxt, anosTxt, etapaSolar, HSP_UF, TELHADOS, type EntradaSolar } from "../../../lib/solar";
+import { calcularSolar, resumoSolarTexto, brl, kwpTxt, anosTxt, etapaSolar, linhasSolar, HSP_UF, TELHADOS, type EntradaSolar, type ConfigSolar } from "../../../lib/solar";
 import { lerConfigSolar, vendedorIALiberado, dadosSolar, atualizarSolar, avisarEmpresaSolar, linkSolar, so } from "../_solar";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -44,6 +44,14 @@ function entradaDe(b: any): EntradaSolar {
   };
 }
 
+/** Aceita o id ou o nome da linha (a IA pode mandar "DEYE" ou "Linha Growatt"). */
+function linhaDe(cfg: ConfigSolar, v: any) {
+  const s = String(v || "").trim().toLowerCase();
+  if (!s) return undefined;
+  const ls = linhasSolar(cfg);
+  return (ls.find((l) => l.id && l.id.toLowerCase() === s) || ls.find((l) => l.nome.toLowerCase() === s) || ls.find((l) => `${l.nome} ${l.painel_marca} ${l.inversor_marca}`.toLowerCase().includes(s)))?.id || undefined;
+}
+
 function resumoIA(r: ReturnType<typeof calcularSolar>) {
   return {
     potencia: kwpTxt(r.kwp), paineis: r.paineis, painel_w: r.painel_w, inversor: r.inversor, geracao_kwh_mes: r.geracao_kwh,
@@ -54,6 +62,7 @@ function resumoIA(r: ReturnType<typeof calcularSolar>) {
     cartao: r.cartoes?.length ? r.cartoes.map((c) => `${c.meses}x de ${brl(c.valor)}`) : r.cartao ? [`${r.cartao.meses}x de ${brl(r.cartao.valor)}`] : [],
     cartao_com_entrada: r.cartao_entrada ? `entrada de ${brl(r.cartao_entrada.entrada)} + ${r.cartao_entrada.meses}x de ${brl(r.cartao_entrada.valor)} sem juros` : null,
     tipo_inversor: r.inversor_tipo === "micro" ? "microinversor" : "inversor central",
+    linha: r.linha_nome || null, marca_modulo: r.equip?.painel_marca || null, marca_inversor: r.equip?.inversor_marca || null,
     itens: r.itens, texto_whatsapp: resumoSolarTexto(r),
   };
 }
@@ -88,18 +97,20 @@ export async function POST(request: NextRequest) {
         microinversor: cfg.inversor_tipo === "micro" ? "padrão" : `opcional, cerca de ${cfg.adicional_micro_pct}% a mais`,
         tarifa_padrao: cfg.tarifa_padrao, uf_padrao: cfg.uf_padrao, condicoes: cfg.observacoes, validade_minutos: cfg.validade_minutos, instrucoes: cfg.instrucoes_ia,
         telhados: TELHADOS.map((t) => t.key),
+        // Marcas/linhas de equipamento: mande "linha" (id ou nome) no simular/enviar_proposta; sem linha = a primeira.
+        linhas: linhasSolar(cfg).map((l, i) => ({ linha: l.id || "principal", nome: l.nome, modulo: `${l.painel_marca} ${l.painel_w} W`, inversor: l.inversor_marca, padrao: i === 0 })),
       });
     }
 
     if (acao === "simular") {
-      const e = entradaDe(b);
+      const e = { ...entradaDe(b), linha: linhaDe(cfg, b.linha) };
       if (!e.consumo_kwh && !e.conta_valor) return NextResponse.json({ ok: false, erro: "Preciso do consumo médio em kWh ou do valor médio da conta de luz." });
       const r = calcularSolar(e, cfg);
       return NextResponse.json({ ok: true, ...resumoIA(r) });
     }
 
     if (acao === "enviar_proposta") {
-      const e = entradaDe(b);
+      const e = { ...entradaDe(b), linha: linhaDe(cfg, b.linha) };
       if (!e.consumo_kwh && !e.conta_valor) return NextResponse.json({ ok: false, erro: "Preciso do consumo médio em kWh ou do valor médio da conta de luz." });
       const c = b.cliente || {};
       const tel = fones(c.telefone)[0] || so(c.telefone);
@@ -113,7 +124,7 @@ export async function POST(request: NextRequest) {
       const campos: any = {
         nome: String(c.nome || existente?.nome || "Cliente WhatsApp").slice(0, 120), telefone1: tel,
         cidade: c.cidade || e.cidade || null, estado: (c.uf || r.uf || "").toUpperCase() || null, email: c.email || null,
-        plano: `${String(r.kwp).replace(".", ",")} kWp`, operadora: cfg.painel_marca, valor_plano: r.preco, status_venda: "PROPOSTA ENVIADA", updated_at: agora,
+        plano: `${String(r.kwp).replace(".", ",")} kWp`, operadora: r.equip?.painel_marca || cfg.painel_marca, valor_plano: r.preco, status_venda: "PROPOSTA ENVIADA", updated_at: agora,
       };
       let id: number, numero: string, token: string;
       if (existente) {

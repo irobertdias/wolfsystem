@@ -2,13 +2,41 @@
 import { useEffect, useState } from "react";
 import { Page, PageHeader, Card, Field, Row, Btn, Banner, inputSm } from "../../financeiro/_sections/_ui";
 import { supabase } from "../../../lib/supabase";
-import { TELHADOS, UFS, n, type ConfigSolar } from "../../../lib/solar";
+import { TELHADOS, UFS, n, type ConfigSolar, type KitSolar, type LinhaKit } from "../../../lib/solar";
 import { salvarConfigSolar } from "../_dados";
 
 // Ajustes do nicho solar: empresa, kit, tabela de preço por potência, tarifa,
 // financiamento, validade do link, avisos e regras da Vendedora IA.
 
 const t = (v: any) => (v === undefined || v === null ? "" : String(v).replace(".", ","));
+const tz = (v: any) => (!v ? "" : t(v)); // zero aparece vazio (campos opcionais das linhas)
+
+const limparKits = (kits?: KitSolar[]) => (kits || [])
+  .map((k) => ({ paineis: Math.round(n(k.paineis)), inversor_kw: n(k.inversor_kw), preco: n(k.preco), ...(n(k.preco_de) ? { preco_de: n(k.preco_de) } : {}) }))
+  .filter((k) => k.paineis > 0 && k.preco > 0).sort((a, b) => a.paineis - b.paineis);
+
+/** Tabela de kits: módulos, inversor, preço e preço "de". */
+function TabelaKits({ kits, onChange }: { kits: KitSolar[]; onChange: (k: KitSolar[]) => void }) {
+  const cols = "70px 80px 1fr 1fr 28px";
+  return (
+    <>
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: 6, fontSize: 11.5, fontWeight: 800, color: "#64748B" }}><span>Módulos</span><span>Inversor kW</span><span>Preço (R$)</span><span>Preço "de"</span><span /></div>
+      {kits.map((k, i) => {
+        const up = (campo: keyof KitSolar, v: string) => onChange(kits.map((x, j) => (j === i ? { ...x, [campo]: v as any } : x)));
+        return (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: cols, gap: 6 }}>
+            <input style={inputSm} inputMode="numeric" value={tz(k.paineis)} onChange={(e) => up("paineis", e.target.value)} />
+            <input style={inputSm} inputMode="decimal" value={tz(k.inversor_kw)} onChange={(e) => up("inversor_kw", e.target.value)} />
+            <input style={inputSm} inputMode="decimal" value={tz(k.preco)} onChange={(e) => up("preco", e.target.value)} />
+            <input style={inputSm} inputMode="decimal" value={tz(k.preco_de)} onChange={(e) => up("preco_de", e.target.value)} placeholder="—" />
+            <button onClick={() => onChange(kits.filter((_, j) => j !== i))} style={{ border: 0, background: "none", color: "#B91C1C", cursor: "pointer", fontWeight: 800 }}>×</button>
+          </div>
+        );
+      })}
+      <div><Btn variante="ghost" onClick={() => onChange([...kits, { paineis: 0, inversor_kw: 0, preco: 0 }])}>+ Kit</Btn></div>
+    </>
+  );
+}
 
 export default function ConfigSolarTela({ dados }: any) {
   const { wsId, cfg: salvo, carregar } = dados;
@@ -39,7 +67,11 @@ export default function ConfigSolarTela({ dados }: any) {
       faixas: c.faixas.map((f) => ({ ate_kwp: n(f.ate_kwp), preco_wp: n(f.preco_wp) })).filter((f) => f.ate_kwp > 0 && f.preco_wp > 0).sort((a, b) => a.ate_kwp - b.ate_kwp),
       adicional_telhado: Object.fromEntries(Object.entries(c.adicional_telhado).map(([k, v]) => [k, n(v)])),
       prazos_financiamento: (Array.isArray(c.prazos_financiamento) ? c.prazos_financiamento : String(c.prazos_financiamento).split(/[,; ]+/)).map((x) => Math.round(n(x))).filter((x) => x > 0),
-      kits: (c.kits || []).map((k) => ({ paineis: Math.round(n(k.paineis)), inversor_kw: n(k.inversor_kw), preco: n(k.preco), ...(n(k.preco_de) ? { preco_de: n(k.preco_de) } : {}) })).filter((k) => k.paineis > 0 && k.preco > 0).sort((a, b) => a.paineis - b.paineis),
+      kits: limparKits(c.kits),
+      linhas: (c.linhas || []).map((l) => ({
+        id: l.id, nome: String(l.nome || "").trim(), painel_marca: String(l.painel_marca || "").trim(), painel_w: n(l.painel_w), painel_area_m2: n(l.painel_area_m2),
+        painel_garantia: String(l.painel_garantia || "").trim(), inversor_marca: String(l.inversor_marca || "").trim(), inversor_garantia: String(l.inversor_garantia || "").trim(), kits: limparKits(l.kits),
+      })).filter((l) => l.nome || l.painel_marca || l.inversor_marca || l.kits.length),
       cartao_opcoes: (c.cartao_opcoes || []).map((o) => ({ parcelas: Math.round(n(o.parcelas)), acrescimo_pct: n(o.acrescimo_pct) })).filter((o) => o.parcelas > 0).sort((a, b) => a.parcelas - b.parcelas),
       adicional_micro_pct: n(c.adicional_micro_pct), sobrecarga_inversor: n(c.sobrecarga_inversor) >= 1 ? n(c.sobrecarga_inversor) : 1.3,
       geracao_kwh_kwp: n(c.geracao_kwh_kwp), meta_mes: n(c.meta_mes), cartao_entrada_pct: n(c.cartao_entrada_pct), cartao_sem_juros: Math.round(n(c.cartao_sem_juros)),
@@ -65,8 +97,9 @@ export default function ConfigSolarTela({ dados }: any) {
           </div>
         </Card>
 
-        <Card titulo="Kit padrão">
+        <Card titulo="Kit padrão (linha principal)">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <Field label="Nome desta linha (aparece na hora de escolher a marca)"><input style={inputSm} value={c.linha_nome || ""} onChange={(e) => set({ linha_nome: e.target.value })} placeholder={[c.painel_marca, c.inversor_marca].filter(Boolean).join(" + ") || "Ex.: NPLUS + DEYE"} /></Field>
             <Row><Field label="Marca/modelo do módulo" flex="2 1 200px"><input style={inputSm} value={c.painel_marca} onChange={(e) => set({ painel_marca: e.target.value })} /></Field><Field label="Potência (W)" flex="1 1 100px"><input style={inputSm} inputMode="numeric" {...num("painel_w")} /></Field></Row>
             <Row><Field label="Área por módulo (m²)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" {...num("painel_area_m2")} /></Field><Field label="Mínimo de módulos" flex="1 1 120px"><input style={inputSm} inputMode="numeric" {...num("min_paineis")} /></Field></Row>
             <Field label="Garantia do módulo"><input style={inputSm} value={c.painel_garantia} onChange={(e) => set({ painel_garantia: e.target.value })} /></Field>
@@ -89,26 +122,42 @@ export default function ConfigSolarTela({ dados }: any) {
             </div>
             {c.modo_preco === "kits" && <>
               <span style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>Cadastre os kits que você vende. Quando o cliente precisa de uma quantidade que não está na tabela, o sistema calcula pelo valor por módulo dos kits vizinhos. O "preço de" sai riscado na proposta.</span>
-              <div style={{ display: "grid", gridTemplateColumns: "70px 80px 1fr 1fr 28px", gap: 6, fontSize: 11.5, fontWeight: 800, color: "#64748B" }}><span>Módulos</span><span>Inversor kW</span><span>Preço (R$)</span><span>Preço "de"</span><span /></div>
-              {(c.kits || []).map((k, i) => {
-                const up = (campo: keyof typeof k, v: string) => set({ kits: c.kits.map((x, j) => (j === i ? { ...x, [campo]: v as any } : x)) });
-                return (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 80px 1fr 1fr 28px", gap: 6 }}>
-                    <input style={inputSm} inputMode="numeric" value={t(k.paineis)} onChange={(e) => up("paineis", e.target.value)} />
-                    <input style={inputSm} inputMode="decimal" value={t(k.inversor_kw)} onChange={(e) => up("inversor_kw", e.target.value)} />
-                    <input style={inputSm} inputMode="decimal" value={t(k.preco)} onChange={(e) => up("preco", e.target.value)} />
-                    <input style={inputSm} inputMode="decimal" value={t(k.preco_de)} onChange={(e) => up("preco_de", e.target.value)} placeholder="—" />
-                    <button onClick={() => set({ kits: c.kits.filter((_, j) => j !== i) })} style={{ border: 0, background: "none", color: "#B91C1C", cursor: "pointer", fontWeight: 800 }}>×</button>
-                  </div>
-                );
-              })}
-              <div><Btn variante="ghost" onClick={() => set({ kits: [...(c.kits || []), { paineis: 0, inversor_kw: 0, preco: 0 }] })}>+ Kit</Btn></div>
+              <span style={{ fontSize: 12, color: "#0F172A", fontWeight: 800 }}>Kits da linha principal ({c.linha_nome || c.painel_marca || "kit padrão"})</span>
+              <TabelaKits kits={c.kits || []} onChange={(kits) => set({ kits })} />
               <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}><input type="checkbox" checked={!!c.arredondar_97} onChange={(e) => set({ arredondar_97: e.target.checked })} /> Arredondar preços calculados para terminar em 97 (ex.: R$ 23.897)</label>
             </>}
             <Row>
               <Field label="Nome da campanha (sai na proposta)" flex="2 1 180px"><input style={inputSm} value={c.campanha?.nome || ""} onChange={(e) => set({ campanha: { ...c.campanha, nome: e.target.value } })} placeholder="Ex.: Black Friday" /></Field>
               <Field label="Válida até" flex="1 1 130px"><input type="date" style={inputSm} value={c.campanha?.ate || ""} onChange={(e) => set({ campanha: { ...c.campanha, ate: e.target.value } })} /></Field>
             </Row>
+          </div>
+        </Card>
+
+        <Card titulo={`Outras marcas de placa e inversor (${(c.linhas || []).length})`}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <span style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>Trabalha com mais de uma marca? Cadastre aqui quantas quiser, cada uma com a sua placa, o seu inversor e a sua tabela de preços. Na hora de fazer a proposta você escolhe a marca. Se usa só uma, deixe vazio. Campo em branco usa o valor da linha principal.</span>
+            {(c.linhas || []).map((l, i) => {
+              const upL = (p: Partial<LinhaKit>) => set({ linhas: c.linhas.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+              return (
+                <div key={l.id} style={{ border: "1px solid #E2E8F0", borderRadius: 12, padding: 12, display: "flex", flexDirection: "column", gap: 10, background: "#FAFAF7" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                    <Field label={`Nome da linha ${i + 2}`} flex="1 1 auto"><input style={inputSm} value={l.nome} onChange={(e) => upL({ nome: e.target.value })} placeholder="Ex.: Canadian + Growatt" /></Field>
+                    <button onClick={() => { if (confirm(`Remover a linha "${l.nome || l.painel_marca || i + 2}"?`)) set({ linhas: c.linhas.filter((_, j) => j !== i) }); }} style={{ border: "1px solid #FECACA", background: "#fff", color: "#B91C1C", borderRadius: 10, padding: "8px 10px", cursor: "pointer", fontWeight: 800, fontSize: 12 }}>Remover</button>
+                  </div>
+                  <Row><Field label="Marca/modelo da placa" flex="2 1 180px"><input style={inputSm} value={l.painel_marca} onChange={(e) => upL({ painel_marca: e.target.value })} placeholder={c.painel_marca} /></Field><Field label="Potência (W)" flex="1 1 90px"><input style={inputSm} inputMode="numeric" value={tz(l.painel_w)} onChange={(e) => upL({ painel_w: e.target.value as any })} placeholder={t(c.painel_w)} /></Field><Field label="Área (m²)" flex="1 1 80px"><input style={inputSm} inputMode="decimal" value={tz(l.painel_area_m2)} onChange={(e) => upL({ painel_area_m2: e.target.value as any })} placeholder={t(c.painel_area_m2)} /></Field></Row>
+                  <Field label="Garantia da placa"><input style={inputSm} value={l.painel_garantia} onChange={(e) => upL({ painel_garantia: e.target.value })} placeholder={c.painel_garantia} /></Field>
+                  <Row><Field label="Marca do inversor" flex="1 1 160px"><input style={inputSm} value={l.inversor_marca} onChange={(e) => upL({ inversor_marca: e.target.value })} placeholder={c.inversor_marca} /></Field><Field label="Garantia do inversor" flex="1 1 160px"><input style={inputSm} value={l.inversor_garantia} onChange={(e) => upL({ inversor_garantia: e.target.value })} placeholder={c.inversor_garantia} /></Field></Row>
+                  {c.modo_preco === "kits"
+                    ? <><span style={{ fontSize: 12, color: "#0F172A", fontWeight: 800 }}>Kits desta linha {!(l.kits || []).length && <span style={{ color: "#64748B", fontWeight: 600 }}>(vazio: usa os preços da linha principal)</span>}</span>
+                      <TabelaKits kits={l.kits || []} onChange={(kits) => upL({ kits })} /></>
+                    : <span style={{ fontSize: 12, color: "#64748B" }}>O preço sai pela tabela R$ por Wp (igual para todas as marcas).</span>}
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Btn variante="ghost" onClick={() => set({ linhas: [...(c.linhas || []), { id: `l${Date.now().toString(36)}`, nome: "", painel_marca: "", painel_w: 0, painel_area_m2: 0, painel_garantia: "", inversor_marca: "", inversor_garantia: "", kits: [] }] })}>+ Nova marca</Btn>
+              {c.modo_preco === "kits" && (c.kits || []).length > 0 && <Btn variante="ghost" onClick={() => set({ linhas: [...(c.linhas || []), { id: `l${Date.now().toString(36)}`, nome: "", painel_marca: "", painel_w: 0, painel_area_m2: 0, painel_garantia: "", inversor_marca: "", inversor_garantia: "", kits: c.kits.map((k) => ({ ...k })) }] })}>+ Nova marca copiando os kits da principal</Btn>}
+            </div>
           </div>
         </Card>
 

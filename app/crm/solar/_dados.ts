@@ -99,7 +99,7 @@ export async function salvarPropostaSolar(wsId: string, cfg: ConfigSolar, client
   const payload: any = {
     nome: cliente.nome.trim() || "Cliente", telefone1: cliente.telefone1 || null, email: cliente.email || null, cpf: cliente.cpf || null,
     endereco: cliente.endereco || null, cidade: cliente.cidade || null, estado: (cliente.estado || resultado.uf || "").toUpperCase() || null,
-    plano: `${String(resultado.kwp).replace(".", ",")} kWp`, operadora: cfg.painel_marca, valor_plano: resultado.preco,
+    plano: `${String(resultado.kwp).replace(".", ",")} kWp`, operadora: resultado.equip?.painel_marca || cfg.painel_marca, valor_plano: resultado.preco,
     dados_customizados: { ...(atual?.dados_customizados || {}), solar: d, ...(atual ? {} : { criado_por: user?.email }) },
     updated_at: new Date().toISOString(),
   };

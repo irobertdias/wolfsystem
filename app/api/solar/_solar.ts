@@ -97,10 +97,12 @@ export function propostaPublica(p: any, cfg: ConfigSolar) {
     entrada: { telhado: d.entrada?.telhado || "", ligacao: d.entrada?.ligacao || "", tarifa: d.entrada?.tarifa || null },
     observacoes: d.observacoes || "",
     empresa: cfg.empresa,
+    // Equipamento gravado na proposta (linha escolhida); propostas antigas usam o dos ajustes.
     kit: {
-      painel_marca: cfg.painel_marca, painel_garantia: cfg.painel_garantia, inversor_marca: cfg.inversor_marca, inversor_garantia: cfg.inversor_garantia,
+      painel_marca: d.resultado?.equip?.painel_marca || cfg.painel_marca, painel_garantia: d.resultado?.equip?.painel_garantia || cfg.painel_garantia,
+      inversor_marca: d.resultado?.equip?.inversor_marca || cfg.inversor_marca, inversor_garantia: d.resultado?.equip?.inversor_garantia || cfg.inversor_garantia,
       instalacao_garantia: cfg.instalacao_garantia, prazo_instalacao: cfg.prazo_instalacao, estrutura_garantia: cfg.estrutura_garantia,
-      painel_area_m2: cfg.painel_area_m2,
+      painel_area_m2: d.resultado?.equip?.painel_area_m2 || cfg.painel_area_m2,
     },
     condicoes: cfg.observacoes,
     formas_pagamento: cfg.formas_pagamento,

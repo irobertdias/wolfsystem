@@ -35,6 +35,14 @@ export const INVERSORES_KW = [2, 3, 3.6, 4, 5, 6, 7.5, 8, 10, 12, 15, 20, 25, 30
 export type FaixaPreco = { ate_kwp: number; preco_wp: number }; // R$ por Wp até essa potência
 /** Kit da tabela da empresa: preço fechado por quantidade de módulos. */
 export type KitSolar = { paineis: number; inversor_kw: number; preco: number; preco_de?: number };
+/** Outra marca/linha de equipamento, com a própria placa, inversor e tabela de kits.
+ *  A linha principal continua nos campos de cima da configuração (painel_marca, kits…). */
+export type LinhaKit = {
+  id: string; nome: string;
+  painel_marca: string; painel_w: number; painel_area_m2: number; painel_garantia: string;
+  inversor_marca: string; inversor_garantia: string;
+  kits: KitSolar[];
+};
 /** Parcelamento no cartão: acréscimo total (%) sobre o preço à vista. */
 export type OpcaoCartao = { parcelas: number; acrescimo_pct: number };
 
@@ -52,7 +60,9 @@ export type ConfigSolar = {
   faixas: FaixaPreco[];
   modo_preco: "faixas" | "kits"; // R$/Wp por faixa ou tabela de kits por quantidade de módulos
   kits: KitSolar[];
-  arredondar_97: boolean;        // preço termina em 97 (ex.: 16.997)
+  linha_nome: string;            // nome da linha principal (ex.: "NPLUS + DEYE")
+  linhas: LinhaKit[];            // outras marcas/linhas (opcional, quantas quiser)
+  arredondar_97: boolean;       // preço termina em 97 (ex.: 16.997)
   adicional_micro_pct: number;   // % a mais quando o sistema usa microinversor
   sobrecarga_inversor: number;   // kWp dos módulos ÷ kW do inversor aceito (1,3 = 30%)
   campanha: { nome: string; ate: string }; // oferta exibida na proposta (ate = AAAA-MM-DD)
@@ -107,6 +117,8 @@ export const CONFIG_SOLAR_PADRAO: ConfigSolar = {
   ],
   modo_preco: "faixas",
   kits: [],
+  linha_nome: "",
+  linhas: [],
   arredondar_97: false,
   adicional_micro_pct: 20,
   sobrecarga_inversor: 1.3,
@@ -150,6 +162,7 @@ export function configSolar(salvo: any): ConfigSolar {
     adicional_telhado: { ...CONFIG_SOLAR_PADRAO.adicional_telhado, ...(s.adicional_telhado || {}) },
     faixas: Array.isArray(s.faixas) && s.faixas.length ? s.faixas : CONFIG_SOLAR_PADRAO.faixas,
     kits: Array.isArray(s.kits) ? s.kits : [],
+    linhas: Array.isArray(s.linhas) ? s.linhas.filter((l: any) => l && typeof l === "object").map((l: any) => ({ ...l, kits: Array.isArray(l.kits) ? l.kits : [] })) : [],
     cartao_opcoes: Array.isArray(s.cartao_opcoes) ? s.cartao_opcoes : [],
     campanha: { ...CONFIG_SOLAR_PADRAO.campanha, ...(s.campanha || {}) },
     procurador: { ...CONFIG_SOLAR_PADRAO.procurador, ...(s.procurador || {}) },
@@ -158,7 +171,33 @@ export function configSolar(salvo: any): ConfigSolar {
   };
 }
 
+/** Todas as linhas de equipamento (a principal primeiro, id ""). */
+export function linhasSolar(cfg: ConfigSolar): { id: string; nome: string; painel_marca: string; painel_w: number; inversor_marca: string; kits: number }[] {
+  const principal = { id: "", nome: cfg.linha_nome || [cfg.painel_marca, cfg.inversor_marca].filter(Boolean).join(" + ") || "Principal", painel_marca: cfg.painel_marca, painel_w: n(cfg.painel_w), inversor_marca: cfg.inversor_marca, kits: (cfg.kits || []).length };
+  return [principal, ...(cfg.linhas || []).map((l) => ({ id: l.id, nome: l.nome || [l.painel_marca, l.inversor_marca].filter(Boolean).join(" + ") || "Linha", painel_marca: l.painel_marca || cfg.painel_marca, painel_w: n(l.painel_w) || n(cfg.painel_w), inversor_marca: l.inversor_marca || cfg.inversor_marca, kits: (l.kits || []).length }))];
+}
+
+/** Configuração com a linha escolhida no lugar da principal (placa, inversor, garantias e kits).
+ *  Campo vazio na linha = usa o da principal. Linha que não existe = principal. */
+export function cfgDaLinha(cfg: ConfigSolar, linhaId?: string | null): ConfigSolar {
+  const l = linhaId ? (cfg.linhas || []).find((x) => x.id === linhaId) : null;
+  if (!l) return cfg;
+  const txt = (v: any, pad: string) => (String(v ?? "").trim() ? String(v).trim() : pad);
+  return {
+    ...cfg,
+    linha_nome: l.nome || [l.painel_marca, l.inversor_marca].filter(Boolean).join(" + "),
+    painel_marca: txt(l.painel_marca, cfg.painel_marca),
+    painel_w: n(l.painel_w) || cfg.painel_w,
+    painel_area_m2: n(l.painel_area_m2) || cfg.painel_area_m2,
+    painel_garantia: txt(l.painel_garantia, cfg.painel_garantia),
+    inversor_marca: txt(l.inversor_marca, cfg.inversor_marca),
+    inversor_garantia: txt(l.inversor_garantia, cfg.inversor_garantia),
+    kits: (l.kits || []).length ? l.kits : cfg.kits,
+  };
+}
+
 export type EntradaSolar = {
+  linha?: string;            // id da linha de equipamento ("" ou ausente = principal)
   consumo_kwh?: number;      // média mensal (kWh)
   conta_valor?: number;      // valor médio da conta (R$), usado se não houver consumo
   tarifa?: number;           // R$/kWh
@@ -196,6 +235,9 @@ export type ResultadoSolar = {
   conta_25_com?: number;
   co2_ton_25?: number;               // CO₂ evitado em 25 anos
   arvores?: number;                  // árvores equivalentes
+  linha?: string;                    // id da linha de equipamento usada ("" = principal)
+  linha_nome?: string;
+  equip?: { painel_marca: string; painel_garantia: string; inversor_marca: string; inversor_garantia: string; painel_area_m2: number };
 };
 
 export const n = (v: any) => {
@@ -237,7 +279,9 @@ export function precoKit(cfg: ConfigSolar, paineis: number) {
 }
 
 /** Dimensiona o sistema e calcula preço, economia, retorno e parcelas. */
-export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar {
+export function calcularSolar(e: EntradaSolar, cfgBase: ConfigSolar): ResultadoSolar {
+  const cfg = cfgDaLinha(cfgBase, e.linha);
+  const linhaOk = !!e.linha && cfg !== cfgBase;
   const uf = String(e.uf || cfg.uf_padrao || "GO").toUpperCase();
   const hsp = HSP_UF[uf] || 5;
   const tarifa = n(e.tarifa) > 0 ? n(e.tarifa) : n(cfg.tarifa_padrao) || 1;
@@ -343,6 +387,8 @@ export function calcularSolar(e: EntradaSolar, cfg: ConfigSolar): ResultadoSolar
     inversor_tipo: tipoInv, preco_de: precoDe ? r2(precoDe) : 0, campanha: campanhaAtiva ? cfg.campanha.nome : "",
     cartoes, cartao_entrada: entCartao, anos, conta_25_sem: Math.round(sem25), conta_25_com: Math.round(com25),
     co2_ton_25: co2, arvores: Math.round(co2 * 7),
+    linha: linhaOk ? e.linha : "", linha_nome: cfg.linha_nome || "",
+    equip: { painel_marca: cfg.painel_marca, painel_garantia: cfg.painel_garantia, inversor_marca: cfg.inversor_marca, inversor_garantia: cfg.inversor_garantia, painel_area_m2: n(cfg.painel_area_m2) },
   };
 }
 

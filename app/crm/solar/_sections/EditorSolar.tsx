@@ -4,7 +4,7 @@ import { Card, Field, Row, Btn, Banner, inputSm } from "../../financeiro/_sectio
 import Icone from "../../../components/a2/Icone";
 import { supabase } from "../../../lib/supabase";
 import {
-  calcularSolar, LIGACOES, TELHADOS, UFS, ETAPAS_SOLAR, etapaSolar, brl, brl0, kwpTxt, anosTxt, n,
+  calcularSolar, linhasSolar, LIGACOES, TELHADOS, UFS, ETAPAS_SOLAR, etapaSolar, brl, brl0, kwpTxt, anosTxt, n,
   type EntradaSolar, type Ligacao,
 } from "../../../lib/solar";
 import {
@@ -32,7 +32,9 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
     consumo: txt(e0.consumo_kwh), conta: txt(e0.conta_valor), tarifa: txt(e0.tarifa || cfg.tarifa_padrao), ligacao: (e0.ligacao || "bi") as Ligacao,
     telhado: e0.telhado || "ceramico", aumento: txt(e0.aumento_pct), paineis: txt(e0.paineis), desconto: txt(e0.desconto), preco_manual: txt(e0.preco_manual),
     inversor_tipo: (e0.inversor_tipo || cfg.inversor_tipo || "string") as "string" | "micro",
+    linha: e0.linha && (cfg.linhas || []).some((l: any) => l.id === e0.linha) ? e0.linha : "",
   });
+  const linhas = linhasSolar(cfg);
   const [obs, setObs] = useState(d.observacoes || "");
   const [minutos, setMinutos] = useState(String(cfg.validade_minutos || 10080));
   const [salvando, setSalvando] = useState(false);
@@ -45,6 +47,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
     uf: cli.estado, cidade: cli.cidade, ligacao: f.ligacao, telhado: f.telhado, aumento_pct: n(f.aumento) || undefined,
     paineis: n(f.paineis) || undefined, desconto: n(f.desconto) || undefined, preco_manual: n(f.preco_manual) || undefined,
     inversor_tipo: f.inversor_tipo,
+    linha: f.linha || undefined,
   };
   const r = useMemo(() => calcularSolar(entrada, cfg), [JSON.stringify(entrada), cfg]); // eslint-disable-line react-hooks/exhaustive-deps
   const temConsumo = r.consumo_kwh > 0;
@@ -135,6 +138,9 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
               <Field label="Telhado" flex="2 1 200px"><select style={inputSm} value={f.telhado} onChange={(e) => set("telhado", e.target.value)}>{TELHADOS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select></Field>
               <Field label="Aumento de consumo (%)" flex="1 1 120px"><input style={inputSm} inputMode="decimal" value={f.aumento} onChange={(e) => set("aumento", e.target.value)} placeholder="0" /></Field>
             </Row>
+            {linhas.length > 1 && <Field label="Marca (placa e inversor)"><select style={inputSm} value={f.linha} onChange={(e) => set("linha", e.target.value)}>
+              {linhas.map((l) => <option key={l.id || "principal"} value={l.id}>{l.nome}{l.painel_w ? ` · ${l.painel_w} W` : ""}</option>)}
+            </select></Field>}
             <Field label="Inversor"><select style={inputSm} value={f.inversor_tipo} onChange={(e) => set("inversor_tipo", e.target.value)}>
               <option value="string">Inversor central (string)</option>
               <option value="micro">Microinversor{cfg.inversor_tipo !== "micro" && n(cfg.adicional_micro_pct) ? ` (+${n(cfg.adicional_micro_pct)}%)` : ""}</option>
@@ -158,7 +164,7 @@ export default function EditorSolar({ dados, proposta, preenchido, modo = "propo
 
         <Card titulo="Sistema">
           <Linha k="Potência" v={kwpTxt(r.kwp)} forte />
-          <Linha k="Módulos" v={`${r.paineis} × ${r.painel_w} W ${cfg.painel_marca}`} />
+          <Linha k="Módulos" v={`${r.paineis} × ${r.painel_w} W ${r.equip?.painel_marca || cfg.painel_marca}`} />
           <Linha k="Inversor" v={r.inversor} />
           <Linha k="Geração estimada" v={`${r.geracao_kwh} kWh/mês (${r.cobertura_pct}% do consumo compensável)`} />
           <Linha k="Área no telhado" v={`${String(r.area_m2).replace(".", ",")} m²`} />
