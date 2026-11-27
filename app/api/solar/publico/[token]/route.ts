@@ -47,11 +47,18 @@ export async function POST(request: NextRequest, ctx: { params: Promise<{ token:
       if (atual.status !== "aberta") return NextResponse.json({ success: false, error: atual.status === "expirada" ? "Esta proposta expirou. Peça uma nova." : "Esta proposta não está mais aberta." }, { status: 409 });
       const pagamento = txt(b.pagamento, 80) || cfg.formas_pagamento[0] || "";
       const prazo = Math.round(Number(b.prazo) || 0) || null;
-      const endereco = txt(b.endereco, 200);
-      await atualizarSolar(p.id, `Cliente aceitou a proposta pelo link (${pagamento}${prazo ? ` em ${prazo}x` : ""})`,
-        () => ({ aceite: { em: new Date().toISOString(), pagamento, prazo, por: "link", nome: txt(b.nome, 120), cpf: txt(b.cpf, 20), endereco } }),
-        "ACEITA", endereco ? { endereco } : {});
-      await avisarEmpresaSolar(p.workspace_id, p.id, "aceite", txt(b.obs, 300) ? `Obs. do cliente: ${txt(b.obs, 300)}` : "");
+      // Financiamento: vai para análise de crédito, com os dados obrigatórios.
+      const financiamento = /financ/i.test(pagamento);
+      const cep = String(b.cep || "").replace(/\D/g, "").slice(0, 8);
+      const nome = txt(b.nome, 120), cpf = txt(b.cpf, 20), nascimento = txt(b.nascimento, 20), email = txt(b.email, 120);
+      const endereco = [txt(b.endereco, 200), cep ? `CEP ${cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")}` : ""].filter(Boolean).join(", ");
+      if (financiamento && (!nome || !cpf || !nascimento || !email || !txt(b.endereco) || cep.length !== 8))
+        return NextResponse.json({ success: false, error: "Para o financiamento, preencha nome, CPF, data de nascimento, e-mail, endereço e CEP." }, { status: 400 });
+      await atualizarSolar(p.id, financiamento ? `Cliente escolheu financiamento pelo link${prazo ? ` em ${prazo}x` : ""}: dados enviados para análise de crédito` : `Cliente aceitou a proposta pelo link (${pagamento}${prazo ? ` em ${prazo}x` : ""})`,
+        () => ({ aceite: { em: new Date().toISOString(), pagamento, prazo, por: "link", nome, cpf, endereco, ...(financiamento ? { cep, nascimento, email, analise_credito: true } : {}) } }),
+        "ACEITA", { ...(endereco ? { endereco } : {}), ...(financiamento && email ? { email } : {}) });
+      const ficha = financiamento ? ["🏦 *Financiamento — enviar para análise de crédito*", `Nome: ${nome}`, `CPF: ${cpf}`, `Nascimento: ${nascimento}`, `E-mail: ${email}`, `Endereço: ${endereco}`].join("\n") : "";
+      await avisarEmpresaSolar(p.workspace_id, p.id, "aceite", [ficha, txt(b.obs, 300) ? `Obs. do cliente: ${txt(b.obs, 300)}` : ""].filter(Boolean).join("\n\n"));
     } else if (acao === "recusar") {
       if (atual.status !== "aberta") return NextResponse.json({ success: false, error: "Esta proposta não está mais aberta." }, { status: 409 });
       const motivo = txt(b.motivo, 300) || "não informado";
