@@ -74,11 +74,15 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
   return (
     <main className="min-h-screen bg-gradient-to-b from-amber-50 via-white to-white pb-16 text-slate-900 print:bg-white">
       <header className="mx-auto flex max-w-4xl items-center gap-3 px-5 pt-6">
-        {/^https?:\/\//.test(emp.logo) ? <img src={emp.logo} alt={emp.nome} className="h-12 w-auto max-w-[160px] object-contain" /> : <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500 text-2xl">☀️</span>}
-        <div className="min-w-0">
-          <div className="truncate text-[17px] font-extrabold">{emp.nome || "Energia solar"}</div>
-          <div className="text-[12.5px] text-slate-500">{[emp.cnpj && `CNPJ ${emp.cnpj}`, emp.cidade].filter(Boolean).join(" · ")}</div>
-        </div>
+        {/^https?:\/\//.test(emp.logo)
+          ? <img src={emp.logo} alt={emp.nome} className="h-[72px] w-auto max-w-[190px] object-contain sm:h-20 sm:max-w-[220px]" />
+          : <>
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500 text-2xl">☀️</span>
+            <div className="min-w-0">
+              <div className="truncate text-[17px] font-extrabold">{emp.nome || "Energia solar"}</div>
+              <div className="text-[12.5px] text-slate-500">{[emp.cnpj && `CNPJ ${emp.cnpj}`, emp.cidade].filter(Boolean).join(" · ")}</div>
+            </div>
+          </>}
         <a href={`/solar/${token}/pdf`} target="_blank" rel="noopener" className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-[13px] font-extrabold text-white shadow-sm print:hidden">⬇ Baixar PDF</a>
       </header>
 
@@ -224,7 +228,7 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
 
       <footer className="mx-auto mt-8 max-w-4xl px-5 text-center text-[12px] text-slate-400">
         {linkZap && <a href={linkZap} target="_blank" rel="noreferrer" className="mb-4 inline-flex rounded-2xl bg-[#25D366] px-5 py-3 text-[14px] font-bold text-white print:hidden">Tirar dúvidas no WhatsApp</a>}
-        <div>{[emp.nome, emp.telefone, emp.email, emp.site].filter(Boolean).join(" · ")}</div>
+        <div>{[emp.nome, emp.cnpj && `CNPJ ${emp.cnpj}`, emp.telefone, emp.email, emp.site].filter(Boolean).join(" · ")}</div>
         <div className="mt-1">Valores estimados com a irradiação média da região. Confirmados na visita técnica.</div>
       </footer>
     </main>

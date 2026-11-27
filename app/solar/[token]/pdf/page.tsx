@@ -212,7 +212,7 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
         <div className="sp-cab-t">{titulo}</div>
         {sub ? <div className="sp-cab-s">{sub}</div> : null}
       </div>
-      <div className="sp-cab-marca">{emp.nome}</div>
+      <div className="sp-cab-marca">{temLogo ? <img src={emp.logo} alt={emp.nome} /> : emp.nome}</div>
     </header>
   );
   const Rodape = ({ pg }: { pg: number }) => (
@@ -239,9 +239,9 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
         <section className="sp-pg sp-capa">
           <div className="sp-estrelas" />
           <div className="sp-capa-topo">
-            <div className="sp-capa-marca">
+            <div className={`sp-capa-marca${temLogo ? " sp-com-logo" : ""}`}>
               {temLogo ? <img src={emp.logo} alt={emp.nome} /> : <span className="sp-capa-selo"><svg viewBox="-12 -12 24 24" width="28" height="28" aria-hidden><circle r="5" fill="#3A2600" />{Array.from({ length: 8 }).map((_, i) => { const a = (i / 8) * Math.PI * 2; return <line key={i} x1={Math.cos(a) * 7.5} y1={Math.sin(a) * 7.5} x2={Math.cos(a) * 10.5} y2={Math.sin(a) * 10.5} stroke="#3A2600" strokeWidth="1.8" strokeLinecap="round" />; })}</svg></span>}
-              <div><b>{emp.nome || "Energia Solar"}</b><span>{emp.cidade || "Energia solar de qualidade"}</span></div>
+              {temLogo ? null : <div><b>{emp.nome || "Energia Solar"}</b><span>{emp.cidade || "Energia solar de qualidade"}</span></div>}
             </div>
             <div className="sp-capa-num"><span>Proposta</span><b>{p.numero}</b><span>{dataBR(p.data)}</span></div>
           </div>
@@ -542,6 +542,9 @@ const CSS = `
 .sp-cab-t{font:700 30px/1.05 Fraunces,Georgia,serif;color:#0B3324;letter-spacing:-.01em}
 .sp-cab-s{font-size:13px;color:#5B6B63;margin-top:5px}
 .sp-cab-marca{margin-left:auto;font:800 11px Manrope;letter-spacing:.16em;text-transform:uppercase;color:#0E4D34;opacity:.55}
+.sp-cab-marca img{display:block;height:34px;width:auto;max-width:110px;object-fit:contain}
+.sp-cab-marca:has(img){opacity:1}
+.sp-capa-marca.sp-com-logo img{height:104px;max-width:250px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}
 .sp-rod{position:absolute;left:58px;right:58px;bottom:28px;display:flex;justify-content:space-between;font-size:10.5px;color:#7A867F;border-top:1px solid #E6E1D3;padding-top:10px}
 /* capa */
 .sp-capa{background:radial-gradient(900px 520px at 50% 34%,#1D5A40 0%,#0A2A1D 42%,#04140D 70%,#020906 100%);color:#F7EED3;padding:0}
