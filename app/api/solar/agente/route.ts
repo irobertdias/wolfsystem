@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true, empresa: cfg.empresa, distribuidora: (cfg as any).distribuidora || null, kit: { modulo: `${cfg.painel_marca} ${cfg.painel_w} W`, inversor: `${cfg.inversor_marca} (${cfg.inversor_tipo === "micro" ? "microinversor" : "inversor string"})` },
         garantias: { modulo: cfg.painel_garantia, inversor: cfg.inversor_garantia, estrutura: cfg.estrutura_garantia, instalacao: cfg.instalacao_garantia }, prazo_instalacao: cfg.prazo_instalacao,
-        formas_pagamento: cfg.formas_pagamento, financiamento: { juros_am: cfg.taxa_financiamento, prazos: cfg.prazos_financiamento, entrada_pct: cfg.entrada_pct, simulacao: true },
+        formas_pagamento: cfg.formas_pagamento, financiamento: { juros_am: cfg.taxa_financiamento, prazos: cfg.prazos_financiamento, entrada_pct: cfg.entrada_pct, simulacao: true, parcela_do_banco: Object.values(cfg.coef_financiamento || {}).some((v) => Number(v) > 0) ? "as parcelas já são as do banco, com tarifa de cadastro, IOF e seguros (sujeitas à análise de crédito)" : undefined },
         cartao: cfg.cartao_opcoes?.length ? cfg.cartao_opcoes.map((o) => `${o.parcelas}x (+${o.acrescimo_pct}% sobre o à vista)`) : [`até ${cfg.parcelas_cartao}x`],
         cartao_com_entrada: cfg.cartao_entrada_pct && cfg.cartao_sem_juros ? `entrada de ${cfg.cartao_entrada_pct}% + restante em até ${cfg.cartao_sem_juros}x sem juros` : null,
         campanha: cfg.campanha?.nome ? `${cfg.campanha.nome}${cfg.campanha.ate ? ` (até ${cfg.campanha.ate.split("-").reverse().join("/")})` : ""}` : null,

@@ -82,6 +82,8 @@ export type ConfigSolar = {
   degradacao_aa: number;         // % ao ano de perda de geração
   taxa_financiamento: number;    // % a.m.
   prazos_financiamento: number[];// meses
+  /** Parcela do banco por R$ 1 financiado, por prazo (ex.: {"72": 0.03927}). Já inclui tarifa, IOF e seguros; tem prioridade sobre a taxa. */
+  coef_financiamento?: Record<string, number>;
   entrada_pct: number;           // % de entrada sugerida (0 = sem entrada)
   parcelas_cartao: number;       // até N vezes no cartão
   prazo_instalacao: string;      // texto
@@ -355,7 +357,11 @@ export function calcularSolar(e: EntradaSolar, cfgBase: ConfigSolar): ResultadoS
   const entrada = r2(preco * (n(cfg.entrada_pct) / 100));
   const financiado = preco - entrada;
   const i = n(cfg.taxa_financiamento) / 100;
-  const parcelas = (cfg.prazos_financiamento || []).map((m) => ({ meses: Math.round(n(m)), valor: r2(parcelaPrice(financiado, i, Math.round(n(m)))) })).filter((p) => p.meses > 0);
+  const coef = cfg.coef_financiamento && typeof cfg.coef_financiamento === "object" ? cfg.coef_financiamento : {};
+  const parcelas = (cfg.prazos_financiamento || []).map((m) => {
+    const meses = Math.round(n(m)), c = n(coef[String(meses)]);
+    return { meses, valor: r2(c > 0 ? financiado * c : parcelaPrice(financiado, i, meses)) };
+  }).filter((p) => p.meses > 0);
   const cartoes: ParcelaCartao[] = (cfg.cartao_opcoes || [])
     .filter((o) => n(o.parcelas) > 0)
     .map((o) => { const total = r2(preco * (1 + n(o.acrescimo_pct) / 100)); return { meses: Math.round(n(o.parcelas)), total, valor: r2(total / Math.round(n(o.parcelas))), acrescimo_pct: n(o.acrescimo_pct) }; })

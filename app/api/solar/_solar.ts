@@ -120,6 +120,7 @@ export function propostaPublica(p: any, cfg: ConfigSolar) {
     condicoes: cfg.observacoes,
     formas_pagamento: cfg.formas_pagamento,
     taxa_financiamento: cfg.taxa_financiamento,
+    parcela_banco: Object.values(cfg.coef_financiamento || {}).some((v) => Number(v) > 0),
     reajuste_aa: cfg.reajuste_aa,
     degradacao_aa: cfg.degradacao_aa,
     validade_minutos: cfg.validade_minutos,

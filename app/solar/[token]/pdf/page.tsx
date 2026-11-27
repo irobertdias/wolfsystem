@@ -9,7 +9,7 @@ type Proposta = {
   numero: string; data: string; validade_ate: string | null; status: string;
   cliente: { nome: string; cidade: string; estado: string; endereco: string };
   resultado: ResultadoSolar | null; entrada: { telhado: string; ligacao: string; tarifa: number | null };
-  observacoes: string; condicoes: string; formas_pagamento: string[]; taxa_financiamento: number;
+  observacoes: string; condicoes: string; formas_pagamento: string[]; taxa_financiamento: number; parcela_banco?: boolean;
   reajuste_aa?: number; degradacao_aa?: number; distribuidora?: string;
   empresa: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; cidade: string; logo: string; site: string; instagram?: string };
   kit: { painel_marca: string; painel_garantia: string; inversor_marca: string; inversor_garantia: string; instalacao_garantia: string; prazo_instalacao: string; estrutura_garantia?: string };
@@ -502,7 +502,7 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
               <div className="sp-pag sp-pag-fin">
                 <div className="sp-pag-t">Financiamento solar</div>
                 {r.parcelas.map((x) => <div key={x.meses} className="sp-pag-l"><span>{x.meses}x</span><b>{brl(x.valor)}</b></div>)}
-                <div className="sp-pag-s">Simulação a {num(p.taxa_financiamento, 2)}% a.m. Sujeita à aprovação de crédito.</div>
+                <div className="sp-pag-s">{p.parcela_banco ? "Simulação do banco, com tarifa, IOF e seguros. Sujeita à análise de crédito." : <>Simulação a {num(p.taxa_financiamento, 2)}% a.m. Sujeita à aprovação de crédito.</>}</div>
               </div>
             ) : null}
           </div>

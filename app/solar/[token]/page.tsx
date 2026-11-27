@@ -9,7 +9,7 @@ type Proposta = {
   numero: string; data: string; validade_ate: string | null; status: "aberta" | "aceita" | "recusada" | "expirada";
   cliente: { nome: string; cidade: string; estado: string; endereco: string };
   resultado: ResultadoSolar | null; entrada: { telhado: string; ligacao: string; tarifa: number | null };
-  observacoes: string; condicoes: string; formas_pagamento: string[]; taxa_financiamento: number;
+  observacoes: string; condicoes: string; formas_pagamento: string[]; taxa_financiamento: number; parcela_banco?: boolean;
   empresa: { nome: string; cnpj: string; telefone: string; email: string; endereco: string; cidade: string; logo: string; site: string };
   kit: { painel_marca: string; painel_garantia: string; inversor_marca: string; inversor_garantia: string; instalacao_garantia: string; prazo_instalacao: string };
   aceite: { em: string; pagamento: string; prazo: number | null } | null;
@@ -170,7 +170,7 @@ export default function PropostaSolarPublica({ params }: { params: Promise<{ tok
               {r.cartao && <div className="flex rounded-xl bg-slate-50 px-3 py-2.5 text-[14px]"><span className="text-slate-600">Cartão em até {r.cartao.meses}x</span><b className="ml-auto">{brl(r.cartao.valor)}</b></div>}
             </div>
             {r.entrada > 0 && <p className="mt-2 text-[12px] text-slate-500">Financiamento com entrada de {brl(r.entrada)}.</p>}
-            <p className="mt-3 text-[12px] text-slate-500">Parcelas estimadas com juros de {String(p.taxa_financiamento).replace(".", ",")}% a.m., sujeitas à aprovação de crédito.</p>
+            <p className="mt-3 text-[12px] text-slate-500">{p.parcela_banco ? "Simulação do banco, com tarifa de cadastro, IOF e seguros. Sujeita à análise de crédito." : <>Parcelas estimadas com juros de {String(p.taxa_financiamento).replace(".", ",")}% a.m., sujeitas à aprovação de crédito.</>}</p>
           </div>
         </section>
       )}

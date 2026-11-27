@@ -44,6 +44,9 @@ export default function ConfigSolarTela({ dados }: any) {
   const [canais, setCanais] = useState<{ id: number; nome: string }[]>([]);
   const [msg, setMsg] = useState<{ tipo: "ok" | "warn"; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
+  // Parcela do banco para cada R$ 10.000 financiados, por prazo (guardada como fator por R$ 1).
+  const [coefTxt, setCoefTxt] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(salvo.coef_financiamento || {}).map(([k, v]) => [k, t(Math.round(n(v) * 1000000) / 100)])));
+  const prazosLista = (Array.isArray(c.prazos_financiamento) ? c.prazos_financiamento : String(c.prazos_financiamento).split(/[,; ]+/)).map((x) => Math.round(n(x))).filter((x) => x > 0);
   useEffect(() => { setC(salvo); }, [salvo]);
   useEffect(() => {
     if (!wsId) return;
@@ -66,7 +69,8 @@ export default function ConfigSolarTela({ dados }: any) {
       validade_minutos: Math.min(43200, Math.max(1, Math.round(n(c.validade_minutos)) || 10080)),
       faixas: c.faixas.map((f) => ({ ate_kwp: n(f.ate_kwp), preco_wp: n(f.preco_wp) })).filter((f) => f.ate_kwp > 0 && f.preco_wp > 0).sort((a, b) => a.ate_kwp - b.ate_kwp),
       adicional_telhado: Object.fromEntries(Object.entries(c.adicional_telhado).map(([k, v]) => [k, n(v)])),
-      prazos_financiamento: (Array.isArray(c.prazos_financiamento) ? c.prazos_financiamento : String(c.prazos_financiamento).split(/[,; ]+/)).map((x) => Math.round(n(x))).filter((x) => x > 0),
+      prazos_financiamento: prazosLista,
+      coef_financiamento: Object.fromEntries(prazosLista.filter((m) => n(coefTxt[String(m)]) > 0).map((m) => [String(m), n(coefTxt[String(m)]) / 10000])),
       kits: limparKits(c.kits),
       linhas: (c.linhas || []).map((l) => ({
         id: l.id, nome: String(l.nome || "").trim(), painel_marca: String(l.painel_marca || "").trim(), painel_w: n(l.painel_w), painel_area_m2: n(l.painel_area_m2),
@@ -204,6 +208,16 @@ export default function ConfigSolarTela({ dados }: any) {
         <Card titulo="Pagamento e financiamento">
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <Row><Field label="Juros do financiamento (% a.m.)" flex="1 1 150px"><input style={inputSm} inputMode="decimal" {...num("taxa_financiamento")} /></Field><Field label="Prazos (meses, separados por vírgula)" flex="1 1 180px"><input style={inputSm} value={Array.isArray(c.prazos_financiamento) ? c.prazos_financiamento.join(", ") : String(c.prazos_financiamento)} onChange={(e) => set({ prazos_financiamento: e.target.value as any })} /></Field></Row>
+            {prazosLista.length > 0 && (
+              <>
+                <b style={{ fontSize: 13 }}>Parcela do banco a cada R$ 10.000 financiados (vazio = calcula pelos juros)</b>
+                <Row>
+                  {prazosLista.map((m) => (
+                    <Field key={m} label={`${m}x (R$)`} flex="1 1 90px"><input style={inputSm} inputMode="decimal" value={coefTxt[String(m)] ?? ""} onChange={(e) => setCoefTxt((x) => ({ ...x, [String(m)]: e.target.value }))} /></Field>
+                  ))}
+                </Row>
+              </>
+            )}
             <Field label="Entrada sugerida no financiamento (%)"><input style={inputSm} inputMode="decimal" {...num("entrada_pct")} /></Field>
             <b style={{ fontSize: 13 }}>Cartão de crédito (acréscimo total sobre o preço à vista)</b>
             {(c.cartao_opcoes || []).map((o, i) => (
