@@ -64,7 +64,9 @@ export async function avisarEmpresaSolar(ws: string, propostaId: number, situaca
     if (situacao !== "atualizada" && d.dono_avisado?.[situacao]) return { ok: true, motivo: "já avisado" };
     const num = d.numero || x.id;
     const cabeca = {
-      aceite: `✅ *PROPOSTA ACEITA — ${num}*\nStatus: *ACEITA pelo cliente* (o atendimento foi passado para a equipe)`,
+      aceite: d.aceite?.analise_credito
+        ? `🏦 *FINANCIAMENTO PARA ANÁLISE — ${num}*\nStatus: *cliente aceitou e escolheu financiamento* (falta a análise de crédito; o atendimento foi passado para a equipe)`
+        : `✅ *PROPOSTA ACEITA — ${num}*\nStatus: *ACEITA pelo cliente* (o atendimento foi passado para a equipe)`,
       visita: `📅 *PEDIDO DE VISITA TÉCNICA — ${num}*\nStatus: *visita técnica pedida*`,
       recusa: `❌ *Proposta recusada — ${num}*\nStatus: *recusada*`,
       nova: `☀️ *PROPOSTA ENVIADA — ${num}*\nStatus: *enviada ao cliente*`,

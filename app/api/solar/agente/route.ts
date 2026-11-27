@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     if (acao === "config") {
       return NextResponse.json({
-        ok: true, empresa: cfg.empresa, kit: { modulo: `${cfg.painel_marca} ${cfg.painel_w} W`, inversor: `${cfg.inversor_marca} (${cfg.inversor_tipo === "micro" ? "microinversor" : "inversor string"})` },
+        ok: true, empresa: cfg.empresa, distribuidora: (cfg as any).distribuidora || null, kit: { modulo: `${cfg.painel_marca} ${cfg.painel_w} W`, inversor: `${cfg.inversor_marca} (${cfg.inversor_tipo === "micro" ? "microinversor" : "inversor string"})` },
         garantias: { modulo: cfg.painel_garantia, inversor: cfg.inversor_garantia, estrutura: cfg.estrutura_garantia, instalacao: cfg.instalacao_garantia }, prazo_instalacao: cfg.prazo_instalacao,
         formas_pagamento: cfg.formas_pagamento, financiamento: { juros_am: cfg.taxa_financiamento, prazos: cfg.prazos_financiamento, entrada_pct: cfg.entrada_pct, simulacao: true },
         cartao: cfg.cartao_opcoes?.length ? cfg.cartao_opcoes.map((o) => `${o.parcelas}x (+${o.acrescimo_pct}% sobre o à vista)`) : [`até ${cfg.parcelas_cartao}x`],
@@ -116,7 +116,9 @@ export async function POST(request: NextRequest) {
       const tel = fones(c.telefone)[0] || so(c.telefone);
       if (!tel) return NextResponse.json({ ok: false, erro: "telefone do cliente obrigatório" });
       const r = calcularSolar({ ...e, uf: e.uf || String(c.uf || "").toUpperCase() || undefined }, cfg);
-      const validade_ate = new Date(Date.now() + Math.max(1, cfg.validade_minutos) * 60000).toISOString();
+      // Com campanha ativa, a proposta vale até o último dia da campanha (23h59 de Brasília).
+      const fimCampanha = cfg.campanha?.ate && /^\d{4}-\d{2}-\d{2}$/.test(cfg.campanha.ate) ? new Date(`${cfg.campanha.ate}T23:59:59-03:00`).getTime() : 0;
+      const validade_ate = new Date(fimCampanha > Date.now() ? fimCampanha : Date.now() + Math.max(1, cfg.validade_minutos) * 60000).toISOString();
       const agora = new Date().toISOString();
       // Uma proposta aberta por cliente: atualiza a mesma (mesmo número e link), salvo se pedir outra.
       const abertas = (await propostasDoCliente(ws, tel)).filter((p) => ["LEAD", "PROPOSTA ENVIADA"].includes(p.status_venda || "LEAD") && !p.dados_customizados.solar.aceite);
@@ -159,12 +161,25 @@ export async function POST(request: NextRequest) {
       if (!p) return NextResponse.json({ ok: false, erro: "proposta deste cliente não encontrada (envie a proposta antes)" });
       const pagamento = String(b.pagamento || cfg.formas_pagamento[0] || "").slice(0, 80);
       const prazo = Math.round(Number(b.prazo) || 0) || null;
-      const endereco = String(b.endereco || "").slice(0, 200);
-      await atualizarSolar(p.id, `Cliente aprovou no WhatsApp (${pagamento}${prazo ? ` em ${prazo}x` : ""})`,
-        () => ({ aceite: { em: new Date().toISOString(), pagamento, prazo, por: "whatsapp_ia", nome: String(b.nome || "").slice(0, 120), cpf: String(b.cpf || "").slice(0, 20), endereco } }),
-        "ACEITA", { ...(endereco ? { endereco } : {}), ...(b.nome ? { nome: String(b.nome).slice(0, 120) } : {}), ...(b.cpf ? { cpf: String(b.cpf).slice(0, 20) } : {}), __por: "ia_solar" });
-      const av = await avisarEmpresaSolar(ws, p.id, "aceite");
-      return NextResponse.json({ ok: true, proposta_id: p.id, numero: dadosSolar(p).numero, empresa_avisada: av.ok, proximo_passo: "A equipe vai entrar em contato para agendar a visita técnica gratuita, conferir o telhado e o padrão de energia, e fechar o contrato." });
+      const cep = String(b.cep || "").replace(/\D/g, "").slice(0, 8);
+      const endereco = [String(b.endereco || "").trim(), cep && !String(b.endereco || "").replace(/\D/g, "").includes(cep) ? `CEP ${cep.replace(/^(\d{5})(\d{3})$/, "$1-$2")}` : ""].filter(Boolean).join(", ").slice(0, 220);
+      const nome = String(b.nome || "").slice(0, 120), cpf = String(b.cpf || "").slice(0, 20);
+      const nascimento = String(b.nascimento || "").slice(0, 20), email = String(b.email || "").slice(0, 120);
+      // Financiamento: não é venda fechada; vai para análise de crédito com os dados do cliente.
+      const financiamento = /financ/i.test(pagamento);
+      if (financiamento) {
+        const faltam = [!nome && "nome completo", !cpf && "CPF", !nascimento && "data de nascimento", !email && "e-mail", !endereco && "endereço completo", !cep && "CEP"].filter(Boolean);
+        if (faltam.length) return NextResponse.json({ ok: false, erro: `Para enviar o financiamento para análise ainda falta: ${faltam.join(", ")}. Peça ao cliente (uma coisa por vez) e chame aprovar_proposta de novo.` });
+      }
+      await atualizarSolar(p.id, financiamento ? `Cliente escolheu financiamento${prazo ? ` em ${prazo}x` : ""}: dados enviados para análise de crédito` : `Cliente aprovou no WhatsApp (${pagamento}${prazo ? ` em ${prazo}x` : ""})`,
+        () => ({ aceite: { em: new Date().toISOString(), pagamento, prazo, por: "whatsapp_ia", nome, cpf, endereco, ...(cep ? { cep } : {}), ...(nascimento ? { nascimento } : {}), ...(email ? { email } : {}), ...(financiamento ? { analise_credito: true } : {}) } }),
+        "ACEITA", { ...(endereco ? { endereco } : {}), ...(nome ? { nome } : {}), ...(cpf ? { cpf } : {}), ...(email ? { email } : {}), __por: "ia_solar" });
+      const ficha = financiamento ? ["🏦 *Financiamento — enviar para análise de crédito*", `Nome: ${nome}`, `CPF: ${cpf}`, `Nascimento: ${nascimento}`, `E-mail: ${email}`, `Endereço: ${endereco}`].join("\n") : "";
+      const av = await avisarEmpresaSolar(ws, p.id, "aceite", ficha);
+      return NextResponse.json({ ok: true, proposta_id: p.id, numero: dadosSolar(p).numero, empresa_avisada: av.ok,
+        proximo_passo: financiamento
+          ? "Os dados foram enviados para a ANÁLISE DE CRÉDITO do financiamento. A equipe retorna com o resultado da análise. NÃO diga que o financiamento foi aprovado e NÃO prometa visita técnica nem data de instalação: isso só depois da aprovação do crédito."
+          : "A equipe vai entrar em contato para agendar a visita técnica gratuita, conferir o telhado e o padrão de energia, e fechar o contrato." });
     }
 
     if (acao === "recusar") {

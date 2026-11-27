@@ -463,7 +463,7 @@ export type DadosSolar = {
   validade_ate?: string;       // ISO
   enviada_em?: string;
   visualizado_em?: string;
-  aceite?: { em: string; pagamento?: string; prazo?: number | null; por?: string; nome?: string; cpf?: string; endereco?: string };
+  aceite?: { em: string; pagamento?: string; prazo?: number | null; por?: string; nome?: string; cpf?: string; endereco?: string; cep?: string; nascimento?: string; email?: string; analise_credito?: boolean };
   recusa?: { em: string; motivo: string; por?: string };
   visita?: { pedida_em: string; data?: string; endereco?: string; obs?: string };
   distribuidora?: string;
