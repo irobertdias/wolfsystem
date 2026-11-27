@@ -6,6 +6,7 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import { useModulos } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
+import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario } from "../../lib/escopo-usuario";
 import { useRouter } from "next/navigation";
 import Icone from "../../components/a2/Icone";
 
@@ -264,11 +265,19 @@ const shell: React.CSSProperties = {
 export default function VisaoGeralPage() {
   const { wsId, workspace, loading: workspaceLoading } = useWorkspace();
   const { modulos, carregado: modulosCarregados } = useModulos();
-  const { isDono, isSuperAdmin, perfil, permissoes, loading: permLoading } = usePermissao();
+  const { isDono, isSuperAdmin, perfil, permissoes, userEmail, loading: permLoading } = usePermissao();
 
   const [carregando, setCarregando] = useState(true);
   const [adminCarregando, setAdminCarregando] = useState(true);
-  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [propostasTodas, setPropostas] = useState<Proposta[]>([]);
+  const [nomeUsuario, setNomeUsuario] = useState("");
+  // 🔒 Atendente/vendedor vê só as propostas e conversas dele; supervisor/admin vê tudo.
+  const veTodasProps = veTodasPropostas({ isDono, isSuperAdmin, perfil, permissoes });
+  const veTodosAtend = veTodosAtendimentos({ isDono, isSuperAdmin, perfil, permissoes });
+  const propostas = useMemo(
+    () => (veTodasProps ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, nomeUsuario))),
+    [propostasTodas, veTodasProps, userEmail, nomeUsuario],
+  );
   const [funcs, setFuncs] = useState<FuncRow[]>([]);
   const [folha, setFolha] = useState<FolhaRow[]>([]);
   const [pontoHoje, setPontoHoje] = useState(0);
@@ -516,7 +525,6 @@ export default function VisaoGeralPage() {
 
   // ─── Dados extras do visual A2: nome do usuário, fila de atendimento e conversas do dia ───
   const router = useRouter();
-  const [nomeUsuario, setNomeUsuario] = useState("");
   const [fila, setFila] = useState<FilaItem[]>([]);
   const [aguardandoTotal, setAguardandoTotal] = useState(0);
   const [conversasHoje, setConversasHoje] = useState<number | null>(null);
@@ -560,11 +568,14 @@ export default function VisaoGeralPage() {
     (async () => {
       const inicioHoje = new Date(); inicioHoje.setHours(0, 0, 0, 0);
       const inicioOntem = new Date(inicioHoje.getTime() - 86400000);
+      // 🔒 Sem "ver todos": conta só as conversas do próprio usuário.
+      const eu = [userEmail, nomeUsuario].map((x) => String(x || "").trim()).filter(Boolean);
+      const contar = (q: any) => (veTodosAtend ? q : q.in("atendente", eu.length ? eu : ["—"]));
       const [pend, hoje, ontem] = await Promise.all([
         supabase.from("atendimentos").select("id, nome, numero, mensagem, atendente, status, created_at, ultima_mensagem_em")
           .in("workspace_id", tenantWsIds).eq("status", "pendente").order("ultima_mensagem_em", { ascending: true }).limit(200),
-        supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioHoje.toISOString()),
-        supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioOntem.toISOString()).lt("created_at", inicioHoje.toISOString()),
+        contar(supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioHoje.toISOString())),
+        contar(supabase.from("atendimentos").select("id", { count: "exact", head: true }).in("workspace_id", tenantWsIds).gte("created_at", inicioOntem.toISOString()).lt("created_at", inicioHoje.toISOString())),
       ]);
       if (cancelado) return;
       // Mesma regra da tela de Atendimento: aguardando = pendente, sem BOT e sem atendente real.
@@ -575,7 +586,7 @@ export default function VisaoGeralPage() {
       setConversasOntem(ontem.count || 0);
     })().catch((e) => console.warn("visao fila:", e));
     return () => { cancelado = true; };
-  }, [isWolfAdmin, podeVerChat, tenantWsIds]);
+  }, [isWolfAdmin, podeVerChat, tenantWsIds, veTodosAtend, userEmail, nomeUsuario]);
 
   // Vendas por período (gráfico): propostas criadas, agrupadas em barras.
   const grafico = useMemo(() => montarGrafico(propostas, periodo), [propostas, periodo]);

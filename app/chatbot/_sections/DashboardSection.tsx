@@ -2,6 +2,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
+import { usePermissao } from "../../hooks/usePermissao";
+import { veTodosAtendimentos, ehDoUsuario } from "../../lib/escopo-usuario";
 
 import { IconeEmoji } from "../../components/a2/Icone";
 type Atendimento = {
@@ -24,12 +26,19 @@ type Periodo = "hoje" | "semana" | "mes" | "ano" | "todos" | "personalizado";
 export function DashboardSection() {
   const { workspace, wsId } = useWorkspace();
 
-  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [atendimentosTodos, setAtendimentos] = useState<Atendimento[]>([]);
   const [canais, setCanais] = useState<Canal[]>([]);
   const [filas, setFilas] = useState<Fila[]>([]);
   // 👥 Equipes ativas do workspace
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
+  // 🔒 Atendente vê só os números dele; supervisor/admin vê tudo.
+  const { isDono, isSuperAdmin, perfil, permissoes, userEmail } = usePermissao();
+  const meuNome = usuariosWs.find((u) => (u.email || "").toLowerCase() === (userEmail || "").toLowerCase())?.nome || "";
+  const atendimentos = useMemo(
+    () => (veTodosAtendimentos({ isDono, isSuperAdmin, perfil, permissoes }) ? atendimentosTodos : atendimentosTodos.filter((a) => ehDoUsuario(a.atendente, userEmail, meuNome))),
+    [atendimentosTodos, isDono, isSuperAdmin, perfil, permissoes, userEmail, meuNome],
+  );
   const [carregando, setCarregando] = useState(true);
 
   const [periodo, setPeriodo] = useState<Periodo>("mes");

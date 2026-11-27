@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { supabase } from "../../../lib/supabase";
 import { usePermissao } from "../../../hooks/usePermissao";
+import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario, atendimentosDoUsuario } from "../../../lib/escopo-usuario";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import { carregarVertical } from "../../../hooks/useWorkspace";
 import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
@@ -321,17 +322,27 @@ const sectionTitleStyle = {
 // ═══════════════════════════════════════════════════════════════════════════
 export default function Funil() {
   const router = useRouter();
-  const { isDono, isSuperAdmin, permissoes } = usePermissao();
+  const { isDono, isSuperAdmin, permissoes, perfil, userEmail } = usePermissao();
 
   // ─── DADOS BRUTOS ─────────────────────────────────────────────────────────
-  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [propostasTodas, setPropostas] = useState<Proposta[]>([]);
   const [campos, setCampos] = useState<CampoUni[]>([]);
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [loading, setLoading] = useState(true);
   const [workspaceId, setWorkspaceId] = useState<string>("");
 
   // 📞 Atendimentos + etiquetas (nova aba)
-  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [atendimentosTodos, setAtendimentos] = useState<Atendimento[]>([]);
+
+  // 🔒 Atendente/vendedor vê só as propostas e os contatos dele; supervisor/admin vê tudo.
+  const acessoFunil = { isDono, isSuperAdmin, perfil, permissoes };
+  const meuNomeFunil = usuariosWs.find((u) => (u.email || "").toLowerCase() === (userEmail || "").toLowerCase())?.nome || "";
+  const propostas = useMemo(() => (veTodasPropostas(acessoFunil) ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, meuNomeFunil))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [propostasTodas, isDono, isSuperAdmin, perfil, permissoes, userEmail, meuNomeFunil]);
+  const atendimentos = useMemo(() => (veTodosAtendimentos(acessoFunil) ? atendimentosTodos : atendimentosDoUsuario(atendimentosTodos, userEmail, meuNomeFunil)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [atendimentosTodos, isDono, isSuperAdmin, perfil, permissoes, userEmail, meuNomeFunil]);
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([]);
   const [atEtiquetas, setAtEtiquetas] = useState<AtEt[]>([]);
   const [mapaEtq, setMapaEtq] = useState<Record<string, CategoriaEtiqueta>>({});

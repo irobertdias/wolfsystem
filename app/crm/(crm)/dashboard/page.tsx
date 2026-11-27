@@ -20,6 +20,8 @@ import {
 import { supabase } from "../../../lib/supabase";
 import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
+import { usePermissao } from "../../../hooks/usePermissao";
+import { veTodasPropostas, propostaDoUsuario } from "../../../lib/escopo-usuario";
 
 import { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
@@ -244,11 +246,17 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [propostasTodas, setPropostas] = useState<Proposta[]>([]);
   const [usuariosWs, setUsuariosWs] = useState<UsuarioWs[]>([]);
   const [workspaceNome, setWorkspaceNome] = useState("");
   const [workspaceId, setWorkspaceId] = useState("");
   const [userNome, setUserNome] = useState("");
+  // 🔒 Atendente/vendedor vê só as propostas dele; supervisor/admin vê tudo.
+  const { isDono, isSuperAdmin, perfil, permissoes, userEmail } = usePermissao();
+  const propostas = useMemo(
+    () => (veTodasPropostas({ isDono, isSuperAdmin, perfil, permissoes }) ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, userNome))),
+    [propostasTodas, isDono, isSuperAdmin, perfil, permissoes, userEmail, userNome],
+  );
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
