@@ -32,6 +32,43 @@ export function propostaDoUsuario(p: any, email?: string | null, nome?: string |
     .some((v) => ehDoUsuario(v, email, nome));
 }
 
+/** Telefone reduzido a DDD + 8 últimos dígitos (ignora 55 e o 9 extra). */
+export function chaveFone(x: any) {
+  let d = String(x ?? "").replace(/\D/g, "");
+  if (d.startsWith("55") && d.length >= 12) d = d.slice(2);
+  return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : "";
+}
+
+/** Proposta sem dono humano (criada pela IA ou sem vendedor). */
+export function propostaSemDono(p: any) {
+  const v = String(p?.vendedor ?? "").trim(), c = String(p?.dados_customizados?.criado_por ?? "").trim();
+  const ehIA = (s: string) => !s || (!s.includes("@") && /(^|[^a-z])(ia|bot)([^a-z]|$)|vendedora ia|ia_/i.test(s));
+  return ehIA(v) && ehIA(c);
+}
+
+/** Números (chave DDD + 8) dos clientes que o usuário atende ou já atendeu no workspace. */
+export async function numerosAtendidos(supabase: any, wsIds: string | string[], email?: string | null, nomes: (string | null | undefined)[] = []) {
+  const quem = [email, ...nomes].map((x) => String(x || "").trim()).filter(Boolean);
+  const out = new Set<string>();
+  if (!quem.length) return out;
+  const ws = (Array.isArray(wsIds) ? wsIds : [wsIds]).filter(Boolean);
+  if (!ws.length) return out;
+  for (let de = 0; de < 20000; de += 1000) {
+    const { data, error } = await supabase.from("atendimentos").select("numero").in("workspace_id", ws).in("atendente", quem).range(de, de + 999);
+    if (error || !data?.length) break;
+    for (const a of data) { const k = chaveFone(a.numero); if (k) out.add(k); }
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
+/** Proposta da IA (sem dono) de um cliente que o usuário assumiu no atendimento. */
+export function propostaDeClienteAtendido(p: any, numeros: Set<string>) {
+  if (!numeros.size || !propostaSemDono(p)) return false;
+  const dc = p?.dados_customizados || {};
+  return [p?.telefone1, p?.telefone2, p?.telefone, dc.telefone, dc.solar?.telefone].some((t) => { const k = chaveFone(t); return !!k && numeros.has(k); });
+}
+
 /** Só os atendimentos dos contatos que o usuário atendeu (todo o histórico desses números). */
 export function atendimentosDoUsuario<T extends { numero?: string | null; atendente?: string | null }>(lista: T[], email?: string | null, nome?: string | null): T[] {
   const meus = new Set(lista.filter((a) => ehDoUsuario(a.atendente, email, nome)).map((a) => a.numero));

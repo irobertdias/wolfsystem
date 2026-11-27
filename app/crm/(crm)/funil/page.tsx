@@ -10,7 +10,8 @@ import {
 } from "recharts";
 import { supabase } from "../../../lib/supabase";
 import { usePermissao } from "../../../hooks/usePermissao";
-import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario, atendimentosDoUsuario } from "../../../lib/escopo-usuario";
+import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario, atendimentosDoUsuario, propostaDeClienteAtendido } from "../../../lib/escopo-usuario";
+import { useNumerosAtendidos } from "../../../hooks/useNumerosAtendidos";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import { carregarVertical } from "../../../hooks/useWorkspace";
 import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
@@ -337,9 +338,10 @@ export default function Funil() {
   // 🔒 Atendente/vendedor vê só as propostas e os contatos dele; supervisor/admin vê tudo.
   const acessoFunil = { isDono, isSuperAdmin, perfil, permissoes };
   const meuNomeFunil = usuariosWs.find((u) => (u.email || "").toLowerCase() === (userEmail || "").toLowerCase())?.nome || "";
-  const propostas = useMemo(() => (veTodasPropostas(acessoFunil) ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, meuNomeFunil))),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [propostasTodas, isDono, isSuperAdmin, perfil, permissoes, userEmail, meuNomeFunil]);
+  const veTodasFunil = veTodasPropostas(acessoFunil);
+  const numerosFunil = useNumerosAtendidos(workspaceId, userEmail, meuNomeFunil, !veTodasFunil);
+  const propostas = useMemo(() => (veTodasFunil ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, meuNomeFunil) || propostaDeClienteAtendido(p, numerosFunil))),
+    [propostasTodas, veTodasFunil, userEmail, meuNomeFunil, numerosFunil]);
   const atendimentos = useMemo(() => (veTodosAtendimentos(acessoFunil) ? atendimentosTodos : atendimentosDoUsuario(atendimentosTodos, userEmail, meuNomeFunil)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [atendimentosTodos, isDono, isSuperAdmin, perfil, permissoes, userEmail, meuNomeFunil]);

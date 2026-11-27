@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { numerosAtendidos, propostaDeClienteAtendido } from "../../lib/escopo-usuario";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import type { EmpresaLoja, FreteConfig } from "../../lib/loja-orcamento";
@@ -285,7 +286,9 @@ export function useLoja(modo: Modo) {
     if (p.error) setErro(p.error.message); else setErro("");
     const todos = (p.data as Pedido[]) || [];
     const email = eu.data.user?.email || "";
-    const meus = verTodos ? todos : todos.filter((x) => [x.vendedor, x.dados_customizados?.criado_por].some((v) => v && email && v.toLowerCase() === email.toLowerCase()));
+    const meuNome = ((u.data as any[]) || []).find((x) => String(x?.email || "").toLowerCase() === email.toLowerCase())?.nome;
+    const numeros = verTodos ? new Set<string>() : await numerosAtendidos(supabase, wsId, email, [meuNome]);
+    const meus = verTodos ? todos : todos.filter((x) => [x.vendedor, x.dados_customizados?.criado_por].some((v) => v && email && v.toLowerCase() === email.toLowerCase()) || propostaDeClienteAtendido(x, numeros));
     setPedidos(meus.filter((x) => !x.dados_customizados?.os));
     setOrdens(meus.filter((x) => !!x.dados_customizados?.os));
     const salvo = (c.data as any)?.config?.loja || {};

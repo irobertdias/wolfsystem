@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { numerosAtendidos, propostaDeClienteAtendido } from "../../lib/escopo-usuario";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
@@ -180,7 +181,7 @@ export function useVeTodos() {
 
 const mesmo = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
 
-async function filtrarMeus(lista: Contrato[]): Promise<Contrato[]> {
+async function filtrarMeus(lista: Contrato[], wsId?: string | null): Promise<Contrato[]> {
   const { data: { user } } = await supabase.auth.getUser();
   const email = user?.email || "";
   if (!email) return [];
@@ -191,7 +192,9 @@ async function filtrarMeus(lista: Contrato[]): Promise<Contrato[]> {
     const { data: uw } = await supabase.from("usuarios_workspace").select("nome").eq("email", email);
     (uw || []).forEach((u: any) => { if (u?.nome) nomes.add(String(u.nome).trim().toLowerCase()); });
   } catch {}
-  return lista.filter((c) => mesmo(c.vendedor, email) || mesmo(c.dados_customizados?.criado_por, email) || (!!c.vendedor && nomes.has(c.vendedor.trim().toLowerCase())));
+  // Propostas da IA dos clientes que este vendedor assumiu no atendimento.
+  const numeros = wsId ? await numerosAtendidos(supabase, wsId, email, [...nomes]) : new Set<string>();
+  return lista.filter((c) => mesmo(c.vendedor, email) || mesmo(c.dados_customizados?.criado_por, email) || (!!c.vendedor && nomes.has(c.vendedor.trim().toLowerCase())) || propostaDeClienteAtendido(c, numeros));
 }
 
 export function useConsignado() {
@@ -215,7 +218,7 @@ export function useConsignado() {
     ]);
     if (p.error) setErro(p.error.message); else setErro("");
     const todos = (p.data as Contrato[]) || [];
-    setContratos(verTodos ? todos : await filtrarMeus(todos));
+    setContratos(verTodos ? todos : await filtrarMeus(todos, wsId));
     const salvo = (c.data as any)?.config?.consignado || {};
     setCfg({ ...CONFIG_PADRAO, ...salvo, bancos: Array.isArray(salvo.bancos) && salvo.bancos.length ? salvo.bancos : CONFIG_PADRAO.bancos });
     setUsuarios(((u.data as any[]) || []).filter((x) => x?.email).map((x) => ({ email: x.email, nome: x.nome || x.email })));

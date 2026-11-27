@@ -21,7 +21,8 @@ import { supabase } from "../../../lib/supabase";
 import { vocabularioDoWorkspace } from "../../../lib/vertical-workspace";
 import { useEquipeFiltro } from "../../../hooks/useEquipeFiltro";
 import { usePermissao } from "../../../hooks/usePermissao";
-import { veTodasPropostas, propostaDoUsuario } from "../../../lib/escopo-usuario";
+import { veTodasPropostas, propostaDoUsuario, propostaDeClienteAtendido } from "../../../lib/escopo-usuario";
+import { useNumerosAtendidos } from "../../../hooks/useNumerosAtendidos";
 
 import { IconeEmoji } from "../../../components/a2/Icone";
 type Proposta = {
@@ -253,9 +254,11 @@ export default function Dashboard() {
   const [userNome, setUserNome] = useState("");
   // 🔒 Atendente/vendedor vê só as propostas dele; supervisor/admin vê tudo.
   const { isDono, isSuperAdmin, perfil, permissoes, userEmail } = usePermissao();
+  const veTodasDash = veTodasPropostas({ isDono, isSuperAdmin, perfil, permissoes });
+  const numerosDash = useNumerosAtendidos(workspaceId, userEmail, userNome, !veTodasDash);
   const propostas = useMemo(
-    () => (veTodasPropostas({ isDono, isSuperAdmin, perfil, permissoes }) ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, userNome))),
-    [propostasTodas, isDono, isSuperAdmin, perfil, permissoes, userEmail, userNome],
+    () => (veTodasDash ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, userNome) || propostaDeClienteAtendido(p, numerosDash))),
+    [propostasTodas, veTodasDash, userEmail, userNome, numerosDash],
   );
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);

@@ -6,7 +6,8 @@ import { useWorkspace } from "../../hooks/useWorkspace";
 import { vocabularioDoWorkspace } from "../../lib/vertical-workspace";
 import { useModulos } from "../../hooks/useModulos";
 import { usePermissao } from "../../hooks/usePermissao";
-import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario } from "../../lib/escopo-usuario";
+import { veTodasPropostas, veTodosAtendimentos, propostaDoUsuario, propostaDeClienteAtendido } from "../../lib/escopo-usuario";
+import { useNumerosAtendidos } from "../../hooks/useNumerosAtendidos";
 import { useRouter } from "next/navigation";
 import Icone from "../../components/a2/Icone";
 
@@ -274,9 +275,10 @@ export default function VisaoGeralPage() {
   // 🔒 Atendente/vendedor vê só as propostas e conversas dele; supervisor/admin vê tudo.
   const veTodasProps = veTodasPropostas({ isDono, isSuperAdmin, perfil, permissoes });
   const veTodosAtend = veTodosAtendimentos({ isDono, isSuperAdmin, perfil, permissoes });
+  const numerosVisao = useNumerosAtendidos(wsId || "", userEmail, nomeUsuario, !veTodasProps);
   const propostas = useMemo(
-    () => (veTodasProps ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, nomeUsuario))),
-    [propostasTodas, veTodasProps, userEmail, nomeUsuario],
+    () => (veTodasProps ? propostasTodas : propostasTodas.filter((p) => propostaDoUsuario(p, userEmail, nomeUsuario) || propostaDeClienteAtendido(p, numerosVisao))),
+    [propostasTodas, veTodasProps, userEmail, nomeUsuario, numerosVisao],
   );
   const [funcs, setFuncs] = useState<FuncRow[]>([]);
   const [folha, setFolha] = useState<FolhaRow[]>([]);

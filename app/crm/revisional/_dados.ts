@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { numerosAtendidos, propostaDeClienteAtendido } from "../../lib/escopo-usuario";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 
@@ -214,7 +215,7 @@ const mesmo = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().t
 
 // O contrato é do usuário se ele criou (e-mail em "vendedor" ou em criado_por),
 // se o nome dele está como responsável ou se veio de uma proposta dele.
-async function filtrarMeus(lista: Contrato[]): Promise<Contrato[]> {
+async function filtrarMeus(lista: Contrato[], wsId?: string | null): Promise<Contrato[]> {
   const { data: { user } } = await supabase.auth.getUser();
   const email = user?.email || "";
   if (!email) return [];
@@ -233,11 +234,14 @@ async function filtrarMeus(lista: Contrato[]): Promise<Contrato[]> {
     const d = await r.json();
     (d?.propostas || []).forEach((p: any) => minhasPropostas.add(String(p.id)));
   } catch {}
+  // Propostas da IA dos clientes que este consultor assumiu no atendimento.
+  const numeros = wsId ? await numerosAtendidos(supabase, wsId, email, [...nomes]) : new Set<string>();
   return lista.filter((c) => {
     const dc = c.dados_customizados || {};
     return mesmo(c.vendedor, email) || mesmo(dc.criado_por, email)
       || (!!c.vendedor && nomes.has(c.vendedor.trim().toLowerCase()))
-      || (!!dc.revisional_proposta?.id && minhasPropostas.has(String(dc.revisional_proposta.id)));
+      || (!!dc.revisional_proposta?.id && minhasPropostas.has(String(dc.revisional_proposta.id)))
+      || propostaDeClienteAtendido(c, numeros);
   });
 }
 
@@ -260,7 +264,7 @@ export function useRevisional() {
     ]);
     if (p.error) setErro(p.error.message); else setErro("");
     const todos = (p.data as Contrato[]) || [];
-    setContratos(verTodos ? todos : await filtrarMeus(todos));
+    setContratos(verTodos ? todos : await filtrarMeus(todos, wsId));
     const salvo = c || {};
     setCfg({
       ...CONFIG_PADRAO,

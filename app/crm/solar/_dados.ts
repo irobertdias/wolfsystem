@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabase";
 import { useWorkspace } from "../../hooks/useWorkspace";
 import { usePermissao } from "../../hooks/usePermissao";
 import { novoToken } from "../../lib/loja-orcamento";
+import { numerosAtendidos, propostaDeClienteAtendido } from "../../lib/escopo-usuario";
 import { calcularSolar, configSolar, etapaSolar, origemSolar, type ConfigSolar, type DadosSolar, type EntradaSolar, type ObraSolar } from "../../lib/solar";
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -70,7 +71,10 @@ export function useSolar() {
     if (p.error) setErro(p.error.message); else setErro("");
     const todos = ((p.data as PropostaSolar[]) || []).filter((x) => x.dados_customizados?.solar);
     const email = eu.data.user?.email || "";
-    setPropostas(verTodos ? todos : todos.filter((x) => mesmo(x.vendedor, email) || mesmo(x.dados_customizados?.criado_por, email)));
+    // Também as propostas da IA dos clientes que o vendedor assumiu no atendimento.
+    const meuNome = ((u.data as any[]) || []).find((x) => mesmo(x?.email, email))?.nome;
+    const numeros = verTodos ? new Set<string>() : await numerosAtendidos(supabase, wsId, email, [meuNome]);
+    setPropostas(verTodos ? todos : todos.filter((x) => mesmo(x.vendedor, email) || mesmo(x.dados_customizados?.criado_por, email) || propostaDeClienteAtendido(x, numeros)));
     setCfg(configSolar((c.data as any)?.config?.solar));
     setUsuarios(((u.data as any[]) || []).filter((x) => x?.email).map((x) => ({ email: x.email, nome: x.nome || x.email })));
     setCarregando(false);
