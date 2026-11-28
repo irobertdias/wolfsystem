@@ -237,16 +237,16 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
       <div className="sp-folhas" style={{ zoom: escala } as React.CSSProperties}>
         {/* ───────────── 1 · CAPA ───────────── */}
         <section className="sp-pg sp-capa">
-          <div className="sp-estrelas" />
+          {/* Capa clara: pouca tinta na impressão, logo do cliente em destaque. */}
           <div className="sp-capa-topo">
-            <div className={`sp-capa-marca${temLogo ? " sp-com-logo" : ""}`}>
-              {temLogo ? <img src={emp.logo} alt={emp.nome} /> : <span className="sp-capa-selo"><svg viewBox="-12 -12 24 24" width="28" height="28" aria-hidden><circle r="5" fill="#3A2600" />{Array.from({ length: 8 }).map((_, i) => { const a = (i / 8) * Math.PI * 2; return <line key={i} x1={Math.cos(a) * 7.5} y1={Math.sin(a) * 7.5} x2={Math.cos(a) * 10.5} y2={Math.sin(a) * 10.5} stroke="#3A2600" strokeWidth="1.8" strokeLinecap="round" />; })}</svg></span>}
-              {temLogo ? null : <div><b>{emp.nome || "Energia Solar"}</b><span>{emp.cidade || "Energia solar de qualidade"}</span></div>}
-            </div>
+            <div className="sp-capa-tag">Proposta comercial</div>
             <div className="sp-capa-num"><span>Proposta</span><b>{p.numero}</b><span>{dataBR(p.data)}</span></div>
           </div>
 
-          <div className="sp-capa-sol"><Sol size={430} /></div>
+          <div className="sp-capa-logo">
+            {temLogo ? <img src={emp.logo} alt={emp.nome} /> : <div className="sp-capa-nome"><b>{emp.nome || "Energia Solar"}</b><span>{emp.cidade || "Energia solar"}</span></div>}
+          </div>
+          <div className="sp-capa-linha" />
 
           <div className="sp-capa-centro">
             <div className="sp-capa-pre">Proposta comercial · sistema on-grid</div>
@@ -265,7 +265,6 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
 
           {r.campanha ? <div className="sp-capa-fita">{r.campanha} · condição especial</div> : null}
 
-          <div className="sp-capa-campo"><CampoSolar /></div>
           <div className="sp-capa-rod">{rodape}</div>
         </section>
 
@@ -741,7 +740,64 @@ const CSS = `
 .sp-ler{font-size:12px;line-height:1.55;color:#33453C;background:#EEF6F1;border:1px solid #CFE5D8;border-radius:14px;padding:10px 14px;margin:0 0 12px}
 /* o tema do sistema força a fonte em tudo (body * … !important): aqui a proposta usa a dela */
 body .sp-fundo *:not(code):not(pre):not(kbd):not(samp):not(.font-mono){font-family:Manrope,system-ui,sans-serif!important}
-body .sp-fundo .sp-pg :is(.sp-cab-t,.sp-capa-marca b,.sp-capa-h1,.sp-capa-h1 em,.sp-capa-cliente,.sp-antes,.sp-depois,.sp-verde-k b,.sp-eq-big,.sp-comp-c b,.sp-preco-l b,.sp-preco-r em,.sp-pag-v,.sp-serif){font-family:Fraunces,Georgia,"Times New Roman",serif!important}
+/* ═══ VERSÃO CLEAN (pouca tinta): fundo branco, só filetes e textos em verde/dourado ═══ */
+.sp-pg{background:#fff}
+.sp-capa{background:#fff;color:#10241B;padding:0}
+.sp-capa:before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:linear-gradient(90deg,#0E4D34,#E3B547)}
+.sp-capa-topo{padding:44px 58px 0;align-items:center}
+.sp-capa-tag{font:800 11px Manrope;letter-spacing:.26em;text-transform:uppercase;color:#0E4D34}
+.sp-capa-num{color:#7A867F}
+.sp-capa-num b{color:#0B3324}
+.sp-capa-logo{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;height:330px;margin-top:40px}
+.sp-capa-logo img{max-height:300px;max-width:520px;width:auto;object-fit:contain}
+.sp-capa-nome{text-align:center}.sp-capa-nome b{display:block;font:700 52px Fraunces,serif;color:#0B3324}.sp-capa-nome span{display:block;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:#B8862B;margin-top:6px}
+.sp-capa-linha{width:120px;height:3px;margin:26px auto 0;border-radius:3px;background:linear-gradient(90deg,#0E4D34,#E3B547)}
+.sp-capa-centro{margin-top:30px}
+.sp-capa-pre{color:#B8862B}
+.sp-capa-h1{color:#0B3324;font-size:44px}
+.sp-capa-h1 em{background:none;-webkit-background-clip:initial;background-clip:initial;color:#B8862B}
+.sp-capa-para{color:#5B6B63;opacity:1}
+.sp-capa-cliente{color:#0E4D34}
+.sp-capa-local{color:#5B6B63;opacity:1}
+.sp-capa-kpis{margin:34px 58px 0}
+.sp-capa-kpis div{background:#fff;border:1px solid #DCE7E0}
+.sp-capa-kpis b{color:#0B3324}
+.sp-capa-kpis span{color:#5B6B63;opacity:1}
+.sp-capa-kpis .sp-ouro{background:#FFFBEA;border:1.5px solid #E3B547}
+.sp-capa-kpis .sp-ouro b{color:#6B4A0C}.sp-capa-kpis .sp-ouro span{color:#6B4A0C}
+.sp-capa-fita{top:96px;right:-62px;padding:6px 70px;font-size:10px;box-shadow:none}
+.sp-capa-rod{color:#7A867F;border-top:1px solid #ECE7DA;margin:0 58px;padding-top:12px}
+/* blocos que eram verde-escuro viram claros com borda */
+.sp-heroi{background:#F3F8F5;border:1.5px solid #CFE5D8;color:#10241B}
+.sp-heroi:after{display:none}
+.sp-rot{color:#B8862B}
+.sp-antes{color:#7A867F;opacity:1}
+.sp-depois{color:#0E4D34}
+.sp-heroi-nota{color:#5B6B63;opacity:1}
+.sp-heroi-dir{background:#fff}
+.sp-verde{background:#F3F8F5;border:1.5px solid #CFE5D8;color:#10241B}
+.sp-verde-t{color:#B8862B}
+.sp-verde-k b{color:#0E4D34}
+.sp-verde-k span{color:#33453C;opacity:1}
+.sp-gar div{background:#fff;border:1.5px solid #CFE5D8;color:#10241B}
+.sp-gar b{color:#B8862B}
+.sp-comp-o{background:#F3F8F5;border:1.5px solid #CFE5D8}
+.sp-comp-o span,.sp-comp-o i{color:#B8862B}.sp-comp-o b{color:#0E4D34}
+.sp-tab th,.sp-compra th{background:#EEF6F1;color:#0B3324;border-bottom:1.5px solid #0E4D34}
+.sp-tab tr:nth-child(even) td{background:#FAFAF7}
+.sp-preco{background:#fff;border:2px solid #0E4D34;color:#10241B}
+.sp-preco-l span{color:#B8862B}
+.sp-preco-l b{color:#0B3324}
+.sp-preco-l b small{color:#B8862B}
+.sp-preco-l i,.sp-preco-l s{opacity:1;color:#5B6B63}
+.sp-preco-r{background:#FFFBEA;border:1.5px solid #E3B547;color:#4A3305}
+.sp-preco-fita{box-shadow:none}
+.sp-tr i{background:#fff;color:#0E4D34;border:2px solid #0E4D34}
+.sp-passo-ic{background:#FFFBEA;border:1.5px solid #E3B547;box-shadow:0 0 0 6px #fff}
+.sp-benef i{background:#FFFBEA;border:1px solid #EED593}
+.sp-res li i{background:#FFFBEA;border:1.5px solid #E3B547}
+.sp-kpi-o,.sp-pag-selo2,.sp-zera{background:#FFFBEA}
+body .sp-fundo .sp-pg :is(.sp-cab-t,.sp-capa-marca b,.sp-capa-nome b,.sp-capa-h1,.sp-capa-h1 em,.sp-capa-cliente,.sp-antes,.sp-depois,.sp-verde-k b,.sp-eq-big,.sp-comp-c b,.sp-preco-l b,.sp-preco-r em,.sp-pag-v,.sp-serif){font-family:Fraunces,Georgia,"Times New Roman",serif!important}
 @media print{
   @page{size:A4;margin:0}
   html,body{background:#fff!important}
