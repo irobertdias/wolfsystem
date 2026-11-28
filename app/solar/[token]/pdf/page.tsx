@@ -265,6 +265,18 @@ export default function PropostaSolarPDF({ params }: { params: Promise<{ token: 
 
           {r.campanha ? <div className="sp-capa-fita">{r.campanha} · condição especial</div> : null}
 
+          {/* Colinas e raios em tons claros: dá cor à capa com pouca tinta. */}
+          <svg className="sp-capa-colinas" viewBox="0 0 794 300" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <linearGradient id="cc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#D9EBDF" /><stop offset="1" stopColor="#C4DFCC" /></linearGradient>
+              <linearGradient id="cc2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#E9F3EC" /><stop offset="1" stopColor="#D3E7DA" /></linearGradient>
+            </defs>
+            {Array.from({ length: 9 }).map((_, i) => { const a = Math.PI + (i + 1) * (Math.PI / 10); return <line key={i} x1={640 + Math.cos(a) * 70} y1={150 + Math.sin(a) * 70} x2={640 + Math.cos(a) * 125} y2={150 + Math.sin(a) * 125} stroke="#F1D98B" strokeWidth="5" strokeLinecap="round" />; })}
+            <circle cx="640" cy="150" r="52" fill="#F8E7A8" />
+            <path d="M0 170 C 180 110, 360 120, 520 165 S 760 190, 794 150 L 794 300 L 0 300 Z" fill="url(#cc2)" />
+            <path d="M0 225 C 160 175, 330 190, 470 220 S 700 250, 794 205 L 794 300 L 0 300 Z" fill="url(#cc1)" />
+            <path d="M0 262 C 200 236, 420 246, 794 255" fill="none" stroke="#E3B547" strokeWidth="2" opacity=".6" />
+          </svg>
           <div className="sp-capa-rod">{rodape}</div>
         </section>
 
@@ -742,8 +754,10 @@ const CSS = `
 body .sp-fundo *:not(code):not(pre):not(kbd):not(samp):not(.font-mono){font-family:Manrope,system-ui,sans-serif!important}
 /* ═══ VERSÃO CLEAN (pouca tinta): fundo branco, só filetes e textos em verde/dourado ═══ */
 .sp-pg{background:#fff}
-.sp-capa{background:#fff;color:#10241B;padding:0}
-.sp-capa:before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:linear-gradient(90deg,#0E4D34,#E3B547)}
+.sp-capa{background:linear-gradient(180deg,#FFFFFF 0%,#FFFFFF 30%,#FBF8EE 62%,#F3F8F4 100%);color:#10241B;padding:0}
+.sp-capa:before{content:"";position:absolute;left:0;right:0;top:0;height:14px;background:linear-gradient(90deg,#0E4D34,#2E7D4F 55%,#E3B547)}
+.sp-capa-colinas{position:absolute;left:0;right:0;bottom:0;width:100%;height:300px;z-index:0}
+.sp-capa-kpis,.sp-capa-rod{z-index:2}
 .sp-capa-topo{padding:44px 58px 0;align-items:center}
 .sp-capa-tag{font:800 11px Manrope;letter-spacing:.26em;text-transform:uppercase;color:#0E4D34}
 .sp-capa-num{color:#7A867F}
@@ -763,10 +777,11 @@ body .sp-fundo *:not(code):not(pre):not(kbd):not(samp):not(.font-mono){font-fami
 .sp-capa-kpis div{background:#fff;border:1px solid #DCE7E0}
 .sp-capa-kpis b{color:#0B3324}
 .sp-capa-kpis span{color:#5B6B63;opacity:1}
-.sp-capa-kpis .sp-ouro{background:#FFFBEA;border:1.5px solid #E3B547}
+.sp-capa-kpis div{box-shadow:0 6px 18px -12px rgba(14,77,52,.35)}
+.sp-capa-kpis .sp-ouro{background:#FBEFC8;border:1.5px solid #E3B547}
 .sp-capa-kpis .sp-ouro b{color:#6B4A0C}.sp-capa-kpis .sp-ouro span{color:#6B4A0C}
 .sp-capa-fita{top:96px;right:-62px;padding:6px 70px;font-size:10px;box-shadow:none}
-.sp-capa-rod{color:#7A867F;border-top:1px solid #ECE7DA;margin:0 58px;padding-top:12px}
+.sp-capa-rod{color:#0B3324;font-weight:700;margin:0 58px}
 /* blocos que eram verde-escuro viram claros com borda */
 .sp-heroi{background:#F3F8F5;border:1.5px solid #CFE5D8;color:#10241B}
 .sp-heroi:after{display:none}
